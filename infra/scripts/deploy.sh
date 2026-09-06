@@ -89,7 +89,11 @@ if [ "${SKIP_IMAGE_PROVENANCE_CHECK:-false}" != "true" ]; then
   [ "$frontend_contract" = "$OPENAPI_SHA256" ] || { echo "ERROR: contrat OpenAPI frontend incompatible."; exit 1; }
 fi
 
-postgres_was_running="$(docker inspect sovrack-postgres --format '{{.State.Running}}' 2>/dev/null || true)"
+postgres_container_id="$(compose ps --quiet postgres 2>/dev/null || true)"
+postgres_was_running="false"
+if [ -n "$postgres_container_id" ]; then
+  postgres_was_running="$(docker inspect "$postgres_container_id" --format '{{.State.Running}}')"
+fi
 if [ "$postgres_was_running" = "true" ]; then
   postgres_user="$(compose exec -T postgres printenv POSTGRES_USER)"
   postgres_db="$(compose exec -T postgres printenv POSTGRES_DB)"
@@ -115,7 +119,12 @@ compose stop -t 60 frontend backend >/dev/null 2>&1 || true
 docker stop -t 60 sovrack-worker >/dev/null 2>&1 || true
 
 if [ "$postgres_was_running" = "true" ]; then
+  previous_release_id="unmanaged"
+  if [ -L "$BASE_DIR/current" ]; then
+    previous_release_id="$(basename "$(realpath "$BASE_DIR/current")")"
+  fi
   RELEASE_FILE="$RELEASE_FILE" BACKUP_DIR="$SHARED_DIR/backups" \
+    BACKUP_RELEASE_ID_OVERRIDE="$previous_release_id" \
     "$ROOT/scripts/backup.sh"
 else
   echo "First installation: no existing database to back up."
@@ -153,10 +162,27 @@ rm -f "$MAINTENANCE_DIR/enabled"
 maintenance_enabled=false
 
 domain="$(read_env_value DOMAIN "$SECRETS_ENV")"
+allow_self_signed_tls="$(read_env_value ALLOW_SELF_SIGNED_TLS "$SECRETS_ENV")"
+case "${allow_self_signed_tls:-false}" in
+  true|false) ;;
+  *)
+    echo "ERROR: ALLOW_SELF_SIGNED_TLS doit valoir true ou false."
+    exit 1
+    ;;
+esac
 # shellcheck disable=SC2016
 if compose exec -T nginx sh -c 'test -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"'; then
-  curl --fail --show-error --silent --max-time 20 \
-    "https://$domain/backend-api/health" >/dev/null
+  curl_options=(
+    --fail
+    --show-error
+    --silent
+    --max-time 20
+    --resolve "$domain:443:127.0.0.1"
+  )
+  if [ "${allow_self_signed_tls:-false}" = "true" ]; then
+    curl_options+=(--insecure)
+  fi
+  curl "${curl_options[@]}" "https://$domain/backend-api/health" >/dev/null
 else
   echo "TLS certificate absent: public HTTPS smoke test deferred until certbot."
 fi

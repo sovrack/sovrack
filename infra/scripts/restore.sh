@@ -113,7 +113,11 @@ mkdir -p "$SHARED_DIR/backups" "$SHARED_DIR/release-manifests" "$MAINTENANCE_DIR
 chmod 700 "$SHARED_DIR/backups" "$SHARED_DIR/release-manifests" "$MAINTENANCE_DIR"
 compose config -q
 compose pull "${pull_services[@]}"
-postgres_was_running="$(docker inspect sovrack-postgres --format '{{.State.Running}}' 2>/dev/null || true)"
+postgres_container_id="$(compose ps --quiet postgres 2>/dev/null || true)"
+postgres_was_running="false"
+if [ -n "$postgres_container_id" ]; then
+  postgres_was_running="$(docker inspect "$postgres_container_id" --format '{{.State.Running}}')"
+fi
 if [ "$postgres_was_running" != "true" ]; then
   compose up -d --wait --wait-timeout 180 postgres redis
 fi

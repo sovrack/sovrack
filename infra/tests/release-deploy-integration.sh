@@ -19,6 +19,8 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p "$RELEASE_ROOT" "$BASE_DIR/shared"
+mkdir -p "$BASE_DIR/releases/previous-release"
+ln -s "$BASE_DIR/releases/previous-release" "$BASE_DIR/current"
 cp -R "$SOURCE_ROOT/." "$RELEASE_ROOT/"
 infra_commit="$(git -C "$SOURCE_ROOT" rev-parse HEAD)"
 printf '%s\n' "$infra_commit" > "$RELEASE_ROOT/.infra-commit"
@@ -38,6 +40,7 @@ STAFF_ROOT_PASSWORD=staff-test-password-000000000
 MIN_HOST_MEMORY_MB=1
 MIN_HOST_FREE_DISK_MB=1
 ALLOW_UNDERSIZED_HOST=true
+ALLOW_SELF_SIGNED_TLS=false
 EOF
 chmod 600 "$BASE_DIR/shared/.env"
 
@@ -72,5 +75,8 @@ cmp -s "$manifest" "$BASE_DIR/shared/release-manifests/$RELEASE_ID.manifest"
 [ ! -e "$BASE_DIR/shared/maintenance/enabled" ]
 [ "$(docker inspect sovrack-release-test-backend-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | awk -F= '$1 == "PROCESS_ROLE" { print $2 }')" = "all" ]
 [ -z "$(docker ps -q --filter name=sovrack-release-test-worker-1)" ]
+backup_metadata="$(find "$BASE_DIR/shared/backups" -maxdepth 1 -name 'sovrack-*.sql.gz.metadata' -type f | sort | sed -n '1p')"
+[ -n "$backup_metadata" ]
+[ "$(awk -F= '$1 == "RELEASE_ID" { print $2 }' "$backup_metadata")" = "previous-release" ]
 
 echo "Immutable release deployment integration test passed."

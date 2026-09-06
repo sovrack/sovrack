@@ -58,8 +58,16 @@ if [ "$migrations_table" = "t" ]; then
 fi
 
 release_id="unmanaged"
-backend_image="$(docker inspect sovrack-backend --format '{{.Config.Image}}' 2>/dev/null || true)"
-frontend_image="$(docker inspect sovrack-frontend --format '{{.Config.Image}}' 2>/dev/null || true)"
+backend_container_id="$(compose ps --all --quiet backend 2>/dev/null || true)"
+frontend_container_id="$(compose ps --all --quiet frontend 2>/dev/null || true)"
+backend_image=""
+frontend_image=""
+if [ -n "$backend_container_id" ]; then
+  backend_image="$(docker inspect "$backend_container_id" --format '{{.Config.Image}}')"
+fi
+if [ -n "$frontend_container_id" ]; then
+  frontend_image="$(docker inspect "$frontend_container_id" --format '{{.Config.Image}}')"
+fi
 if [ -n "${RELEASE_FILE:-}" ]; then
   validate_release_manifest "$RELEASE_FILE"
   release_id="$(read_env_value RELEASE_ID "$RELEASE_FILE")"

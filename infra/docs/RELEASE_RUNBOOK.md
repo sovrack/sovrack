@@ -128,7 +128,10 @@ sudo -u deploy SOVRACK_BASE_DIR=/srv/sovrack \
 ```
 
 Le fichier `.metadata` du dump doit annoncer la même migration que le manifeste
-de l'ancienne release. `restore.sh --mode exact` ne lance jamais le migrateur.
+de l'ancienne release. Le déploiement étiquette le backup avec la release
+réellement active avant la bascule (ou `unmanaged` lors de la première
+transition depuis l'ancien layout). `restore.sh --mode exact` ne lance jamais
+le migrateur.
 La baseline R0 utilise `RUNTIME_TOPOLOGY=legacy-single`, afin que l'ancien
 backend reste l'unique consommateur de jobs. Sur le VPS 3,8 Gio, les releases
 Phase 2 utilisent `RUNTIME_TOPOLOGY=compact` et `PROCESS_ROLE=all`. Le mode
