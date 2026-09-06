@@ -22,8 +22,15 @@ compte de service `gitlab-runner`, sur la VM.
 
 Le compte de service appartient au groupe Docker, mais les conteneurs de jobs
 ne reçoivent jamais la socket Docker de l'hôte. Le démon conserve ses journaux
-avec rotation et `live-restore`. SSH accepte uniquement la clé publique depuis
-le réseau libvirt local ; UFW refuse tout autre trafic entrant.
+avec rotation et `live-restore`. SSH accepte uniquement les clés publiques.
+UFW autorise le port 22 depuis le réseau libvirt local et, lorsque la cible de
+staging est cette même VM, depuis le sous-réseau exact du bridge Docker utilisé
+par le runner de déploiement. Ne pas ouvrir globalement `172.16.0.0/12` : les
+réseaux applicatifs n'ont pas à joindre le SSH de l'hôte.
+
+Le client SSH des jobs utilise des délais bornés, le mode non interactif et la
+vérification stricte de la clé hôte. Une erreur de routage ou de pare-feu échoue
+donc rapidement au lieu de bloquer une promotion pendant plusieurs minutes.
 
 ## Cache local
 

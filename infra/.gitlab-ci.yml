@@ -101,6 +101,16 @@ package:release:
     - chmod 600 ~/.ssh/id_ed25519
     - printf '%s\n' "$TARGET_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
     - chmod 600 ~/.ssh/known_hosts
+    - |
+      printf '%s\n' \
+        'Host *' \
+        '  BatchMode yes' \
+        '  ConnectTimeout 15' \
+        '  ConnectionAttempts 2' \
+        '  ServerAliveInterval 15' \
+        '  ServerAliveCountMax 3' \
+        '  StrictHostKeyChecking yes' > ~/.ssh/config
+    - chmod 600 ~/.ssh/config
   script:
     - bundle="sovrack-infra-$CI_COMMIT_SHA.tar.gz"
     - 'tar -xOf "$bundle" ./release.manifest | grep -Eqx "RUNTIME_TOPOLOGY=(split|compact)" || { echo "ERROR: une baseline legacy ne peut pas être promue par ce job"; exit 1; }'
