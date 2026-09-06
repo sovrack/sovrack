@@ -31,7 +31,8 @@ ARG OPENAPI_SHA256=unknown
 LABEL org.opencontainers.image.revision="$VCS_REF" \
       tech.sovrack.openapi.sha256="$OPENAPI_SHA256"
 
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN apk upgrade --no-cache && \
+    addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 

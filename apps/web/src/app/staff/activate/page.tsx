@@ -23,18 +23,20 @@ export default function StaffActivationPage() {
 
 function StaffActivationForm() {
   const searchParams = useSearchParams();
-  const token = searchParams.get("token") ?? "";
+  const [email, setEmail] = useState(searchParams.get("email") ?? "");
+  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [activated, setActivated] = useState(false);
+  const [codeRequested, setCodeRequested] = useState(false);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
-    if (!token) {
-      setError("Le lien d’invitation est incomplet.");
+    if (code.length !== 8) {
+      setError("Le code doit contenir exactement 8 chiffres.");
       return;
     }
     if (!isSovrackPassword(password)) {
@@ -47,11 +49,28 @@ function StaffActivationForm() {
     }
     setSubmitting(true);
     try {
-      await staffService.acceptStaffInvitation(token, password);
+      await staffService.acceptStaffInvitation(email, code, password);
       setActivated(true);
       window.history.replaceState(null, "", "/staff/activate");
     } catch (activationError) {
       setError(getApiErrorMessage(activationError));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const requestCode = async () => {
+    setError("");
+    if (!email.trim()) {
+      setError("Saisissez votre adresse email Staff.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await staffService.requestActivationCode(email);
+      setCodeRequested(true);
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError));
     } finally {
       setSubmitting(false);
     }
@@ -77,7 +96,7 @@ function StaffActivationForm() {
             <CheckCircle2 className="mb-4 text-green-400" size={34} />
             <h1 className="text-xl font-bold text-white">Compte activé</h1>
             <p className="mt-2 text-sm text-zinc-400">
-              Le lien est maintenant consommé. Vous pouvez vous connecter avec
+              Le code est maintenant consommé. Vous pouvez vous connecter avec
               votre nouveau mot de passe.
             </p>
             <Link
@@ -94,10 +113,42 @@ function StaffActivationForm() {
                 Choisir votre mot de passe
               </h1>
               <p className="mt-1 text-sm text-zinc-400">
-                Le lien est valable 24 heures et ne peut être utilisé qu’une
-                fois.
+                Saisissez le code à 8 chiffres reçu par email, puis choisissez
+                votre premier mot de passe. Le code expire après 10 minutes.
               </p>
             </div>
+
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium text-zinc-400">
+                Email Staff
+              </span>
+              <input
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium text-zinc-400">
+                Code d’activation
+              </span>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]{8}"
+                maxLength={8}
+                required
+                value={code}
+                onChange={(event) =>
+                  setCode(event.target.value.replace(/\D/g, ""))
+                }
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-center text-lg tracking-[0.35em] outline-none focus:border-blue-500"
+              />
+            </label>
 
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium text-zinc-400">
@@ -136,11 +187,21 @@ function StaffActivationForm() {
 
             <button
               type="submit"
-              disabled={submitting || !token}
+              disabled={submitting || code.length !== 8}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
             >
               <KeyRound size={16} />
               {submitting ? "Activation…" : "Activer mon compte"}
+            </button>
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={() => void requestCode()}
+              className="w-full text-sm font-medium text-sky-400 hover:text-sky-300 disabled:opacity-40"
+            >
+              {codeRequested
+                ? "Code demandé — vérifiez votre email"
+                : "Demander un nouveau code"}
             </button>
           </form>
         )}

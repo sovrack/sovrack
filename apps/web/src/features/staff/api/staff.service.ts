@@ -123,7 +123,7 @@ export const staffService = {
   createStaff: async (body: {
     email: string;
     fullName: string;
-    role?: PlatformRole;
+    role?: Exclude<PlatformRole, "ROOT">;
   }): Promise<StaffUser> => {
     const res = await api.post<StaffUser>("/staff/staff", body);
     return res.data;
@@ -132,10 +132,9 @@ export const staffService = {
   updateStaff: async (
     id: string,
     body: {
-      role?: PlatformRole;
+      role?: Exclude<PlatformRole, "ROOT">;
       status?: StaffStatus;
       fullName?: string;
-      password?: string;
     },
   ): Promise<StaffUser> => {
     const res = await api.patch<StaffUser>(`/staff/staff/${id}`, body);
@@ -150,13 +149,25 @@ export const staffService = {
   },
 
   acceptStaffInvitation: async (
-    token: string,
+    email: string,
+    code: string,
     password: string,
   ): Promise<{ message: string }> => {
     const res = await api.post<{ message: string }>("/staff/activate", {
-      token,
+      email,
+      code,
       password,
     });
+    return res.data;
+  },
+
+  requestActivationCode: async (
+    email: string,
+  ): Promise<{ message: string }> => {
+    const res = await api.post<{ message: string }>(
+      "/staff/request-activation-code",
+      { email },
+    );
     return res.data;
   },
 

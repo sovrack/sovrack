@@ -17,16 +17,14 @@ import { getApiErrorMessage } from "@/shared/lib/api";
 import { sshKeysService } from "@/features/ssh-keys/api/ssh-keys.service";
 import { useSshKeys } from "@/features/ssh-keys/api/use-ssh-keys";
 import type { SshKey } from "@/features/ssh-keys/types/ssh-key";
+import {
+  generateSshKeyPair,
+  type GeneratedSshKey,
+} from "@/features/ssh-keys/lib/generate-ssh-key";
 
 type KeyType = "ed25519" | "rsa";
 
 type GenerateState = "idle" | "generating" | "done";
-
-type GeneratedKey = {
-  privateKey: string;
-  publicKey: string;
-  keyType: KeyType;
-};
 
 function copyToClipboard(text: string) {
   void navigator.clipboard.writeText(text);
@@ -40,16 +38,6 @@ function downloadText(filename: string, content: string) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
-}
-
-async function generateKeyPair(type: KeyType): Promise<GeneratedKey> {
-  const res = await fetch("/api/generate-ssh-key", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type }),
-  });
-  if (!res.ok) throw new Error("Key generation failed");
-  return res.json() as Promise<GeneratedKey>;
 }
 
 type DialogProps = {
@@ -87,7 +75,7 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
     setKeyType(type);
     setError(null);
     try {
-      const generated = await generateKeyPair(type);
+      const generated: GeneratedSshKey = await generateSshKeyPair(type);
       setPrivateKey(generated.privateKey);
       setPublicKey(generated.publicKey);
       setKeyType(generated.keyType);

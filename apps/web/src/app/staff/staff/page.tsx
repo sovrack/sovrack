@@ -15,6 +15,8 @@ const ROLE_LABELS: Record<PlatformRole, string> = {
   OPERATOR: "Opérateur",
 };
 
+const ASSIGNABLE_ROLES = ["ADMIN", "OPERATOR"] as const;
+
 const STATUS_LABELS: Record<StaffStatus, string> = {
   INVITED: "Invitation en attente",
   ACTIVE: "Actif",
@@ -31,7 +33,7 @@ export default function StaffAccountsPage() {
   const [form, setForm] = useState({
     email: "",
     fullName: "",
-    role: "OPERATOR" as PlatformRole,
+    role: "OPERATOR" as (typeof ASSIGNABLE_ROLES)[number],
   });
   const [formError, setFormError] = useState("");
 
@@ -78,8 +80,13 @@ export default function StaffAccountsPage() {
   });
 
   const roleMutation = useMutation({
-    mutationFn: ({ id, role }: { id: string; role: PlatformRole }) =>
-      staffService.updateStaff(id, { role }),
+    mutationFn: ({
+      id,
+      role,
+    }: {
+      id: string;
+      role: Exclude<PlatformRole, "ROOT">;
+    }) => staffService.updateStaff(id, { role }),
     onSuccess: invalidate,
   });
 
@@ -163,11 +170,14 @@ export default function StaffAccountsPage() {
             <select
               value={form.role}
               onChange={(e) =>
-                setForm({ ...form, role: e.target.value as PlatformRole })
+                setForm({
+                  ...form,
+                  role: e.target.value as (typeof ASSIGNABLE_ROLES)[number],
+                })
               }
               className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
             >
-              {(Object.keys(ROLE_LABELS) as PlatformRole[]).map((r) => (
+              {ASSIGNABLE_ROLES.map((r) => (
                 <option key={r} value={r}>
                   {ROLE_LABELS[r]}
                 </option>
@@ -214,13 +224,16 @@ export default function StaffAccountsPage() {
                     onChange={(e) =>
                       roleMutation.mutate({
                         id: s.id,
-                        role: e.target.value as PlatformRole,
+                        role: e.target.value as Exclude<PlatformRole, "ROOT">,
                       })
                     }
                     disabled={!canManage || roleMutation.isPending}
                     className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1 text-xs font-medium text-white focus:border-blue-500 focus:outline-none"
                   >
-                    {(Object.keys(ROLE_LABELS) as PlatformRole[]).map((r) => (
+                    {(s.role === "ROOT"
+                      ? (["ROOT"] as const)
+                      : ASSIGNABLE_ROLES
+                    ).map((r) => (
                       <option key={r} value={r}>
                         {ROLE_LABELS[r]}
                       </option>

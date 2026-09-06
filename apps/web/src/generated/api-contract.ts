@@ -5881,8 +5881,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Accepter une invitation staff à usage unique */
+        /** Activer un compte staff avec le code reçu par email */
         post: operations["StaffController_acceptInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/request-activation-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Demander un nouveau code d'activation Staff */
+        post: operations["StaffController_requestActivationCode"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6823,6 +6840,11 @@ export interface components {
         };
         StartServerSetupDto: {
             /**
+             * @default runtime-minimal
+             * @enum {string}
+             */
+            profile?: "runtime-minimal" | "observability-agent" | "build-runner" | "full-dev";
+            /**
              * @description Executor mode for GitLab Runner. docker implies Docker dependency.
              * @example docker
              */
@@ -7488,9 +7510,21 @@ export interface components {
             password: string;
         };
         AcceptStaffInvitationDto: {
-            /** @description Jeton reçu dans l'email d'invitation */
-            token: string;
+            /**
+             * Format: email
+             * @example admin@sovrack.tech
+             */
+            email: string;
+            /** @example 12345678 */
+            code: string;
             password: string;
+        };
+        RequestStaffActivationCodeDto: {
+            /**
+             * Format: email
+             * @example admin@sovrack.tech
+             */
+            email: string;
         };
         CreateStaffDto: {
             /**
@@ -7501,22 +7535,24 @@ export interface components {
             /** @example Sami Ben Salah */
             fullName: string;
             /**
+             * @description ROOT est réservé au bootstrap initial et n’est pas délégable
              * @default OPERATOR
              * @enum {string}
              */
-            role?: "ROOT" | "ADMIN" | "OPERATOR";
+            role?: "ADMIN" | "OPERATOR";
         };
         UpdateStaffDto: {
-            /** @enum {string} */
-            role?: "ROOT" | "ADMIN" | "OPERATOR";
+            /**
+             * @description Le rôle ROOT est immuable et réservé au bootstrap initial
+             * @enum {string}
+             */
+            role?: "ADMIN" | "OPERATOR";
             /**
              * @description Statut du compte staff (ACTIVE / DISABLED / BLOCKED)
              * @enum {string}
              */
             status?: "ACTIVE" | "DISABLED" | "BLOCKED";
             fullName?: string;
-            /** @description Nouveau mot de passe (optionnel) */
-            password?: string;
         };
         UpdateStaffEmailSettingsDto: {
             enabled: boolean;
@@ -17921,6 +17957,27 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["AcceptStaffInvitationDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffController_requestActivationCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestStaffActivationCodeDto"];
             };
         };
         responses: {
