@@ -35,7 +35,7 @@ docker compose version >/dev/null 2>&1
 
 required_keys=(
   DOMAIN POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB REDIS_PASSWORD
-  JWT_SECRET STAFF_JWT_SECRET CONFIG_SECRET
+  JWT_SECRET STAFF_JWT_SECRET STAFF_OTP_SECRET CONFIG_SECRET
 )
 for key in "${required_keys[@]}"; do
   require_single_env_key "$key" "$SECRETS_ENV"
@@ -46,7 +46,7 @@ if grep -qE '(change_me_|CHANGE_ME_|REPLACE_WITH_|Dev_Test_Only_1192)' "$SECRETS
   exit 1
 fi
 
-for key in POSTGRES_PASSWORD REDIS_PASSWORD JWT_SECRET STAFF_JWT_SECRET CONFIG_SECRET; do
+for key in POSTGRES_PASSWORD REDIS_PASSWORD JWT_SECRET STAFF_JWT_SECRET STAFF_OTP_SECRET CONFIG_SECRET; do
   value="$(read_env_value "$key" "$SECRETS_ENV")"
   [ "${#value}" -ge 24 ] || {
     echo "ERROR: $key doit contenir au moins 24 caractères."
@@ -55,6 +55,14 @@ for key in POSTGRES_PASSWORD REDIS_PASSWORD JWT_SECRET STAFF_JWT_SECRET CONFIG_S
 done
 [ "$(read_env_value JWT_SECRET "$SECRETS_ENV")" != "$(read_env_value STAFF_JWT_SECRET "$SECRETS_ENV")" ] || {
   echo "ERROR: JWT_SECRET et STAFF_JWT_SECRET doivent être indépendants."
+  exit 1
+}
+[ "$(read_env_value JWT_SECRET "$SECRETS_ENV")" != "$(read_env_value STAFF_OTP_SECRET "$SECRETS_ENV")" ] || {
+  echo "ERROR: JWT_SECRET et STAFF_OTP_SECRET doivent être indépendants."
+  exit 1
+}
+[ "$(read_env_value STAFF_JWT_SECRET "$SECRETS_ENV")" != "$(read_env_value STAFF_OTP_SECRET "$SECRETS_ENV")" ] || {
+  echo "ERROR: STAFF_JWT_SECRET et STAFF_OTP_SECRET doivent être indépendants."
   exit 1
 }
 

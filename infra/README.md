@@ -66,18 +66,17 @@ Les identifiants déterministes sont définis dans le seed local du backend. Ils
 ne doivent jamais être copiés dans un environnement partagé ou de production.
 
 Le premier compte staff de production est une opération distincte et unique.
-Son mot de passe est demandé sans écho et n'est ni ajouté à `.env`, ni placé
-dans les arguments du processus :
+SMTP doit déjà être opérationnel : la commande crée le ROOT en état `INVITED`
+et lui remet un code à usage unique de 8 chiffres, valable 10 minutes :
 
 ```bash
 sudo -u deploy make -C /srv/sovrack/current bootstrap-staff \
   BASE_DIR=/srv/sovrack EMAIL=root@example.com
 ```
 
-Après connexion, le `ROOT` configure l'envoi dans
-`/staff/settings/email`, teste le transport, puis invite les autres comptes
-staff. Les comptes invités choisissent eux-mêmes leur mot de passe via un lien
-à usage unique de 24 heures.
+Le destinataire ouvre `/staff/activate`, saisit l'adresse et le code, puis
+choisit son premier mot de passe. Aucun mot de passe initial n'est produit par
+l'opérateur ou conservé dans l'infrastructure.
 
 ```bash
 # Validation sans secret réel
@@ -90,7 +89,7 @@ make test-scripts
 # Shell statique via l'image utilisée en CI
 docker run --rm -v "$PWD:/mnt:ro" -w /mnt \
   koalaman/shellcheck-alpine:v0.11.0@sha256:9955be09ea7f0dbf7ae942ac1f2094355bb30d96fffba0ec09f5432207544002 \
-  -x scripts/*.sh tests/*.sh
+  shellcheck -x scripts/*.sh tests/*.sh
 ```
 
 ## Première transition depuis le layout historique

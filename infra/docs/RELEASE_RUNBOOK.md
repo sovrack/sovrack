@@ -43,6 +43,8 @@ migration, les contrôles de schéma et les healthchecks.
 7. Le runner CI ne se trouve pas sur le VPS applicatif.
 8. Le preflight capacité réussit sans `ALLOW_UNDERSIZED_HOST=true`.
 9. Une release précédente compatible et son manifeste sont archivés.
+10. Chaque environnement possède un deploy token GitLab distinct, limité à
+    `read_registry`, protégé, masqué et assorti d'une date d'expiration.
 
 ## Qualification locale lorsque staging n'est pas disponible
 
@@ -74,41 +76,44 @@ GitLab.
 
 Le script applique cet ordre :
 
-1. vérification stricte du manifeste, des secrets et de la capacité ;
-2. téléchargement des images avant la maintenance ;
-3. activation de la page de maintenance ;
-4. arrêt du frontend, de l'API et du worker ;
-5. sauvegarde finale sans writer, checksum et métadonnées ;
-6. application éventuelle de la configuration PostgreSQL/Redis ;
-7. exécution unique du migrateur ;
-8. vérification exacte de `SCHEMA_MIGRATION` et absence de migration échouée ;
-9. démarrage du backend (`all` en compact, API + worker en split), du frontend et de Nginx ;
-10. healthchecks internes puis smoke test HTTPS ;
-11. archivage du manifeste et bascule atomique de `current`.
+1. connexion temporaire au registre avec le deploy token en lecture seule de
+   l'environnement ;
+2. vérification stricte du manifeste, des secrets et de la capacité ;
+3. téléchargement des images avant la maintenance ;
+4. activation de la page de maintenance ;
+5. arrêt du frontend, de l'API et du worker ;
+6. sauvegarde finale sans writer, checksum et métadonnées ;
+7. application éventuelle de la configuration PostgreSQL/Redis ;
+8. exécution unique du migrateur ;
+9. vérification exacte de `SCHEMA_MIGRATION` et absence de migration échouée ;
+10. démarrage du backend (`all` en compact, API + worker en split), du frontend et de Nginx ;
+11. healthchecks internes puis smoke test HTTPS ;
+12. archivage du manifeste, bascule atomique de `current`, puis suppression de
+    l'authentification locale au registre sur la cible.
 
 Une erreur après l'ouverture de la maintenance laisse volontairement les
 writers arrêtés. Aucun rollback d'image automatique n'est tenté.
 
 ## Bootstrap et administration staff
 
-Après la toute première release uniquement, créer le premier `ROOT` avec un
-secret éphémère :
+Après la toute première release uniquement, et après validation SMTP, inviter
+le premier `ROOT` :
 
 ```bash
 sudo -u deploy make -C /srv/sovrack/current bootstrap-staff \
   BASE_DIR=/srv/sovrack EMAIL=root@example.com
 ```
 
-La commande refuse les releases non versionnées. En automatisation, le mot de
-passe peut être lu depuis `STAFF_BOOTSTRAP_PASSWORD_FILE`, fichier régulier non
-symbolique en mode `0400` ou `0600`, puis supprimé de façon sécurisée par
-l'opérateur. Ne jamais définir `STAFF_ROOT_PASSWORD` dans le fichier partagé.
+La commande refuse les releases non versionnées. Elle crée le compte en état
+`INVITED`, envoie un code de 8 chiffres valable 10 minutes puis le destinataire
+choisit son premier mot de passe dans `/staff/activate`. Aucun mot de passe
+initial n'est demandé, affiché ou stocké.
 
-Le `ROOT` configure ensuite SMTP dans `/staff/settings/email`. Le mot de passe
-reste en écriture seule et chiffré avec `CONFIG_SECRET`. Un `ADMIN` peut voir
-l'état sûr et exécuter le test, mais seul un `ROOT` peut modifier la
-configuration ou inviter un autre membre du staff. Les invitations expirent
-après 24 heures, sont à usage unique et ne stockent que le hachage du jeton.
+Le mot de passe SMTP reste en écriture seule et chiffré avec `CONFIG_SECRET`
+lorsqu'il est ensuite géré depuis le back-office. Un `ADMIN` peut voir l'état
+sûr et exécuter le test, mais seul un `ROOT` peut modifier la configuration ou
+inviter un autre membre du staff. Les codes sont à usage unique et seule leur
+empreinte HMAC est stockée.
 
 ## Rollback de schéma
 
@@ -169,19 +174,44 @@ et puissent être soumis à la même politique de rétention.
 
 Le monitoring reste utilisable localement sans destinataire externe. Pour
 activer le récepteur Prometheus GitLab, créer l'intégration dans
-`Settings > Monitor > Alerts`, puis déposer ses deux valeurs hors Git :
+`Settings > Monitor > Alerts`, puis déposer ses deux valeurs hors Git. Lorsque
+le script est lancé par `root`, le chemin par défaut est :
 
 ```text
 /opt/monitoring/secrets/gitlab-alert-url
 /opt/monitoring/secrets/gitlab-alert-token
 ```
 
-Les fichiers doivent appartenir à l'UID/GID de runtime non privilégié
-`65534:65534` avec le mode `0600`. Le script
+Lorsque le script est lancé par un compte non privilégié, il utilise plutôt
+`~/.local/share/sovrack-monitoring/secrets/`. Les fichiers doivent appartenir
+à l'UID/GID de runtime choisi avec le mode `0600`. Le script
 `install-external-monitoring.sh` applique ces permissions, détecte la paire
 complète, monte les secrets en lecture seule et route toutes les alertes
 opérationnelles vers GitLab. Le watchdog reste volontairement local afin de ne
 pas créer une alerte permanente.
+
+La VM d'exploitation conserve par défaut 14 jours de métriques, avec une borne
+de 2 Go. Une alerte synthétique doit être envoyée et résolue dans GitLab après
+chaque changement du récepteur ; une configuration syntaxiquement valide ne
+prouve pas, à elle seule, que la notification est livrée.
+
+### Copie chiffrée hors VPS
+
+La VM d'exploitation tire la dernière sauvegarde vérifiée via une clé SSH
+dédiée à commande forcée. La clé ne permet ni shell ni commande arbitraire sur
+le VPS. `pull-offsite-backup.sh` chiffre ensuite les artefacts dans Restic,
+applique la rétention, exécute `restic check` et restaure le dernier snapshot
+dans un dossier éphémère pour en revérifier le checksum et le gzip.
+
+Installer le timer sur la VM uniquement après avoir préparé
+`/opt/sovrack-offsite/{id_ed25519,known_hosts,restic-password}` et la commande
+forcée côté VPS :
+
+```bash
+sudo ./scripts/install-offsite-backup-timer.sh ./scripts/pull-offsite-backup.sh
+sudo systemctl start sovrack-offsite-backup.service
+sudo systemctl status sovrack-offsite-backup.service
+```
 
 ## TLS
 

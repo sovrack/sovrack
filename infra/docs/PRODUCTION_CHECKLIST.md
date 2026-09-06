@@ -1,9 +1,9 @@
 # Checklist de production
 
-## Bloquants avant `v2.0.0-rc.1`
+## Bloquants avant la prochaine release candidate
 
 - [ ] Risque des secrets publiés explicitement accepté par le propriétaire ; aucune valeur ne doit entrer dans Git ou les logs.
-- [ ] Les trois anciens runners du VPS sont révoqués.
+- [ ] Tous les anciens runners sont révoqués et aucun runner ne tourne sur le VPS applicatif.
 - [ ] Les nouveaux runners séparés portent les tags attendus.
 - [ ] La qualification locale rejoue le bundle exact avec les limites du VPS.
 - [ ] La topologie `compact` passe le test de charge sans exception de capacité.
@@ -11,10 +11,11 @@
 - [ ] Le renouvellement TLS du volume Docker passe en dry-run.
 - [ ] Le backup local, le backup Restic et la restauration isolée réussissent.
 - [ ] La baseline R0 (schéma 105 + anciens digests) est archivée.
-- [ ] Le premier `ROOT` a été créé par `make bootstrap-staff` sans secret dans `.env`.
+- [ ] L'état du `ROOT` existant a été contrôlé sans l'écraser ; `bootstrap-staff` n'est utilisé que s'il est réellement absent.
 - [ ] SMTP a été configuré depuis `/staff/settings/email`, limité au fournisseur attendu et testé.
+- [ ] La récupération du `ROOT` via `admin@sovrack.tech` et sa redirection OVH a été testée de bout en bout.
 - [ ] SPF, DKIM et DMARC sont publiés pour le domaine d'envoi.
-- [ ] Un second `ROOT` nominatif a activé son invitation et sa connexion a été vérifiée.
+- [ ] Le ROOT a validé la récupération par code ; l'ouverture publique reste conditionnée à une MFA staff effective.
 
 ## Validation RC
 

@@ -15,7 +15,7 @@ help: ## Affiche l'aide
 bootstrap: ## Initialise les dossiers + .env (1ère fois)
 	./scripts/bootstrap.sh
 
-bootstrap-staff: ## Crée le premier ROOT via un secret éphémère (EMAIL=...)
+bootstrap-staff: ## Invite le premier ROOT par code email (EMAIL=...)
 	SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/bootstrap-staff.sh "$(EMAIL)"
 
 config: ## Affiche la config résolue de la release active

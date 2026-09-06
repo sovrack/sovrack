@@ -48,6 +48,7 @@ POSTGRES_DB=sovrack_test
 REDIS_PASSWORD=hardening-redis-password-000000000
 JWT_SECRET=hardening-jwt-secret-000000000000000000000000000000
 STAFF_JWT_SECRET=hardening-staff-jwt-secret-00000000000000000000000
+STAFF_OTP_SECRET=hardening-staff-otp-secret-00000000000000000000000
 CONFIG_SECRET=hardening-config-secret-00000000000000000000000000
 BACKEND_IMAGE=$BACKEND_IMAGE
 FRONTEND_IMAGE=$FRONTEND_IMAGE
@@ -75,6 +76,7 @@ for container in \
     | grep -q 'no-new-privileges'
   docker inspect "$container" --format '{{json .HostConfig.CapDrop}}' \
     | grep -q 'ALL'
+  [ "$(docker inspect "$container" --format '{{.HostConfig.PidsLimit}}')" -gt 0 ]
 done
 
 headers="$(curl -ksS -D - -o /dev/null \

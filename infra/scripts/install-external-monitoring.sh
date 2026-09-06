@@ -3,17 +3,32 @@
 set -euo pipefail
 umask 077
 
-[ "${EUID:-$(id -u)}" -eq 0 ] || {
-  echo "ERROR: exécuter avec sudo/root."
-  exit 1
-}
-
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MONITORING_DIR="${MONITORING_DIR:-/opt/monitoring}"
+host_uid="$(id -u)"
+host_gid="$(id -g)"
+if [ "$host_uid" -eq 0 ]; then
+  default_monitoring_dir=/opt/monitoring
+  runtime_uid=65534
+  runtime_gid=65534
+else
+  account_home="$(getent passwd "$host_uid" | cut -d: -f6)"
+  [ -n "$account_home" ] || {
+    echo "ERROR: impossible de déterminer le dossier du compte courant."
+    exit 1
+  }
+  default_monitoring_dir="$account_home/.local/share/sovrack-monitoring"
+  runtime_uid="$host_uid"
+  runtime_gid="$host_gid"
+fi
+MONITORING_DIR="${MONITORING_DIR:-$default_monitoring_dir}"
 NETWORK="${MONITORING_NETWORK:-platform_monitoring}"
 PROMETHEUS_IMAGE="${PROMETHEUS_IMAGE:-prom/prometheus@sha256:f6639335d34a77d9d9db382b92eeb7fc00934be8eae81dbc03b31cfe90411a94}"
 ALERTMANAGER_IMAGE="${ALERTMANAGER_IMAGE:-prom/alertmanager@sha256:e13b6ed5cb929eeaee733479dce55e10eb3bc2e9c4586c705a4e8da41e5eacf5}"
 BLACKBOX_IMAGE="${BLACKBOX_IMAGE:-quay.io/prometheus/blackbox-exporter@sha256:e753ff9f3fc458d02cca5eddab5a77e1c175eee484a8925ac7d524f04366c2fc}"
+NODE_EXPORTER_IMAGE="${NODE_EXPORTER_IMAGE:-prom/node-exporter@sha256:1b4e4438faca4dd7e001dd445d161a4a2091b0fededa84093b3a8dfeae1f1be0}"
+CADVISOR_IMAGE="${CADVISOR_IMAGE:-ghcr.io/google/cadvisor@sha256:763aecf1c32c2be8a1a75f9abfc2fc461005c9dbbaa39cb356b354aac1296dbe}"
+PROMETHEUS_RETENTION_TIME="${PROMETHEUS_RETENTION_TIME:-14d}"
+PROMETHEUS_RETENTION_SIZE="${PROMETHEUS_RETENTION_SIZE:-2GB}"
 BACKUP_DIR="$MONITORING_DIR/config-backups/$(date -u +%Y%m%d-%H%M%SZ)"
 SECRETS_DIR="$MONITORING_DIR/secrets"
 GITLAB_ALERT_URL_FILE="$SECRETS_DIR/gitlab-alert-url"
@@ -27,8 +42,8 @@ if [ -f "$GITLAB_ALERT_URL_FILE" ] || [ -f "$GITLAB_ALERT_TOKEN_FILE" ]; then
     exit 1
   }
   chmod 0600 "$GITLAB_ALERT_URL_FILE" "$GITLAB_ALERT_TOKEN_FILE"
-  # The pinned Alertmanager image runs as the unprivileged nobody user.
-  chown 65534:65534 "$GITLAB_ALERT_URL_FILE" "$GITLAB_ALERT_TOKEN_FILE"
+  chown "$runtime_uid:$runtime_gid" \
+    "$GITLAB_ALERT_URL_FILE" "$GITLAB_ALERT_TOKEN_FILE"
   ALERTMANAGER_CONFIG_SOURCE="$ROOT/monitoring/alertmanager.gitlab.yml"
   alertmanager_secret_mounts=(
     -v "$GITLAB_ALERT_URL_FILE:/etc/alertmanager/secrets/gitlab-alert-url:ro"
@@ -36,7 +51,12 @@ if [ -f "$GITLAB_ALERT_URL_FILE" ] || [ -f "$GITLAB_ALERT_TOKEN_FILE" ]; then
   )
 fi
 
-for image in "$PROMETHEUS_IMAGE" "$ALERTMANAGER_IMAGE" "$BLACKBOX_IMAGE"; do
+for image in \
+  "$PROMETHEUS_IMAGE" \
+  "$ALERTMANAGER_IMAGE" \
+  "$BLACKBOX_IMAGE" \
+  "$NODE_EXPORTER_IMAGE" \
+  "$CADVISOR_IMAGE"; do
   [[ "$image" =~ @sha256:[0-9a-f]{64}$ ]] || {
     echo "ERROR: toutes les images de monitoring doivent être immuables."
     exit 1
@@ -72,6 +92,8 @@ install -m 0644 "$ROOT/monitoring/blackbox.yml" \
 docker pull "$PROMETHEUS_IMAGE" >/dev/null
 docker pull "$ALERTMANAGER_IMAGE" >/dev/null
 docker pull "$BLACKBOX_IMAGE" >/dev/null
+docker pull "$NODE_EXPORTER_IMAGE" >/dev/null
+docker pull "$CADVISOR_IMAGE" >/dev/null
 
 docker run --rm \
   -v "$MONITORING_DIR/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
@@ -95,14 +117,41 @@ if docker container inspect alertmanager >/dev/null 2>&1; then
   docker cp alertmanager:/alertmanager/. "$MONITORING_DIR/alertmanager/data/" \
     >/dev/null 2>&1 || true
 fi
-chown -R 65534:65534 "$MONITORING_DIR/prometheus/data" \
+chown -R "$runtime_uid:$runtime_gid" "$MONITORING_DIR/prometheus/data" \
   "$MONITORING_DIR/alertmanager/data"
 
-for container in blackbox_exporter prometheus alertmanager; do
+for container in blackbox_exporter node_exporter cadvisor prometheus alertmanager; do
   if docker container inspect "$container" >/dev/null 2>&1; then
     docker rm -f "$container" >/dev/null
   fi
 done
+
+docker run -d --name node_exporter \
+  --restart unless-stopped \
+  --network "$NETWORK" \
+  --read-only \
+  --security-opt no-new-privileges:true \
+  --cap-drop ALL \
+  --pids-limit 128 \
+  --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+  -v /:/host:ro,rslave \
+  "$NODE_EXPORTER_IMAGE" \
+  --path.rootfs=/host \
+  --collector.filesystem.mount-points-exclude='^/(dev|proc|sys|var/lib/docker/.+|var/lib/containers/storage/.+)($|/)' >/dev/null
+
+docker run -d --name cadvisor \
+  --restart unless-stopped \
+  --network "$NETWORK" \
+  --read-only \
+  --security-opt no-new-privileges:true \
+  --cap-drop ALL \
+  --pids-limit 256 \
+  --tmpfs /tmp:rw,noexec,nosuid,size=32m \
+  -v /:/rootfs:ro \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  -v /sys:/sys:ro \
+  -v /var/lib/docker:/var/lib/docker:ro \
+  "$CADVISOR_IMAGE" >/dev/null
 
 docker run -d --name blackbox_exporter \
   --restart unless-stopped \
@@ -110,6 +159,7 @@ docker run -d --name blackbox_exporter \
   --read-only \
   --security-opt no-new-privileges:true \
   --cap-drop ALL \
+  --pids-limit 128 \
   --tmpfs /tmp:rw,noexec,nosuid,size=16m \
   -v "$MONITORING_DIR/blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro" \
   "$BLACKBOX_IMAGE" \
@@ -121,6 +171,8 @@ docker run -d --name alertmanager \
   --read-only \
   --security-opt no-new-privileges:true \
   --cap-drop ALL \
+  --pids-limit 128 \
+  --user "$runtime_uid:$runtime_gid" \
   --tmpfs /tmp:rw,noexec,nosuid,size=16m \
   -p 127.0.0.1:9093:9093 \
   -v "$MONITORING_DIR/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
@@ -136,6 +188,8 @@ docker run -d --name prometheus \
   --read-only \
   --security-opt no-new-privileges:true \
   --cap-drop ALL \
+  --pids-limit 256 \
+  --user "$runtime_uid:$runtime_gid" \
   --tmpfs /tmp:rw,noexec,nosuid,size=32m \
   -p 127.0.0.1:9090:9090 \
   -v "$MONITORING_DIR/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
@@ -144,8 +198,8 @@ docker run -d --name prometheus \
   "$PROMETHEUS_IMAGE" \
   --config.file=/etc/prometheus/prometheus.yml \
   --storage.tsdb.path=/prometheus \
-  --storage.tsdb.retention.time=30d \
-  --storage.tsdb.retention.size=8GB >/dev/null
+  --storage.tsdb.retention.time="$PROMETHEUS_RETENTION_TIME" \
+  --storage.tsdb.retention.size="$PROMETHEUS_RETENTION_SIZE" >/dev/null
 
 for _attempt in $(seq 1 30); do
   if curl -fsS http://127.0.0.1:9090/-/ready >/dev/null \

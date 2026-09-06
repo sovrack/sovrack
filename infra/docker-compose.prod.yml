@@ -76,6 +76,7 @@ services:
         limits:
           memory: ${NGINX_MEMORY_LIMIT:-128M}
           cpus: "${NGINX_CPU_LIMIT:-0.25}"
+          pids: 256
 
   # ──────────────────────────── FRONTEND (Next.js) ───────────────────────────
   frontend:
@@ -113,6 +114,7 @@ services:
         limits:
           memory: ${FRONTEND_MEMORY_LIMIT:-512M}
           cpus: "${FRONTEND_CPU_LIMIT:-0.75}"
+          pids: 256
         reservations:
           memory: ${FRONTEND_MEMORY_RESERVATION:-256M}
           cpus: "${FRONTEND_CPU_RESERVATION:-0.2}"
@@ -138,6 +140,7 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
       STAFF_JWT_SECRET: ${STAFF_JWT_SECRET}
       STAFF_JWT_EXPIRES_IN: ${STAFF_JWT_EXPIRES_IN:-12h}
+      STAFF_OTP_SECRET: ${STAFF_OTP_SECRET}
       # Chiffrement config
       CONFIG_SECRET: ${CONFIG_SECRET}
       # CORS : URL publique du frontend
@@ -147,6 +150,7 @@ services:
       AUTH_COOKIE_SECURE: "true"
       AUTH_COOKIE_SAME_SITE: ${AUTH_COOKIE_SAME_SITE:-lax}
       STAFF_AUTH_COOKIE_SECURE: "true"
+      STAFF_AUTH_COOKIE_SAME_SITE: ${STAFF_AUTH_COOKIE_SAME_SITE:-strict}
       # Ansible (joubbook embarqués)
       ANSIBLE_PLAYBOOKS_PATH: /app/ansible/playbooks
       ANSIBLE_COLLECTIONS_PATH: /usr/share/ansible/collections
@@ -193,6 +197,7 @@ services:
         limits:
           memory: ${BACKEND_MEMORY_LIMIT:-768M}
           cpus: "${BACKEND_CPU_LIMIT:-1.0}"
+          pids: 256
         reservations:
           memory: ${BACKEND_MEMORY_RESERVATION:-384M}
           cpus: "${BACKEND_CPU_RESERVATION:-0.35}"
@@ -204,6 +209,7 @@ services:
     image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be an immutable release tag or digest}
     container_name: sovrack-migrator
     restart: "no"
+    pids_limit: 256
     read_only: true
     cap_drop:
       - ALL
@@ -225,21 +231,23 @@ services:
         ./node_modules/.bin/prisma migrate deploy
 
   # Création initiale du ROOT uniquement. Ce profil n'est jamais démarré par
-  # deploy.sh ; scripts/bootstrap-staff.sh injecte le mot de passe de manière
-  # éphémère dans ce conteneur one-shot.
+  # deploy.sh. Il envoie un code d'activation à usage unique par SMTP ; aucun
+  # mot de passe initial n'est créé ou transmis par l'opérateur.
   staff-bootstrap:
     <<: *common
     image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be an immutable tag or digest}
     profiles:
       - bootstrap
     restart: "no"
+    pids_limit: 256
     read_only: true
     cap_drop:
       - ALL
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=128m,uid=100,gid=101,mode=1777
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      <<: *backend-environment
+      PROCESS_ROLE: bootstrap
     depends_on:
       postgres:
         condition: service_healthy
@@ -279,6 +287,7 @@ services:
         limits:
           memory: ${WORKER_MEMORY_LIMIT:-1G}
           cpus: "${WORKER_CPU_LIMIT:-1.0}"
+          pids: 256
         reservations:
           memory: ${WORKER_MEMORY_RESERVATION:-384M}
           cpus: "${WORKER_CPU_RESERVATION:-0.35}"
@@ -321,6 +330,7 @@ services:
         limits:
           memory: ${POSTGRES_MEMORY_LIMIT:-768M}
           cpus: "${POSTGRES_CPU_LIMIT:-0.75}"
+          pids: 256
         reservations:
           memory: ${POSTGRES_MEMORY_RESERVATION:-384M}
           cpus: "${POSTGRES_CPU_RESERVATION:-0.25}"
@@ -358,7 +368,7 @@ services:
       retries: 5
     deploy:
       resources:
-        limits: { memory: 256M, cpus: "0.3" }
+        limits: { memory: 256M, cpus: "0.3", pids: 256 }
         reservations: { memory: 128M, cpus: "0.1" }
 
 # ────────────────────────────── RÉSEAU ─────────────────────────────

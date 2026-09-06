@@ -13,9 +13,10 @@ echo "# ── Sovrack secrets générés (copie dans .env, puis n'apprends jama
 echo
 echo "JWT_SECRET=$(gen)"
 echo "STAFF_JWT_SECRET=$(gen)"
+echo "STAFF_OTP_SECRET=$(gen)"
 echo "CONFIG_SECRET=$(gen)"
 echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
 echo "REDIS_PASSWORD=$(openssl rand -hex 24)"
 echo
 echo "👉 NB : CONFIG_SECRET doit ≥32 chars (48 octets ✓). JWT ≥32 (✓)."
-echo "👉 Le mot de passe ROOT se crée séparément avec scripts/bootstrap-staff.sh."
+echo "👉 Le ROOT est invité par code email avec scripts/bootstrap-staff.sh."

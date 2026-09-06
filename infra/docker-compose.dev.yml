@@ -11,6 +11,7 @@ x-backend-environment: &backend-environment
   JWT_EXPIRES_IN: 2h
   STAFF_JWT_SECRET: local-staff-jwt-secret-2026-bbbbbbbbbbbbbbbbbbbbbbbb
   STAFF_JWT_EXPIRES_IN: 2h
+  STAFF_OTP_SECRET: local-staff-otp-secret-2026-dddddddddddddddddddddddd
   CONFIG_SECRET: local-config-encryption-secret-2026-cccccccccccccccccc
   FRONTEND_URL: http://localhost:13080
   FRONTEND_URLS: http://localhost:13080
