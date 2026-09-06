@@ -16,7 +16,10 @@ mkdir -p "$BASE_DIR/releases" "$BASE_DIR/incoming" \
   "$SHARED_DIR/maintenance" "$SHARED_DIR/release-manifests"
 chmod 700 "$BASE_DIR/releases" "$BASE_DIR/incoming" "$SHARED_DIR" \
   "$SHARED_DIR/backups" "$SHARED_DIR/logs" \
-  "$SHARED_DIR/maintenance" "$SHARED_DIR/release-manifests"
+  "$SHARED_DIR/release-manifests"
+# Nginx runs as uid 101 and checks this bind-mounted directory on every
+# request. It contains no secret, only an optional empty marker file.
+chmod 755 "$SHARED_DIR/maintenance"
 
 target_env="$SHARED_DIR/.env"
 if [ ! -f "$target_env" ]; then

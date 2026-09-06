@@ -52,7 +52,8 @@ fi
 mkdir -p "$SHARED_DIR/backups" "$SHARED_DIR/logs" \
   "$SHARED_DIR/release-manifests" "$MAINTENANCE_DIR"
 chmod 700 "$SHARED_DIR" "$SHARED_DIR/backups" "$SHARED_DIR/logs" \
-  "$SHARED_DIR/release-manifests" "$MAINTENANCE_DIR"
+  "$SHARED_DIR/release-manifests"
+chmod 755 "$MAINTENANCE_DIR"
 
 compose() {
   docker compose --env-file "$SECRETS_ENV" --env-file "$RELEASE_FILE" \

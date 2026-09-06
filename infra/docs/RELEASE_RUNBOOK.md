@@ -91,6 +91,11 @@ Le script applique cet ordre :
 12. archivage du manifeste, bascule atomique de `current`, puis suppression de
     l'authentification locale au registre sur la cible.
 
+Le répertoire `shared/maintenance` est volontairement en mode `0755`. Il ne
+contient aucun secret, seulement un indicateur vide, et le worker Nginx
+non-root doit pouvoir constater sa présence comme son absence. Les répertoires
+de secrets, de manifests et de backups restent en mode `0700`.
+
 Une erreur après l'ouverture de la maintenance laisse volontairement les
 writers arrêtés. Aucun rollback d'image automatique n'est tenté.
 

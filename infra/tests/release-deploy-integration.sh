@@ -73,6 +73,7 @@ SOVRACK_BASE_DIR="$BASE_DIR" ENV_FILE="$BASE_DIR/shared/.env" \
 [ "$(realpath "$BASE_DIR/current")" = "$(realpath "$RELEASE_ROOT")" ]
 cmp -s "$manifest" "$BASE_DIR/shared/release-manifests/$RELEASE_ID.manifest"
 [ ! -e "$BASE_DIR/shared/maintenance/enabled" ]
+[ "$(stat -c %a "$BASE_DIR/shared/maintenance")" = "755" ]
 [ "$(docker inspect sovrack-release-test-backend-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | awk -F= '$1 == "PROCESS_ROLE" { print $2 }')" = "all" ]
 [ -z "$(docker ps -q --filter name=sovrack-release-test-worker-1)" ]
 backup_metadata="$(find "$BASE_DIR/shared/backups" -maxdepth 1 -name 'sovrack-*.sql.gz.metadata' -type f | sort | sed -n '1p')"

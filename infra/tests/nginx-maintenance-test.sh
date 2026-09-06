@@ -16,6 +16,7 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p "$TEMP_DIR/certs" "$TEMP_DIR/maintenance"
+chmod 755 "$TEMP_DIR/maintenance"
 openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=example.test' \
   -keyout "$TEMP_DIR/certs/privkey.pem" \
   -out "$TEMP_DIR/certs/fullchain.pem" >/dev/null 2>&1
@@ -37,6 +38,9 @@ for _attempt in $(seq 1 20); do
   sleep 1
 done
 docker exec "$CONTAINER" nginx -t
+test "$(stat -c %a "$TEMP_DIR/maintenance")" = "755"
+docker exec --user 101 "$CONTAINER" sh -c \
+  'ls -la /var/run/sovrack-maintenance >/dev/null'
 nginx_dump="$(docker exec "$CONTAINER" nginx -T 2>&1)"
 printf '%s\n' "$nginx_dump" | grep -q 'zone=sovrack_api:10m rate=20r/s'
 printf '%s\n' "$nginx_dump" | grep -q 'zone=sovrack_auth:10m rate=5r/m'

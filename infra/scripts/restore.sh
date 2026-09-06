@@ -110,7 +110,8 @@ compose() {
 }
 
 mkdir -p "$SHARED_DIR/backups" "$SHARED_DIR/release-manifests" "$MAINTENANCE_DIR"
-chmod 700 "$SHARED_DIR/backups" "$SHARED_DIR/release-manifests" "$MAINTENANCE_DIR"
+chmod 700 "$SHARED_DIR/backups" "$SHARED_DIR/release-manifests"
+chmod 755 "$MAINTENANCE_DIR"
 compose config -q
 # A rollback must remain possible when the private registry is unavailable or
 # after its short-lived deployment credential has been removed. Immutable
