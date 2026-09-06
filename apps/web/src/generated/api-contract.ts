@@ -7956,7 +7956,7 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Logout recorded */
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

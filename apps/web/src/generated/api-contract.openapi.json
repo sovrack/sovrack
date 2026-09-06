@@ -11,7 +11,9 @@
           }
         },
         "summary": "Liveness probe (process up)",
-        "tags": ["Health"]
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/health/ready": {
@@ -27,7 +29,9 @@
           }
         },
         "summary": "Readiness probe (dependencies reachable)",
-        "tags": ["Health"]
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/health": {
@@ -40,7 +44,9 @@
           }
         },
         "summary": "Public service health check",
-        "tags": ["Health"]
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/staff/system-health": {
@@ -53,7 +59,9 @@
           }
         },
         "summary": "Detailed platform health for back-office staff",
-        "tags": ["Health"]
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/metrics": {
@@ -65,7 +73,9 @@
             "description": ""
           }
         },
-        "tags": ["Prometheus"]
+        "tags": [
+          "Prometheus"
+        ]
       }
     },
     "/users/me/password": {
@@ -93,7 +103,9 @@
           }
         ],
         "summary": "Change the current identity password",
-        "tags": ["Users"]
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/auth/register": {
@@ -122,7 +134,9 @@
           }
         },
         "summary": "Public self-service signup — creates an account awaiting email verification (code sent by email)",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/verify-email": {
@@ -151,7 +165,9 @@
           }
         },
         "summary": "Verify email with the 6-digit code, then log in",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/resend-code": {
@@ -180,7 +196,9 @@
           }
         },
         "summary": "Resend the email verification code",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/login": {
@@ -209,7 +227,9 @@
           }
         },
         "summary": "User login",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/ws-token": {
@@ -233,7 +253,9 @@
           }
         ],
         "summary": "Returns a short-lived token for WebSocket connections",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/me": {
@@ -257,7 +279,9 @@
           }
         ],
         "summary": "Get the logged-in user's profile",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       },
       "delete": {
         "operationId": "AuthController_deleteAccount",
@@ -289,7 +313,9 @@
           }
         ],
         "summary": "Delete the current account after email confirmation",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/logout": {
@@ -297,7 +323,7 @@
         "operationId": "AuthController_logout",
         "parameters": [],
         "responses": {
-          "201": {
+          "200": {
             "description": "Logout recorded"
           },
           "401": {
@@ -310,7 +336,9 @@
           }
         ],
         "summary": "User logout (audit)",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/google": {
@@ -323,7 +351,9 @@
           }
         },
         "summary": "Start Google OAuth login (redirects to Google)",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/google/callback": {
@@ -339,7 +369,9 @@
           }
         },
         "summary": "Google OAuth callback (sets JWT cookie)",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/forgot-password": {
@@ -362,7 +394,9 @@
           }
         },
         "summary": "Request a password reset code by email",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/reset-password": {
@@ -388,7 +422,9 @@
           }
         },
         "summary": "Reset the password with the email code",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/auth/delete-account-request": {
@@ -409,7 +445,9 @@
           }
         ],
         "summary": "Send an account deletion confirmation code by email",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/workspaces/{workspaceId}/audit-logs": {
@@ -455,7 +493,9 @@
           }
         ],
         "summary": "List audit logs (admin)",
-        "tags": ["Audit Logs"]
+        "tags": [
+          "Audit Logs"
+        ]
       }
     },
     "/admin/audit-logs": {
@@ -501,7 +541,9 @@
           }
         ],
         "summary": "List audit logs (admin)",
-        "tags": ["Audit Logs"]
+        "tags": [
+          "Audit Logs"
+        ]
       }
     },
     "/workspaces": {
@@ -519,7 +561,9 @@
           }
         ],
         "summary": "List all teams",
-        "tags": ["Teams"]
+        "tags": [
+          "Teams"
+        ]
       },
       "post": {
         "operationId": "TeamsController_create",
@@ -548,7 +592,9 @@
           }
         ],
         "summary": "Create a team",
-        "tags": ["Teams"]
+        "tags": [
+          "Teams"
+        ]
       }
     },
     "/workspaces/{id}": {
@@ -578,7 +624,9 @@
           }
         ],
         "summary": "Get a team by ID",
-        "tags": ["Teams"]
+        "tags": [
+          "Teams"
+        ]
       },
       "put": {
         "operationId": "TeamsController_update",
@@ -616,7 +664,9 @@
           }
         ],
         "summary": "Edit a team",
-        "tags": ["Teams"]
+        "tags": [
+          "Teams"
+        ]
       },
       "delete": {
         "operationId": "TeamsController_remove",
@@ -644,7 +694,9 @@
           }
         ],
         "summary": "Delete a team",
-        "tags": ["Teams"]
+        "tags": [
+          "Teams"
+        ]
       }
     },
     "/workspaces/{id}/members": {
@@ -687,7 +739,9 @@
           }
         ],
         "summary": "Add a member to a team",
-        "tags": ["Teams"]
+        "tags": [
+          "Teams"
+        ]
       }
     },
     "/workspaces/{id}/members/{userId}": {
@@ -725,7 +779,9 @@
           }
         ],
         "summary": "Remove a member from a team",
-        "tags": ["Teams"]
+        "tags": [
+          "Teams"
+        ]
       }
     },
     "/workspaces/{id}/members/{userId}/role": {
@@ -770,7 +826,9 @@
           }
         ],
         "summary": "Update a workspace member role",
-        "tags": ["Teams"]
+        "tags": [
+          "Teams"
+        ]
       }
     },
     "/workspaces/{id}/members/{userId}/status": {
@@ -815,7 +873,9 @@
           }
         ],
         "summary": "Suspend or reactivate a workspace member",
-        "tags": ["Teams"]
+        "tags": [
+          "Teams"
+        ]
       }
     },
     "/workspaces/{workspaceId}/invitations": {
@@ -842,7 +902,9 @@
           }
         ],
         "summary": "List workspace invitations",
-        "tags": ["Workspace invitations"]
+        "tags": [
+          "Workspace invitations"
+        ]
       },
       "post": {
         "operationId": "WorkspaceInvitationsController_invite",
@@ -877,7 +939,9 @@
           }
         ],
         "summary": "Invite a workspace member by email",
-        "tags": ["Workspace invitations"]
+        "tags": [
+          "Workspace invitations"
+        ]
       }
     },
     "/workspaces/{workspaceId}/invitations/{invitationId}": {
@@ -912,7 +976,9 @@
           }
         ],
         "summary": "Revoke a pending workspace invitation",
-        "tags": ["Workspace invitations"]
+        "tags": [
+          "Workspace invitations"
+        ]
       }
     },
     "/workspaces/invitations/accept": {
@@ -940,7 +1006,9 @@
           }
         ],
         "summary": "Accept a workspace invitation",
-        "tags": ["Workspace invitations"]
+        "tags": [
+          "Workspace invitations"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/build/generate": {
@@ -984,7 +1052,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/projects/{id}/build/generate": {
@@ -1028,7 +1098,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/build/detect": {
@@ -1062,7 +1134,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/projects/{id}/build/detect": {
@@ -1096,7 +1170,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/build/config": {
@@ -1140,7 +1216,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/projects/{id}/build/config": {
@@ -1184,7 +1262,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/build/templates": {
@@ -1210,7 +1290,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/projects/{id}/build/templates": {
@@ -1236,7 +1318,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/build/push-files": {
@@ -1270,7 +1354,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/projects/{id}/build/push-files": {
@@ -1304,7 +1390,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/build/generate-all": {
@@ -1330,7 +1418,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/projects/{id}/build/generate-all": {
@@ -1356,7 +1446,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/build/status": {
@@ -1382,7 +1474,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/projects/{id}/build/status": {
@@ -1408,7 +1502,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/build/extract-compose": {
@@ -1442,7 +1538,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/projects/{id}/build/extract-compose": {
@@ -1476,7 +1574,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/build/engines": {
@@ -1502,7 +1602,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/projects/{id}/build/engines": {
@@ -1528,7 +1630,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/build/history": {
@@ -1578,7 +1682,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/projects/{id}/build/history": {
@@ -1628,7 +1734,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/build/history/{buildId}": {
@@ -1654,7 +1762,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/projects/{id}/build/history/{buildId}": {
@@ -1680,7 +1790,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Build"]
+        "tags": [
+          "Build"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/git/gitlab/providers": {
@@ -1698,7 +1810,9 @@
           }
         ],
         "summary": "List GitLab providers",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       },
       "post": {
         "operationId": "SourceProvidersController_createGitlabProvider[0]",
@@ -1724,7 +1838,9 @@
           }
         ],
         "summary": "Create a GitLab provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/admin/platform-config/gitlab/providers": {
@@ -1742,7 +1858,9 @@
           }
         ],
         "summary": "List GitLab providers",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       },
       "post": {
         "operationId": "SourceProvidersController_createGitlabProvider[1]",
@@ -1768,7 +1886,9 @@
           }
         ],
         "summary": "Create a GitLab provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/git/gitlab/providers/{id}": {
@@ -1805,7 +1925,9 @@
           }
         ],
         "summary": "Update a GitLab provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       },
       "delete": {
         "operationId": "SourceProvidersController_deleteGitlabProvider[0]",
@@ -1830,7 +1952,9 @@
           }
         ],
         "summary": "Delete a GitLab provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/admin/platform-config/gitlab/providers/{id}": {
@@ -1867,7 +1991,9 @@
           }
         ],
         "summary": "Update a GitLab provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       },
       "delete": {
         "operationId": "SourceProvidersController_deleteGitlabProvider[1]",
@@ -1892,7 +2018,9 @@
           }
         ],
         "summary": "Delete a GitLab provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/git/gitlab/providers/{id}/default": {
@@ -1919,7 +2047,9 @@
           }
         ],
         "summary": "Set a default GitLab provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/admin/platform-config/gitlab/providers/{id}/default": {
@@ -1946,7 +2076,9 @@
           }
         ],
         "summary": "Set a default GitLab provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/git/gitlab/providers/{id}/test": {
@@ -1973,7 +2105,9 @@
           }
         ],
         "summary": "Test the GitLab connection for a provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/admin/platform-config/gitlab/providers/{id}/test": {
@@ -2000,7 +2134,9 @@
           }
         ],
         "summary": "Test the GitLab connection for a provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/git/gitlab/providers/{id}/oauth/start": {
@@ -2027,7 +2163,9 @@
           }
         ],
         "summary": "Start GitLab OAuth for a provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/admin/platform-config/gitlab/providers/{id}/oauth/start": {
@@ -2054,7 +2192,9 @@
           }
         ],
         "summary": "Start GitLab OAuth for a provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/git/test-gitlab": {
@@ -2072,7 +2212,9 @@
           }
         ],
         "summary": "Test the global GitLab connection (default provider)",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/admin/platform-config/test-gitlab": {
@@ -2090,7 +2232,9 @@
           }
         ],
         "summary": "Test the global GitLab connection (default provider)",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/git/gitlab/oauth/start": {
@@ -2108,7 +2252,9 @@
           }
         ],
         "summary": "Start global GitLab OAuth (default provider)",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/admin/platform-config/gitlab/oauth/start": {
@@ -2126,7 +2272,9 @@
           }
         ],
         "summary": "Start global GitLab OAuth (default provider)",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/git/github/providers": {
@@ -2144,7 +2292,9 @@
           }
         ],
         "summary": "List GitHub providers",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       },
       "post": {
         "operationId": "SourceProvidersController_createGithubProvider[0]",
@@ -2160,7 +2310,9 @@
           }
         ],
         "summary": "Create a GitHub provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/admin/platform-config/github/providers": {
@@ -2178,7 +2330,9 @@
           }
         ],
         "summary": "List GitHub providers",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       },
       "post": {
         "operationId": "SourceProvidersController_createGithubProvider[1]",
@@ -2194,7 +2348,9 @@
           }
         ],
         "summary": "Create a GitHub provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/git/github/providers/{id}": {
@@ -2221,7 +2377,9 @@
           }
         ],
         "summary": "Update a GitHub provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       },
       "delete": {
         "operationId": "SourceProvidersController_deleteGithubProvider[0]",
@@ -2246,7 +2404,9 @@
           }
         ],
         "summary": "Delete a GitHub provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/admin/platform-config/github/providers/{id}": {
@@ -2273,7 +2433,9 @@
           }
         ],
         "summary": "Update a GitHub provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       },
       "delete": {
         "operationId": "SourceProvidersController_deleteGithubProvider[1]",
@@ -2298,7 +2460,9 @@
           }
         ],
         "summary": "Delete a GitHub provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/git/github/providers/{id}/default": {
@@ -2325,7 +2489,9 @@
           }
         ],
         "summary": "Set a default GitHub provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/admin/platform-config/github/providers/{id}/default": {
@@ -2352,7 +2518,9 @@
           }
         ],
         "summary": "Set a default GitHub provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/git/github/providers/{id}/test": {
@@ -2379,7 +2547,9 @@
           }
         ],
         "summary": "Test the GitHub connection for a provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/admin/platform-config/github/providers/{id}/test": {
@@ -2406,7 +2576,9 @@
           }
         ],
         "summary": "Test the GitHub connection for a provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/git/github/providers/{id}/repos": {
@@ -2433,7 +2605,9 @@
           }
         ],
         "summary": "List GitHub repos accessible via this provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/admin/platform-config/github/providers/{id}/repos": {
@@ -2460,7 +2634,9 @@
           }
         ],
         "summary": "List GitHub repos accessible via this provider",
-        "tags": ["Git Providers (Admin)"]
+        "tags": [
+          "Git Providers (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/source/providers": {
@@ -2478,7 +2654,9 @@
           }
         ],
         "summary": "List all source providers (GitHub + GitLab) with their type",
-        "tags": ["Source (unified)"]
+        "tags": [
+          "Source (unified)"
+        ]
       }
     },
     "/source/providers": {
@@ -2496,7 +2674,9 @@
           }
         ],
         "summary": "List all source providers (GitHub + GitLab) with their type",
-        "tags": ["Source (unified)"]
+        "tags": [
+          "Source (unified)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/source/connect": {
@@ -2536,7 +2716,9 @@
           }
         ],
         "summary": "Connect a Git source (GitLab or GitHub) to a project",
-        "tags": ["Source (unified)"]
+        "tags": [
+          "Source (unified)"
+        ]
       }
     },
     "/projects/{id}/source/connect": {
@@ -2576,7 +2758,9 @@
           }
         ],
         "summary": "Connect a Git source (GitLab or GitHub) to a project",
-        "tags": ["Source (unified)"]
+        "tags": [
+          "Source (unified)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/gitlab/providers": {
@@ -2597,7 +2781,9 @@
           }
         ],
         "summary": "Lister les providers GitLab disponibles pour la configuration projet",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/gitlab/providers": {
@@ -2618,7 +2804,9 @@
           }
         ],
         "summary": "Lister les providers GitLab disponibles pour la configuration projet",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/workspaces/{workspaceId}/gitlab/providers/{providerId}/groups/{groupId}/repositories": {
@@ -2719,7 +2907,9 @@
           }
         ],
         "summary": "List repositories accessible in a GitLab group",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/gitlab/providers/{providerId}/groups/{groupId}/repositories": {
@@ -2820,7 +3010,9 @@
           }
         ],
         "summary": "List repositories accessible in a GitLab group",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/workspaces/{workspaceId}/gitlab/providers/{providerId}/projects/{gitlabProjectId}/branches": {
@@ -2921,7 +3113,9 @@
           }
         ],
         "summary": "List branches before project/service creation",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/gitlab/providers/{providerId}/projects/{gitlabProjectId}/branches": {
@@ -3022,7 +3216,9 @@
           }
         ],
         "summary": "List branches before project/service creation",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/gitlab/connect": {
@@ -3071,7 +3267,9 @@
           }
         ],
         "summary": "Connect a project to GitLab",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/projects/{id}/gitlab/connect": {
@@ -3120,7 +3318,9 @@
           }
         ],
         "summary": "Connect a project to GitLab",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/gitlab/branches": {
@@ -3163,7 +3363,9 @@
           }
         ],
         "summary": "List available GitLab branches",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/projects/{id}/gitlab/branches": {
@@ -3206,7 +3408,9 @@
           }
         ],
         "summary": "List available GitLab branches",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/gitlab/pipelines": {
@@ -3242,7 +3446,9 @@
           }
         ],
         "summary": "List GitLab pipelines",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/projects/{id}/gitlab/pipelines": {
@@ -3278,7 +3484,9 @@
           }
         ],
         "summary": "List GitLab pipelines",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/services/{serviceId}/gitlab/pipelines": {
@@ -3322,7 +3530,9 @@
           }
         ],
         "summary": "List GitLab pipelines for a service repo",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/projects/{id}/services/{serviceId}/gitlab/pipelines": {
@@ -3366,7 +3576,9 @@
           }
         ],
         "summary": "List GitLab pipelines for a service repo",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/gitlab/repos": {
@@ -3402,7 +3614,9 @@
           }
         ],
         "summary": "List repositories (REPO/GROUP)",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/projects/{id}/gitlab/repos": {
@@ -3438,7 +3652,9 @@
           }
         ],
         "summary": "List repositories (REPO/GROUP)",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/gitlab/pipelines/trigger": {
@@ -3484,7 +3700,9 @@
           }
         ],
         "summary": "Trigger a GitLab pipeline manually",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/projects/{id}/gitlab/pipelines/trigger": {
@@ -3530,7 +3748,9 @@
           }
         ],
         "summary": "Trigger a GitLab pipeline manually",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/gitlab/config": {
@@ -3566,7 +3786,9 @@
           }
         ],
         "summary": "View a project's GitLab configuration",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/projects/{id}/gitlab/config": {
@@ -3602,7 +3824,9 @@
           }
         ],
         "summary": "View a project's GitLab configuration",
-        "tags": ["GitLab"]
+        "tags": [
+          "GitLab"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/github/repos": {
@@ -3629,7 +3853,9 @@
           }
         ],
         "summary": "List GitHub repositories for a project",
-        "tags": ["GitHub"]
+        "tags": [
+          "GitHub"
+        ]
       }
     },
     "/projects/{id}/github/repos": {
@@ -3656,7 +3882,9 @@
           }
         ],
         "summary": "List GitHub repositories for a project",
-        "tags": ["GitHub"]
+        "tags": [
+          "GitHub"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/github/repos/{repoId}/branches": {
@@ -3691,7 +3919,9 @@
           }
         ],
         "summary": "List branches for a GitHub repository",
-        "tags": ["GitHub"]
+        "tags": [
+          "GitHub"
+        ]
       }
     },
     "/projects/{id}/github/repos/{repoId}/branches": {
@@ -3726,7 +3956,9 @@
           }
         ],
         "summary": "List branches for a GitHub repository",
-        "tags": ["GitHub"]
+        "tags": [
+          "GitHub"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/github/pipelines": {
@@ -3753,7 +3985,9 @@
           }
         ],
         "summary": "List recent GitHub Actions workflow runs",
-        "tags": ["GitHub"]
+        "tags": [
+          "GitHub"
+        ]
       }
     },
     "/projects/{id}/github/pipelines": {
@@ -3780,7 +4014,9 @@
           }
         ],
         "summary": "List recent GitHub Actions workflow runs",
-        "tags": ["GitHub"]
+        "tags": [
+          "GitHub"
+        ]
       }
     },
     "/webhooks/incoming/{webhookToken}": {
@@ -3801,7 +4037,9 @@
             "description": ""
           }
         },
-        "tags": ["Webhooks (Incoming)"]
+        "tags": [
+          "Webhooks (Incoming)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/webhooks/endpoints": {
@@ -3827,7 +4065,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/projects/{id}/webhooks/endpoints": {
@@ -3853,7 +4093,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/webhooks/events": {
@@ -3895,7 +4137,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/projects/{id}/webhooks/events": {
@@ -3937,7 +4181,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/webhooks/events/{eventId}": {
@@ -3971,7 +4217,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/projects/{id}/webhooks/events/{eventId}": {
@@ -4005,7 +4253,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/webhooks/events/{eventId}/replay": {
@@ -4039,7 +4289,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/projects/{id}/webhooks/events/{eventId}/replay": {
@@ -4073,7 +4325,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/webhooks/endpoints/{endpointId}/enabled": {
@@ -4107,7 +4361,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/projects/{id}/webhooks/endpoints/{endpointId}/enabled": {
@@ -4141,7 +4397,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{projectId}/webhook/configure": {
@@ -4175,7 +4433,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/projects/{projectId}/webhook/configure": {
@@ -4209,7 +4469,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{projectId}/webhook/status": {
@@ -4243,7 +4505,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/projects/{projectId}/webhook/status": {
@@ -4277,7 +4541,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{projectId}/webhook/pause": {
@@ -4311,7 +4577,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/projects/{projectId}/webhook/pause": {
@@ -4345,7 +4613,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{projectId}/webhook/resume": {
@@ -4379,7 +4649,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/projects/{projectId}/webhook/resume": {
@@ -4413,7 +4685,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Webhooks"]
+        "tags": [
+          "Webhooks"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects": {
@@ -4464,7 +4738,9 @@
           }
         ],
         "summary": "Create a project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       },
       "get": {
         "operationId": "ProjectsController_findAll[0]",
@@ -4521,7 +4797,9 @@
           }
         ],
         "summary": "List projects according to the user role",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/projects": {
@@ -4572,7 +4850,9 @@
           }
         ],
         "summary": "Create a project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       },
       "get": {
         "operationId": "ProjectsController_findAll[1]",
@@ -4629,7 +4909,9 @@
           }
         ],
         "summary": "List projects according to the user role",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/import/gitlab-group": {
@@ -4674,7 +4956,9 @@
           }
         ],
         "summary": "Import GitLab Group repositories as a multi-service application or separate projects",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/projects/import/gitlab-group": {
@@ -4719,7 +5003,9 @@
           }
         ],
         "summary": "Import GitLab Group repositories as a multi-service application or separate projects",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}": {
@@ -4771,7 +5057,9 @@
           }
         ],
         "summary": "Get the details of a project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       },
       "put": {
         "operationId": "ProjectsController_update[0]",
@@ -4831,7 +5119,9 @@
           }
         ],
         "summary": "Edit a project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       },
       "delete": {
         "operationId": "ProjectsController_remove[0]",
@@ -4881,7 +5171,9 @@
           }
         ],
         "summary": "Delete a project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/projects/{id}": {
@@ -4933,7 +5225,9 @@
           }
         ],
         "summary": "Get the details of a project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       },
       "put": {
         "operationId": "ProjectsController_update[1]",
@@ -4993,7 +5287,9 @@
           }
         ],
         "summary": "Edit a project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       },
       "delete": {
         "operationId": "ProjectsController_remove[1]",
@@ -5043,7 +5339,9 @@
           }
         ],
         "summary": "Delete a project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/members": {
@@ -5108,7 +5406,9 @@
           }
         ],
         "summary": "Add a member to the project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       },
       "get": {
         "operationId": "ProjectsController_getMembers[0]",
@@ -5158,7 +5458,9 @@
           }
         ],
         "summary": "List project members",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/projects/{id}/members": {
@@ -5223,7 +5525,9 @@
           }
         ],
         "summary": "Add a member to the project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       },
       "get": {
         "operationId": "ProjectsController_getMembers[1]",
@@ -5273,7 +5577,9 @@
           }
         ],
         "summary": "List project members",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/members/{userId}": {
@@ -5333,7 +5639,9 @@
           }
         ],
         "summary": "Remove a member from the project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/projects/{id}/members/{userId}": {
@@ -5393,7 +5701,9 @@
           }
         ],
         "summary": "Remove a member from the project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/members/{userId}/role": {
@@ -5454,7 +5764,9 @@
           }
         ],
         "summary": "Update a project member role",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/projects/{id}/members/{userId}/role": {
@@ -5515,7 +5827,9 @@
           }
         ],
         "summary": "Update a project member role",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/environments": {
@@ -5552,7 +5866,9 @@
           }
         ],
         "summary": "Create an environment for a project",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       },
       "get": {
         "operationId": "EnvironmentsController_findAll[0]",
@@ -5577,7 +5893,9 @@
           }
         ],
         "summary": "Lister les environnements d'un projet",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       }
     },
     "/projects/{id}/environments": {
@@ -5614,7 +5932,9 @@
           }
         ],
         "summary": "Create an environment for a project",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       },
       "get": {
         "operationId": "EnvironmentsController_findAll[1]",
@@ -5639,7 +5959,9 @@
           }
         ],
         "summary": "Lister les environnements d'un projet",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/environments/{envId}": {
@@ -5674,7 +5996,9 @@
           }
         ],
         "summary": "Project environment details",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       },
       "put": {
         "operationId": "EnvironmentsController_update[0]",
@@ -5717,7 +6041,9 @@
           }
         ],
         "summary": "Update a project environment",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       },
       "delete": {
         "operationId": "EnvironmentsController_remove[0]",
@@ -5750,7 +6076,9 @@
           }
         ],
         "summary": "Delete a project environment",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       }
     },
     "/projects/{id}/environments/{envId}": {
@@ -5785,7 +6113,9 @@
           }
         ],
         "summary": "Project environment details",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       },
       "put": {
         "operationId": "EnvironmentsController_update[1]",
@@ -5828,7 +6158,9 @@
           }
         ],
         "summary": "Update a project environment",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       },
       "delete": {
         "operationId": "EnvironmentsController_remove[1]",
@@ -5861,7 +6193,9 @@
           }
         ],
         "summary": "Delete a project environment",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/environments/{envId}/servers/{serverId}": {
@@ -5904,7 +6238,9 @@
           }
         ],
         "summary": "Assign a server to an environment",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       },
       "delete": {
         "operationId": "EnvironmentsController_removeServer[0]",
@@ -5945,7 +6281,9 @@
           }
         ],
         "summary": "Remove a server from an environment",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       }
     },
     "/projects/{id}/environments/{envId}/servers/{serverId}": {
@@ -5988,7 +6326,9 @@
           }
         ],
         "summary": "Assign a server to an environment",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       },
       "delete": {
         "operationId": "EnvironmentsController_removeServer[1]",
@@ -6029,7 +6369,9 @@
           }
         ],
         "summary": "Remove a server from an environment",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/environments/{envId}/services/{serviceId}": {
@@ -6072,7 +6414,9 @@
           }
         ],
         "summary": "Link a service to an environment",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       }
     },
     "/projects/{id}/environments/{envId}/services/{serviceId}": {
@@ -6115,7 +6459,9 @@
           }
         ],
         "summary": "Link a service to an environment",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{id}/environments/{envId}/services": {
@@ -6150,7 +6496,9 @@
           }
         ],
         "summary": "List services linked to an environment",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       }
     },
     "/projects/{id}/environments/{envId}/services": {
@@ -6185,7 +6533,9 @@
           }
         ],
         "summary": "List services linked to an environment",
-        "tags": ["Environments"]
+        "tags": [
+          "Environments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{projectId}/service-environments": {
@@ -6225,7 +6575,9 @@
           }
         ],
         "summary": "Link a service to an environment",
-        "tags": ["ServiceEnvironments"]
+        "tags": [
+          "ServiceEnvironments"
+        ]
       },
       "get": {
         "operationId": "ServiceEnvironmentsController_findAll[0]",
@@ -6250,7 +6602,9 @@
           }
         ],
         "summary": "List all project links (by service or environment)",
-        "tags": ["ServiceEnvironments"]
+        "tags": [
+          "ServiceEnvironments"
+        ]
       }
     },
     "/projects/{projectId}/service-environments": {
@@ -6290,7 +6644,9 @@
           }
         ],
         "summary": "Link a service to an environment",
-        "tags": ["ServiceEnvironments"]
+        "tags": [
+          "ServiceEnvironments"
+        ]
       },
       "get": {
         "operationId": "ServiceEnvironmentsController_findAll[1]",
@@ -6315,7 +6671,9 @@
           }
         ],
         "summary": "List all project links (by service or environment)",
-        "tags": ["ServiceEnvironments"]
+        "tags": [
+          "ServiceEnvironments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{projectId}/service-environments/{id}": {
@@ -6350,7 +6708,9 @@
           }
         ],
         "summary": "Service-environment link details",
-        "tags": ["ServiceEnvironments"]
+        "tags": [
+          "ServiceEnvironments"
+        ]
       },
       "put": {
         "operationId": "ServiceEnvironmentsController_update[0]",
@@ -6393,7 +6753,9 @@
           }
         ],
         "summary": "Update the link overrides",
-        "tags": ["ServiceEnvironments"]
+        "tags": [
+          "ServiceEnvironments"
+        ]
       },
       "delete": {
         "operationId": "ServiceEnvironmentsController_unlink[0]",
@@ -6426,7 +6788,9 @@
           }
         ],
         "summary": "Delete a service-environment link",
-        "tags": ["ServiceEnvironments"]
+        "tags": [
+          "ServiceEnvironments"
+        ]
       }
     },
     "/projects/{projectId}/service-environments/{id}": {
@@ -6461,7 +6825,9 @@
           }
         ],
         "summary": "Service-environment link details",
-        "tags": ["ServiceEnvironments"]
+        "tags": [
+          "ServiceEnvironments"
+        ]
       },
       "put": {
         "operationId": "ServiceEnvironmentsController_update[1]",
@@ -6504,7 +6870,9 @@
           }
         ],
         "summary": "Update the link overrides",
-        "tags": ["ServiceEnvironments"]
+        "tags": [
+          "ServiceEnvironments"
+        ]
       },
       "delete": {
         "operationId": "ServiceEnvironmentsController_unlink[1]",
@@ -6537,7 +6905,9 @@
           }
         ],
         "summary": "Delete a service-environment link",
-        "tags": ["ServiceEnvironments"]
+        "tags": [
+          "ServiceEnvironments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers": {
@@ -6572,7 +6942,9 @@
           }
         ],
         "summary": "Create a server",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       },
       "get": {
         "operationId": "ServerManagementController_findAll[0]",
@@ -6627,7 +6999,9 @@
           }
         ],
         "summary": "List all servers (sshKey masked)",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/servers": {
@@ -6662,7 +7036,9 @@
           }
         ],
         "summary": "Create a server",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       },
       "get": {
         "operationId": "ServerManagementController_findAll[1]",
@@ -6717,7 +7093,9 @@
           }
         ],
         "summary": "List all servers (sshKey masked)",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/reachability": {
@@ -6735,7 +7113,9 @@
           }
         ],
         "summary": "A3: lightweight TCP reachability ping for every server (not the full SSH validation) — meant to be polled frequently by the list page.",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/servers/reachability": {
@@ -6753,7 +7133,9 @@
           }
         ],
         "summary": "A3: lightweight TCP reachability ping for every server (not the full SSH validation) — meant to be polled frequently by the list page.",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/infra-environments": {
@@ -6771,7 +7153,9 @@
           }
         ],
         "summary": "List servers configured as STAGING or PRODUCTION",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/servers/infra-environments": {
@@ -6789,7 +7173,9 @@
           }
         ],
         "summary": "List servers configured as STAGING or PRODUCTION",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}": {
@@ -6823,7 +7209,9 @@
           }
         ],
         "summary": "View a server's details",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       },
       "put": {
         "operationId": "ServerManagementController_update[0]",
@@ -6865,7 +7253,9 @@
           }
         ],
         "summary": "Edit a server",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       },
       "patch": {
         "operationId": "ServerManagementController_patch[0]",
@@ -6907,7 +7297,9 @@
           }
         ],
         "summary": "Partially update a server",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       },
       "delete": {
         "operationId": "ServerManagementController_remove[0]",
@@ -6942,7 +7334,9 @@
           }
         ],
         "summary": "Delete a server if no active environment",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/servers/{id}": {
@@ -6976,7 +7370,9 @@
           }
         ],
         "summary": "View a server's details",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       },
       "put": {
         "operationId": "ServerManagementController_update[1]",
@@ -7018,7 +7414,9 @@
           }
         ],
         "summary": "Edit a server",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       },
       "patch": {
         "operationId": "ServerManagementController_patch[1]",
@@ -7060,7 +7458,9 @@
           }
         ],
         "summary": "Partially update a server",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       },
       "delete": {
         "operationId": "ServerManagementController_remove[1]",
@@ -7095,7 +7495,9 @@
           }
         ],
         "summary": "Delete a server if no active environment",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/install-key": {
@@ -7139,7 +7541,9 @@
           }
         ],
         "summary": "Install the SSH public key via a temporary password",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/servers/{id}/install-key": {
@@ -7183,7 +7587,9 @@
           }
         ],
         "summary": "Install the SSH public key via a temporary password",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/register-runner": {
@@ -7227,7 +7633,9 @@
           }
         ],
         "summary": "Enregistrer le GitLab Runner sur ce serveur",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/servers/{id}/register-runner": {
@@ -7271,7 +7679,9 @@
           }
         ],
         "summary": "Enregistrer le GitLab Runner sur ce serveur",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/jobs": {
@@ -7336,7 +7746,9 @@
           }
         ],
         "summary": "Lister l'historique des jobs serveur",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/servers/{id}/jobs": {
@@ -7401,7 +7813,9 @@
           }
         ],
         "summary": "Lister l'historique des jobs serveur",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/role": {
@@ -7438,7 +7852,9 @@
           }
         ],
         "summary": "Set the infrastructure role of this server",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/servers/{id}/role": {
@@ -7475,7 +7891,9 @@
           }
         ],
         "summary": "Set the infrastructure role of this server",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/environments": {
@@ -7502,7 +7920,9 @@
           }
         ],
         "summary": "List environments assigned to this server (all projects)",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/servers/{id}/environments": {
@@ -7529,7 +7949,9 @@
           }
         ],
         "summary": "List environments assigned to this server (all projects)",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/ping": {
@@ -7556,7 +7978,9 @@
           }
         ],
         "summary": "Quickly test the server SSH connectivity",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/servers/{id}/ping": {
@@ -7583,7 +8007,9 @@
           }
         ],
         "summary": "Quickly test the server SSH connectivity",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/jobs/{jobId}/cancel": {
@@ -7625,7 +8051,9 @@
           }
         ],
         "summary": "Force-finish a stuck or ghost job",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/servers/{id}/jobs/{jobId}/cancel": {
@@ -7667,7 +8095,9 @@
           }
         ],
         "summary": "Force-finish a stuck or ghost job",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/jobs/{jobId}/retry": {
@@ -7709,7 +8139,9 @@
           }
         ],
         "summary": "Re-run a failed SSH validation job",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/servers/{id}/jobs/{jobId}/retry": {
@@ -7751,7 +8183,9 @@
           }
         ],
         "summary": "Re-run a failed SSH validation job",
-        "tags": ["Servers Management"]
+        "tags": [
+          "Servers Management"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{serverId}/docker-connection": {
@@ -7778,7 +8212,9 @@
           }
         ],
         "summary": "Read the (encrypted) Docker config for a server",
-        "tags": ["Servers — Docker Connection (Admin)"]
+        "tags": [
+          "Servers — Docker Connection (Admin)"
+        ]
       },
       "post": {
         "operationId": "DockerConnectionController_upsert[0]",
@@ -7813,7 +8249,9 @@
           }
         ],
         "summary": "Create or replace the Docker connection of a server",
-        "tags": ["Servers — Docker Connection (Admin)"]
+        "tags": [
+          "Servers — Docker Connection (Admin)"
+        ]
       },
       "delete": {
         "operationId": "DockerConnectionController_remove[0]",
@@ -7838,7 +8276,9 @@
           }
         ],
         "summary": "Delete the Docker connection configured for this server",
-        "tags": ["Servers — Docker Connection (Admin)"]
+        "tags": [
+          "Servers — Docker Connection (Admin)"
+        ]
       }
     },
     "/servers/{serverId}/docker-connection": {
@@ -7865,7 +8305,9 @@
           }
         ],
         "summary": "Read the (encrypted) Docker config for a server",
-        "tags": ["Servers — Docker Connection (Admin)"]
+        "tags": [
+          "Servers — Docker Connection (Admin)"
+        ]
       },
       "post": {
         "operationId": "DockerConnectionController_upsert[1]",
@@ -7900,7 +8342,9 @@
           }
         ],
         "summary": "Create or replace the Docker connection of a server",
-        "tags": ["Servers — Docker Connection (Admin)"]
+        "tags": [
+          "Servers — Docker Connection (Admin)"
+        ]
       },
       "delete": {
         "operationId": "DockerConnectionController_remove[1]",
@@ -7925,7 +8369,9 @@
           }
         ],
         "summary": "Delete the Docker connection configured for this server",
-        "tags": ["Servers — Docker Connection (Admin)"]
+        "tags": [
+          "Servers — Docker Connection (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{serverId}/docker-connection/probe": {
@@ -7952,7 +8398,9 @@
           }
         ],
         "summary": "Test the Docker connection (TLS handshake + ping)",
-        "tags": ["Servers — Docker Connection (Admin)"]
+        "tags": [
+          "Servers — Docker Connection (Admin)"
+        ]
       }
     },
     "/servers/{serverId}/docker-connection/probe": {
@@ -7979,7 +8427,9 @@
           }
         ],
         "summary": "Test the Docker connection (TLS handshake + ping)",
-        "tags": ["Servers — Docker Connection (Admin)"]
+        "tags": [
+          "Servers — Docker Connection (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/audit-events": {
@@ -8016,7 +8466,9 @@
           }
         ],
         "summary": "Lister l'audit des actions serveur sensibles",
-        "tags": ["Servers Audit"]
+        "tags": [
+          "Servers Audit"
+        ]
       }
     },
     "/servers/{id}/audit-events": {
@@ -8053,7 +8505,9 @@
           }
         ],
         "summary": "Lister l'audit des actions serveur sensibles",
-        "tags": ["Servers Audit"]
+        "tags": [
+          "Servers Audit"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/validate-ssh": {
@@ -8088,7 +8542,9 @@
           }
         ],
         "summary": "Validate the SSH connection, auth, sudo and minimal prerequisites",
-        "tags": ["Servers Validation"]
+        "tags": [
+          "Servers Validation"
+        ]
       }
     },
     "/servers/{id}/validate-ssh": {
@@ -8123,7 +8579,9 @@
           }
         ],
         "summary": "Validate the SSH connection, auth, sudo and minimal prerequisites",
-        "tags": ["Servers Validation"]
+        "tags": [
+          "Servers Validation"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/status": {
@@ -8157,7 +8615,9 @@
           }
         ],
         "summary": "Get the server verification status",
-        "tags": ["Servers Validation"]
+        "tags": [
+          "Servers Validation"
+        ]
       }
     },
     "/servers/{id}/status": {
@@ -8191,7 +8651,9 @@
           }
         ],
         "summary": "Get the server verification status",
-        "tags": ["Servers Validation"]
+        "tags": [
+          "Servers Validation"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/logs": {
@@ -8236,7 +8698,9 @@
           }
         ],
         "summary": "Get the server verification logs",
-        "tags": ["Servers Validation"]
+        "tags": [
+          "Servers Validation"
+        ]
       }
     },
     "/servers/{id}/logs": {
@@ -8281,7 +8745,9 @@
           }
         ],
         "summary": "Get the server verification logs",
-        "tags": ["Servers Validation"]
+        "tags": [
+          "Servers Validation"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/validation-results": {
@@ -8318,7 +8784,9 @@
           }
         ],
         "summary": "List SSH validation results",
-        "tags": ["Servers Validation"]
+        "tags": [
+          "Servers Validation"
+        ]
       }
     },
     "/servers/{id}/validation-results": {
@@ -8355,7 +8823,9 @@
           }
         ],
         "summary": "List SSH validation results",
-        "tags": ["Servers Validation"]
+        "tags": [
+          "Servers Validation"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/detect": {
@@ -8389,7 +8859,9 @@
           }
         ],
         "summary": "Detect system info and installed tools",
-        "tags": ["Servers Detection"]
+        "tags": [
+          "Servers Detection"
+        ]
       }
     },
     "/servers/{id}/detect": {
@@ -8423,7 +8895,9 @@
           }
         ],
         "summary": "Detect system info and installed tools",
-        "tags": ["Servers Detection"]
+        "tags": [
+          "Servers Detection"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/capabilities": {
@@ -8460,7 +8934,9 @@
           }
         ],
         "summary": "List the detected server capabilities",
-        "tags": ["Servers Detection"]
+        "tags": [
+          "Servers Detection"
+        ]
       }
     },
     "/servers/{id}/capabilities": {
@@ -8497,7 +8973,9 @@
           }
         ],
         "summary": "List the detected server capabilities",
-        "tags": ["Servers Detection"]
+        "tags": [
+          "Servers Detection"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/installed-tools": {
@@ -8534,7 +9012,9 @@
           }
         ],
         "summary": "List detected installed tools",
-        "tags": ["Servers Detection"]
+        "tags": [
+          "Servers Detection"
+        ]
       }
     },
     "/servers/{id}/installed-tools": {
@@ -8571,7 +9051,9 @@
           }
         ],
         "summary": "List detected installed tools",
-        "tags": ["Servers Detection"]
+        "tags": [
+          "Servers Detection"
+        ]
       }
     },
     "/workspaces/{workspaceId}/managed-servers": {
@@ -8599,7 +9081,9 @@
           }
         ],
         "summary": "Provisionner un serveur managé pour la team",
-        "tags": ["Managed Servers"]
+        "tags": [
+          "Managed Servers"
+        ]
       },
       "get": {
         "operationId": "ManagedServersController_list[0]",
@@ -8615,7 +9099,9 @@
           }
         ],
         "summary": "Lister les serveurs managés de la team",
-        "tags": ["Managed Servers"]
+        "tags": [
+          "Managed Servers"
+        ]
       }
     },
     "/managed-servers": {
@@ -8643,7 +9129,9 @@
           }
         ],
         "summary": "Provisionner un serveur managé pour la team",
-        "tags": ["Managed Servers"]
+        "tags": [
+          "Managed Servers"
+        ]
       },
       "get": {
         "operationId": "ManagedServersController_list[1]",
@@ -8659,7 +9147,9 @@
           }
         ],
         "summary": "Lister les serveurs managés de la team",
-        "tags": ["Managed Servers"]
+        "tags": [
+          "Managed Servers"
+        ]
       }
     },
     "/workspaces/{workspaceId}/managed-servers/estimate": {
@@ -8677,7 +9167,9 @@
           }
         ],
         "summary": "Coût mensuel estimé de l’infra managée",
-        "tags": ["Managed Servers"]
+        "tags": [
+          "Managed Servers"
+        ]
       }
     },
     "/managed-servers/estimate": {
@@ -8695,7 +9187,9 @@
           }
         ],
         "summary": "Coût mensuel estimé de l’infra managée",
-        "tags": ["Managed Servers"]
+        "tags": [
+          "Managed Servers"
+        ]
       }
     },
     "/workspaces/{workspaceId}/managed-servers/{id}/public-key": {
@@ -8722,7 +9216,9 @@
           }
         ],
         "summary": "Clé publique SSH du serveur managé",
-        "tags": ["Managed Servers"]
+        "tags": [
+          "Managed Servers"
+        ]
       }
     },
     "/managed-servers/{id}/public-key": {
@@ -8749,7 +9245,9 @@
           }
         ],
         "summary": "Clé publique SSH du serveur managé",
-        "tags": ["Managed Servers"]
+        "tags": [
+          "Managed Servers"
+        ]
       }
     },
     "/workspaces/{workspaceId}/managed-servers/{id}/host": {
@@ -8786,7 +9284,9 @@
           }
         ],
         "summary": "Renseigner l'hôte réel (IP/hostname) du serveur managé après provisionnement — déclenche la vérification SSH puis la préparation",
-        "tags": ["Managed Servers"]
+        "tags": [
+          "Managed Servers"
+        ]
       }
     },
     "/managed-servers/{id}/host": {
@@ -8823,7 +9323,9 @@
           }
         ],
         "summary": "Renseigner l'hôte réel (IP/hostname) du serveur managé après provisionnement — déclenche la vérification SSH puis la préparation",
-        "tags": ["Managed Servers"]
+        "tags": [
+          "Managed Servers"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/setups": {
@@ -8867,7 +9369,9 @@
           }
         ],
         "summary": "Start a server provisioning job",
-        "tags": ["Servers Setup"]
+        "tags": [
+          "Servers Setup"
+        ]
       },
       "get": {
         "operationId": "ServerSetupController_listSetups[0]",
@@ -8902,7 +9406,9 @@
           }
         ],
         "summary": "List the server's provisioning history",
-        "tags": ["Servers Setup"]
+        "tags": [
+          "Servers Setup"
+        ]
       }
     },
     "/servers/{id}/setups": {
@@ -8946,7 +9452,9 @@
           }
         ],
         "summary": "Start a server provisioning job",
-        "tags": ["Servers Setup"]
+        "tags": [
+          "Servers Setup"
+        ]
       },
       "get": {
         "operationId": "ServerSetupController_listSetups[1]",
@@ -8981,7 +9489,9 @@
           }
         ],
         "summary": "List the server's provisioning history",
-        "tags": ["Servers Setup"]
+        "tags": [
+          "Servers Setup"
+        ]
       }
     },
     "/workspaces/{workspaceId}/servers/{id}/setup-readiness": {
@@ -9015,7 +9525,9 @@
           }
         ],
         "summary": "Check whether the server is ready to start provisioning (SSH/sudo/state/lock).",
-        "tags": ["Servers Setup"]
+        "tags": [
+          "Servers Setup"
+        ]
       }
     },
     "/servers/{id}/setup-readiness": {
@@ -9049,7 +9561,9 @@
           }
         ],
         "summary": "Check whether the server is ready to start provisioning (SSH/sudo/state/lock).",
-        "tags": ["Servers Setup"]
+        "tags": [
+          "Servers Setup"
+        ]
       }
     },
     "/workspaces/{workspaceId}/setups/{id}": {
@@ -9083,7 +9597,9 @@
           }
         ],
         "summary": "View a server provisioning's details",
-        "tags": ["Server Setups"]
+        "tags": [
+          "Server Setups"
+        ]
       }
     },
     "/setups/{id}": {
@@ -9117,7 +9633,9 @@
           }
         ],
         "summary": "View a server provisioning's details",
-        "tags": ["Server Setups"]
+        "tags": [
+          "Server Setups"
+        ]
       }
     },
     "/workspaces/{workspaceId}/setups/{id}/logs": {
@@ -9162,7 +9680,9 @@
           }
         ],
         "summary": "Read the persisted logs of a provisioning job",
-        "tags": ["Server Setups"]
+        "tags": [
+          "Server Setups"
+        ]
       }
     },
     "/setups/{id}/logs": {
@@ -9207,7 +9727,9 @@
           }
         ],
         "summary": "Read the persisted logs of a provisioning job",
-        "tags": ["Server Setups"]
+        "tags": [
+          "Server Setups"
+        ]
       }
     },
     "/workspaces/{workspaceId}/setups/{id}/retry": {
@@ -9251,7 +9773,9 @@
           }
         ],
         "summary": "Re-run a provisioning by creating a new linked job",
-        "tags": ["Server Setups"]
+        "tags": [
+          "Server Setups"
+        ]
       }
     },
     "/setups/{id}/retry": {
@@ -9295,7 +9819,9 @@
           }
         ],
         "summary": "Re-run a provisioning by creating a new linked job",
-        "tags": ["Server Setups"]
+        "tags": [
+          "Server Setups"
+        ]
       }
     },
     "/workspaces/{workspaceId}/setups/{id}/cancel": {
@@ -9329,7 +9855,9 @@
           }
         ],
         "summary": "Cancel a provisioning job if still active",
-        "tags": ["Server Setups"]
+        "tags": [
+          "Server Setups"
+        ]
       }
     },
     "/setups/{id}/cancel": {
@@ -9363,7 +9891,9 @@
           }
         ],
         "summary": "Cancel a provisioning job if still active",
-        "tags": ["Server Setups"]
+        "tags": [
+          "Server Setups"
+        ]
       }
     },
     "/workspaces/{workspaceId}/deployments/validate": {
@@ -9401,7 +9931,9 @@
           }
         ],
         "summary": "Validate the prerequisites before deployment",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/deployments/validate": {
@@ -9439,7 +9971,9 @@
           }
         ],
         "summary": "Validate the prerequisites before deployment",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/deployments": {
@@ -9483,7 +10017,9 @@
           }
         ],
         "summary": "Launch a deployment",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       },
       "get": {
         "operationId": "DeploymentsController_findAll[0]",
@@ -9557,7 +10093,9 @@
           }
         ],
         "summary": "List deployments (filtered by role)",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/deployments": {
@@ -9601,7 +10139,9 @@
           }
         ],
         "summary": "Launch a deployment",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       },
       "get": {
         "operationId": "DeploymentsController_findAll[1]",
@@ -9675,7 +10215,9 @@
           }
         ],
         "summary": "List deployments (filtered by role)",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/deployments/project/{projectId}": {
@@ -9721,7 +10263,9 @@
           }
         ],
         "summary": "Lister l'historique d'un projet",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/deployments/project/{projectId}": {
@@ -9767,7 +10311,9 @@
           }
         ],
         "summary": "Lister l'historique d'un projet",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/deployments/preview-env": {
@@ -9803,7 +10349,9 @@
           }
         ],
         "summary": "Preview the variables that will be injected (secrets masked)",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/deployments/preview-env": {
@@ -9839,7 +10387,9 @@
           }
         ],
         "summary": "Preview the variables that will be injected (secrets masked)",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/deployments/{id}": {
@@ -9882,7 +10432,9 @@
           }
         ],
         "summary": "Deployment details",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       },
       "delete": {
         "operationId": "DeploymentsController_remove[0]",
@@ -9916,7 +10468,9 @@
           }
         ],
         "summary": "Delete a deployment",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/deployments/{id}": {
@@ -9959,7 +10513,9 @@
           }
         ],
         "summary": "Deployment details",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       },
       "delete": {
         "operationId": "DeploymentsController_remove[1]",
@@ -9993,7 +10549,9 @@
           }
         ],
         "summary": "Delete a deployment",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/deployments/{id}/cancel": {
@@ -10039,7 +10597,9 @@
           }
         ],
         "summary": "Cancel a deployment",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/deployments/{id}/cancel": {
@@ -10085,7 +10645,9 @@
           }
         ],
         "summary": "Cancel a deployment",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/deployments/{id}/rollback": {
@@ -10131,7 +10693,9 @@
           }
         ],
         "summary": "Roll back to the last stable image",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/deployments/{id}/rollback": {
@@ -10177,7 +10741,9 @@
           }
         ],
         "summary": "Roll back to the last stable image",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/deployments/{id}/container-logs": {
@@ -10204,7 +10770,9 @@
           }
         ],
         "summary": "Get the Docker container logs of the deployment",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/deployments/{id}/container-logs": {
@@ -10231,7 +10799,9 @@
           }
         ],
         "summary": "Get the Docker container logs of the deployment",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/deployments/{id}/logs/search": {
@@ -10258,7 +10828,9 @@
           }
         ],
         "summary": "Search the deployment logs (text + level)",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/deployments/{id}/logs/search": {
@@ -10285,7 +10857,9 @@
           }
         ],
         "summary": "Search the deployment logs (text + level)",
-        "tags": ["Deployments"]
+        "tags": [
+          "Deployments"
+        ]
       }
     },
     "/workspaces/{workspaceId}/ssh-keys": {
@@ -10319,7 +10893,9 @@
             "bearer": []
           }
         ],
-        "tags": ["SSH Keys"]
+        "tags": [
+          "SSH Keys"
+        ]
       },
       "post": {
         "operationId": "SshKeysController_create[0]",
@@ -10361,7 +10937,9 @@
             "bearer": []
           }
         ],
-        "tags": ["SSH Keys"]
+        "tags": [
+          "SSH Keys"
+        ]
       }
     },
     "/ssh-keys": {
@@ -10395,7 +10973,9 @@
             "bearer": []
           }
         ],
-        "tags": ["SSH Keys"]
+        "tags": [
+          "SSH Keys"
+        ]
       },
       "post": {
         "operationId": "SshKeysController_create[1]",
@@ -10437,7 +11017,9 @@
             "bearer": []
           }
         ],
-        "tags": ["SSH Keys"]
+        "tags": [
+          "SSH Keys"
+        ]
       }
     },
     "/workspaces/{workspaceId}/ssh-keys/{id}": {
@@ -10479,7 +11061,9 @@
             "bearer": []
           }
         ],
-        "tags": ["SSH Keys"]
+        "tags": [
+          "SSH Keys"
+        ]
       }
     },
     "/ssh-keys/{id}": {
@@ -10521,7 +11105,9 @@
             "bearer": []
           }
         ],
-        "tags": ["SSH Keys"]
+        "tags": [
+          "SSH Keys"
+        ]
       }
     },
     "/workspaces/{workspaceId}/automation/actions": {
@@ -10538,7 +11124,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       }
     },
     "/automation/actions": {
@@ -10555,7 +11143,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       }
     },
     "/workspaces/{workspaceId}/automation/runs": {
@@ -10594,7 +11184,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       },
       "post": {
         "operationId": "AutomationController_startRun[0]",
@@ -10619,7 +11211,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       }
     },
     "/automation/runs": {
@@ -10658,7 +11252,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       },
       "post": {
         "operationId": "AutomationController_startRun[1]",
@@ -10683,7 +11279,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       }
     },
     "/workspaces/{workspaceId}/automation/runs/{id}": {
@@ -10709,7 +11307,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       },
       "delete": {
         "operationId": "AutomationController_deleteRun[0]",
@@ -10733,7 +11333,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       }
     },
     "/automation/runs/{id}": {
@@ -10759,7 +11361,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       },
       "delete": {
         "operationId": "AutomationController_deleteRun[1]",
@@ -10783,7 +11387,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       }
     },
     "/workspaces/{workspaceId}/automation/runs/{id}/logs": {
@@ -10817,7 +11423,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       }
     },
     "/automation/runs/{id}/logs": {
@@ -10851,7 +11459,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       }
     },
     "/workspaces/{workspaceId}/automation/runs/{id}/cancel": {
@@ -10877,7 +11487,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       }
     },
     "/automation/runs/{id}/cancel": {
@@ -10903,7 +11515,9 @@
             "bearer": []
           }
         ],
-        "tags": ["Automation"]
+        "tags": [
+          "Automation"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/overview": {
@@ -10921,7 +11535,9 @@
           }
         ],
         "summary": "Monitoring overview for platform operations",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/overview": {
@@ -10939,7 +11555,9 @@
           }
         ],
         "summary": "Monitoring overview for platform operations",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/servers": {
@@ -10957,7 +11575,9 @@
           }
         ],
         "summary": "Server monitoring status and metric snapshots",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/servers": {
@@ -10975,7 +11595,9 @@
           }
         ],
         "summary": "Server monitoring status and metric snapshots",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/projects": {
@@ -10993,7 +11615,9 @@
           }
         ],
         "summary": "Project monitoring linked to deployments/pipelines",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/projects": {
@@ -11011,7 +11635,9 @@
           }
         ],
         "summary": "Project monitoring linked to deployments/pipelines",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/deployments": {
@@ -11029,7 +11655,9 @@
           }
         ],
         "summary": "Deployment health and history monitoring",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/deployments": {
@@ -11047,7 +11675,9 @@
           }
         ],
         "summary": "Deployment health and history monitoring",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/prometheus/status": {
@@ -11065,7 +11695,9 @@
           }
         ],
         "summary": "Prometheus connectivity and target status",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/prometheus/status": {
@@ -11083,7 +11715,9 @@
           }
         ],
         "summary": "Prometheus connectivity and target status",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/servers/{host}/metrics/range": {
@@ -11126,7 +11760,9 @@
           }
         ],
         "summary": "Historical CPU/mem/disk time-series for a host (Prometheus range)",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/servers/{host}/metrics/range": {
@@ -11169,7 +11805,9 @@
           }
         ],
         "summary": "Historical CPU/mem/disk time-series for a host (Prometheus range)",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/services/{serviceEnvId}/metrics/range": {
@@ -11212,7 +11850,9 @@
           }
         ],
         "summary": "Historical CPU/memory time-series for a service-environment (Prometheus range)",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/services/{serviceEnvId}/metrics/range": {
@@ -11255,7 +11895,9 @@
           }
         ],
         "summary": "Historical CPU/memory time-series for a service-environment (Prometheus range)",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/grafana/status": {
@@ -11273,7 +11915,9 @@
           }
         ],
         "summary": "Grafana connectivity and access status",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/grafana/status": {
@@ -11291,7 +11935,9 @@
           }
         ],
         "summary": "Grafana connectivity and access status",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/services/{serviceEnvId}/links": {
@@ -11318,7 +11964,9 @@
           }
         ],
         "summary": "Monitoring links (Grafana/Prometheus/Loki) for the server hosting a service-environment",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/services/{serviceEnvId}/links": {
@@ -11345,7 +11993,9 @@
           }
         ],
         "summary": "Monitoring links (Grafana/Prometheus/Loki) for the server hosting a service-environment",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/alerts": {
@@ -11363,7 +12013,9 @@
           }
         ],
         "summary": "Monitoring alerts (Alertmanager or derived alerts)",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/alerts": {
@@ -11381,7 +12033,9 @@
           }
         ],
         "summary": "Monitoring alerts (Alertmanager or derived alerts)",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/install/options": {
@@ -11399,7 +12053,9 @@
           }
         ],
         "summary": "Monitoring installation actions and eligible servers",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/install/options": {
@@ -11417,7 +12073,9 @@
           }
         ],
         "summary": "Monitoring installation actions and eligible servers",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/install": {
@@ -11445,7 +12103,9 @@
           }
         ],
         "summary": "Install monitoring components through allowlisted automation actions",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/install": {
@@ -11473,7 +12133,9 @@
           }
         ],
         "summary": "Install monitoring components through allowlisted automation actions",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/containers/deployment/{deploymentId}": {
@@ -11508,7 +12170,9 @@
           }
         ],
         "summary": "Get container stats and logs for a deployment",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/containers/deployment/{deploymentId}": {
@@ -11543,7 +12207,9 @@
           }
         ],
         "summary": "Get container stats and logs for a deployment",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/monitoring/containers/project/{projectId}": {
@@ -11578,7 +12244,9 @@
           }
         ],
         "summary": "List running containers for a project on a server",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/monitoring/containers/project/{projectId}": {
@@ -11613,7 +12281,9 @@
           }
         ],
         "summary": "List running containers for a project on a server",
-        "tags": ["Monitoring"]
+        "tags": [
+          "Monitoring"
+        ]
       }
     },
     "/workspaces/{workspaceId}/runtime-logs/service/{serviceEnvId}": {
@@ -11664,7 +12334,9 @@
           }
         ],
         "summary": "Search the running container logs of a service-environment",
-        "tags": ["Observability"]
+        "tags": [
+          "Observability"
+        ]
       }
     },
     "/runtime-logs/service/{serviceEnvId}": {
@@ -11715,7 +12387,9 @@
           }
         ],
         "summary": "Search the running container logs of a service-environment",
-        "tags": ["Observability"]
+        "tags": [
+          "Observability"
+        ]
       }
     },
     "/workspaces/{workspaceId}/runtime-logs/service/{serviceEnvId}/history": {
@@ -11774,7 +12448,9 @@
           }
         ],
         "summary": "Search the PERSISTED (Loki) logs of a service-environment over a time window",
-        "tags": ["Observability"]
+        "tags": [
+          "Observability"
+        ]
       }
     },
     "/runtime-logs/service/{serviceEnvId}/history": {
@@ -11833,7 +12509,9 @@
           }
         ],
         "summary": "Search the PERSISTED (Loki) logs of a service-environment over a time window",
-        "tags": ["Observability"]
+        "tags": [
+          "Observability"
+        ]
       }
     },
     "/workspaces/{workspaceId}/containers": {
@@ -11888,7 +12566,9 @@
           }
         ],
         "summary": "List tracked containers",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/containers": {
@@ -11943,7 +12623,9 @@
           }
         ],
         "summary": "List tracked containers",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/workspaces/{workspaceId}/containers/{id}": {
@@ -11970,7 +12652,9 @@
           }
         ],
         "summary": "Get a container by ID",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       },
       "delete": {
         "operationId": "ContainersController_remove[0]",
@@ -11995,7 +12679,9 @@
           }
         ],
         "summary": "Remove a container",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/containers/{id}": {
@@ -12022,7 +12708,9 @@
           }
         ],
         "summary": "Get a container by ID",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       },
       "delete": {
         "operationId": "ContainersController_remove[1]",
@@ -12047,7 +12735,9 @@
           }
         ],
         "summary": "Remove a container",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/workspaces/{workspaceId}/containers/{id}/inspect": {
@@ -12074,7 +12764,9 @@
           }
         ],
         "summary": "Inspect a running container via Docker API",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/containers/{id}/inspect": {
@@ -12101,7 +12793,9 @@
           }
         ],
         "summary": "Inspect a running container via Docker API",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/workspaces/{workspaceId}/containers/{id}/stats": {
@@ -12128,7 +12822,9 @@
           }
         ],
         "summary": "Get container resource stats",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/containers/{id}/stats": {
@@ -12155,7 +12851,9 @@
           }
         ],
         "summary": "Get container resource stats",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/workspaces/{workspaceId}/containers/{id}/start": {
@@ -12182,7 +12880,9 @@
           }
         ],
         "summary": "Start a container",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/containers/{id}/start": {
@@ -12209,7 +12909,9 @@
           }
         ],
         "summary": "Start a container",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/workspaces/{workspaceId}/containers/{id}/stop": {
@@ -12236,7 +12938,9 @@
           }
         ],
         "summary": "Stop a container",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/containers/{id}/stop": {
@@ -12263,7 +12967,9 @@
           }
         ],
         "summary": "Stop a container",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/workspaces/{workspaceId}/containers/{id}/restart": {
@@ -12290,7 +12996,9 @@
           }
         ],
         "summary": "Restart a container",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/containers/{id}/restart": {
@@ -12317,7 +13025,9 @@
           }
         ],
         "summary": "Restart a container",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/workspaces/{workspaceId}/containers/sync/{serverId}": {
@@ -12344,7 +13054,9 @@
           }
         ],
         "summary": "Sync containers from a Docker host",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/containers/sync/{serverId}": {
@@ -12371,7 +13083,9 @@
           }
         ],
         "summary": "Sync containers from a Docker host",
-        "tags": ["containers"]
+        "tags": [
+          "containers"
+        ]
       }
     },
     "/workspaces/{workspaceId}/dns/providers": {
@@ -12389,7 +13103,9 @@
           }
         ],
         "summary": "List DNS providers",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       },
       "post": {
         "operationId": "DomainsController_createProvider[0]",
@@ -12415,7 +13131,9 @@
           }
         ],
         "summary": "Create a DNS provider",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/dns/providers": {
@@ -12433,7 +13151,9 @@
           }
         ],
         "summary": "List DNS providers",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       },
       "post": {
         "operationId": "DomainsController_createProvider[1]",
@@ -12459,7 +13179,9 @@
           }
         ],
         "summary": "Create a DNS provider",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/workspaces/{workspaceId}/dns/providers/{id}/test": {
@@ -12486,7 +13208,9 @@
           }
         ],
         "summary": "Test a DNS provider",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/dns/providers/{id}/test": {
@@ -12513,7 +13237,9 @@
           }
         ],
         "summary": "Test a DNS provider",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/workspaces/{workspaceId}/dns/domains": {
@@ -12548,7 +13274,9 @@
           }
         ],
         "summary": "List DNS domains",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       },
       "post": {
         "operationId": "DomainsController_createDomain[0]",
@@ -12574,7 +13302,9 @@
           }
         ],
         "summary": "Add a DNS domain",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/dns/domains": {
@@ -12609,7 +13339,9 @@
           }
         ],
         "summary": "List DNS domains",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       },
       "post": {
         "operationId": "DomainsController_createDomain[1]",
@@ -12635,7 +13367,9 @@
           }
         ],
         "summary": "Add a DNS domain",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/workspaces/{workspaceId}/dns/domains/{id}": {
@@ -12662,7 +13396,9 @@
           }
         ],
         "summary": "Delete a DNS domain",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/dns/domains/{id}": {
@@ -12689,7 +13425,9 @@
           }
         ],
         "summary": "Delete a DNS domain",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/workspaces/{workspaceId}/dns/domains/{id}/verify": {
@@ -12716,7 +13454,9 @@
           }
         ],
         "summary": "Verify a DNS domain",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/dns/domains/{id}/verify": {
@@ -12743,7 +13483,9 @@
           }
         ],
         "summary": "Verify a DNS domain",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/workspaces/{workspaceId}/dns/domains/{domainId}/records": {
@@ -12770,7 +13512,9 @@
           }
         ],
         "summary": "List the DNS records of a domain",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       },
       "post": {
         "operationId": "DomainsController_createRecord[0]",
@@ -12805,7 +13549,9 @@
           }
         ],
         "summary": "Create a DNS record",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/dns/domains/{domainId}/records": {
@@ -12832,7 +13578,9 @@
           }
         ],
         "summary": "List the DNS records of a domain",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       },
       "post": {
         "operationId": "DomainsController_createRecord[1]",
@@ -12867,7 +13615,9 @@
           }
         ],
         "summary": "Create a DNS record",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/workspaces/{workspaceId}/dns/records/{recordId}": {
@@ -12904,7 +13654,9 @@
           }
         ],
         "summary": "Update a DNS record",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       },
       "delete": {
         "operationId": "DomainsController_removeRecord[0]",
@@ -12929,7 +13681,9 @@
           }
         ],
         "summary": "Delete a DNS record",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/dns/records/{recordId}": {
@@ -12966,7 +13720,9 @@
           }
         ],
         "summary": "Update a DNS record",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       },
       "delete": {
         "operationId": "DomainsController_removeRecord[1]",
@@ -12991,7 +13747,9 @@
           }
         ],
         "summary": "Delete a DNS record",
-        "tags": ["Domains"]
+        "tags": [
+          "Domains"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/registries": {
@@ -13009,7 +13767,9 @@
           }
         ],
         "summary": "List registry configurations",
-        "tags": ["ContainerRegistries (Admin)"]
+        "tags": [
+          "ContainerRegistries (Admin)"
+        ]
       },
       "post": {
         "operationId": "ContainerRegistriesController_createRegistry[0]",
@@ -13035,7 +13795,9 @@
           }
         ],
         "summary": "Create a new registry configuration",
-        "tags": ["ContainerRegistries (Admin)"]
+        "tags": [
+          "ContainerRegistries (Admin)"
+        ]
       }
     },
     "/admin/platform-config/registries": {
@@ -13053,7 +13815,9 @@
           }
         ],
         "summary": "List registry configurations",
-        "tags": ["ContainerRegistries (Admin)"]
+        "tags": [
+          "ContainerRegistries (Admin)"
+        ]
       },
       "post": {
         "operationId": "ContainerRegistriesController_createRegistry[1]",
@@ -13079,7 +13843,9 @@
           }
         ],
         "summary": "Create a new registry configuration",
-        "tags": ["ContainerRegistries (Admin)"]
+        "tags": [
+          "ContainerRegistries (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/registries/{id}": {
@@ -13116,7 +13882,9 @@
           }
         ],
         "summary": "Update a registry configuration",
-        "tags": ["ContainerRegistries (Admin)"]
+        "tags": [
+          "ContainerRegistries (Admin)"
+        ]
       },
       "delete": {
         "operationId": "ContainerRegistriesController_deleteRegistry[0]",
@@ -13141,7 +13909,9 @@
           }
         ],
         "summary": "Delete a registry configuration",
-        "tags": ["ContainerRegistries (Admin)"]
+        "tags": [
+          "ContainerRegistries (Admin)"
+        ]
       }
     },
     "/admin/platform-config/registries/{id}": {
@@ -13178,7 +13948,9 @@
           }
         ],
         "summary": "Update a registry configuration",
-        "tags": ["ContainerRegistries (Admin)"]
+        "tags": [
+          "ContainerRegistries (Admin)"
+        ]
       },
       "delete": {
         "operationId": "ContainerRegistriesController_deleteRegistry[1]",
@@ -13203,7 +13975,9 @@
           }
         ],
         "summary": "Delete a registry configuration",
-        "tags": ["ContainerRegistries (Admin)"]
+        "tags": [
+          "ContainerRegistries (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/registries/{id}/test": {
@@ -13230,7 +14004,9 @@
           }
         ],
         "summary": "Test the connection to a registry",
-        "tags": ["ContainerRegistries (Admin)"]
+        "tags": [
+          "ContainerRegistries (Admin)"
+        ]
       }
     },
     "/admin/platform-config/registries/{id}/test": {
@@ -13257,7 +14033,9 @@
           }
         ],
         "summary": "Test the connection to a registry",
-        "tags": ["ContainerRegistries (Admin)"]
+        "tags": [
+          "ContainerRegistries (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/integrations/registries/{id}/set-default": {
@@ -13284,7 +14062,9 @@
           }
         ],
         "summary": "Set a registry as the default registry",
-        "tags": ["ContainerRegistries (Admin)"]
+        "tags": [
+          "ContainerRegistries (Admin)"
+        ]
       }
     },
     "/admin/platform-config/registries/{id}/set-default": {
@@ -13311,7 +14091,9 @@
           }
         ],
         "summary": "Set a registry as the default registry",
-        "tags": ["ContainerRegistries (Admin)"]
+        "tags": [
+          "ContainerRegistries (Admin)"
+        ]
       }
     },
     "/workspaces/{workspaceId}/dashboard/stats": {
@@ -13329,7 +14111,9 @@
           }
         ],
         "summary": "Aggregated dashboard statistics",
-        "tags": ["Dashboard"]
+        "tags": [
+          "Dashboard"
+        ]
       }
     },
     "/dashboard/stats": {
@@ -13347,7 +14131,9 @@
           }
         ],
         "summary": "Aggregated dashboard statistics",
-        "tags": ["Dashboard"]
+        "tags": [
+          "Dashboard"
+        ]
       }
     },
     "/workspaces/{workspaceId}/proxy/rules": {
@@ -13365,7 +14151,9 @@
           }
         ],
         "summary": "List proxy rules",
-        "tags": ["proxy"]
+        "tags": [
+          "proxy"
+        ]
       },
       "post": {
         "operationId": "ProxyController_create[0]",
@@ -13391,7 +14179,9 @@
           }
         ],
         "summary": "Create a proxy rule",
-        "tags": ["proxy"]
+        "tags": [
+          "proxy"
+        ]
       }
     },
     "/proxy/rules": {
@@ -13409,7 +14199,9 @@
           }
         ],
         "summary": "List proxy rules",
-        "tags": ["proxy"]
+        "tags": [
+          "proxy"
+        ]
       },
       "post": {
         "operationId": "ProxyController_create[1]",
@@ -13435,7 +14227,9 @@
           }
         ],
         "summary": "Create a proxy rule",
-        "tags": ["proxy"]
+        "tags": [
+          "proxy"
+        ]
       }
     },
     "/workspaces/{workspaceId}/proxy/rules/{id}": {
@@ -13462,7 +14256,9 @@
           }
         ],
         "summary": "Get a proxy rule by ID",
-        "tags": ["proxy"]
+        "tags": [
+          "proxy"
+        ]
       },
       "patch": {
         "operationId": "ProxyController_update[0]",
@@ -13497,7 +14293,9 @@
           }
         ],
         "summary": "Update a proxy rule",
-        "tags": ["proxy"]
+        "tags": [
+          "proxy"
+        ]
       },
       "delete": {
         "operationId": "ProxyController_remove[0]",
@@ -13522,7 +14320,9 @@
           }
         ],
         "summary": "Delete a proxy rule",
-        "tags": ["proxy"]
+        "tags": [
+          "proxy"
+        ]
       }
     },
     "/proxy/rules/{id}": {
@@ -13549,7 +14349,9 @@
           }
         ],
         "summary": "Get a proxy rule by ID",
-        "tags": ["proxy"]
+        "tags": [
+          "proxy"
+        ]
       },
       "patch": {
         "operationId": "ProxyController_update[1]",
@@ -13584,7 +14386,9 @@
           }
         ],
         "summary": "Update a proxy rule",
-        "tags": ["proxy"]
+        "tags": [
+          "proxy"
+        ]
       },
       "delete": {
         "operationId": "ProxyController_remove[1]",
@@ -13609,7 +14413,9 @@
           }
         ],
         "summary": "Delete a proxy rule",
-        "tags": ["proxy"]
+        "tags": [
+          "proxy"
+        ]
       }
     },
     "/workspaces/{workspaceId}/proxy/rules/{id}/toggle": {
@@ -13636,7 +14442,9 @@
           }
         ],
         "summary": "Toggle rule active/inactive",
-        "tags": ["proxy"]
+        "tags": [
+          "proxy"
+        ]
       }
     },
     "/proxy/rules/{id}/toggle": {
@@ -13663,7 +14471,9 @@
           }
         ],
         "summary": "Toggle rule active/inactive",
-        "tags": ["proxy"]
+        "tags": [
+          "proxy"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{projectId}/services": {
@@ -13690,7 +14500,9 @@
           }
         ],
         "summary": "Lister les services d'un projet",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       },
       "post": {
         "operationId": "ServicesController_create[0]",
@@ -13725,7 +14537,9 @@
           }
         ],
         "summary": "Create a service in a project",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       }
     },
     "/projects/{projectId}/services": {
@@ -13752,7 +14566,9 @@
           }
         ],
         "summary": "Lister les services d'un projet",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       },
       "post": {
         "operationId": "ServicesController_create[1]",
@@ -13787,7 +14603,9 @@
           }
         ],
         "summary": "Create a service in a project",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{projectId}/services/discover-group": {
@@ -13824,7 +14642,9 @@
           }
         ],
         "summary": "Discover the repos of a group/org to create services",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       }
     },
     "/projects/{projectId}/services/discover-group": {
@@ -13861,7 +14681,9 @@
           }
         ],
         "summary": "Discover the repos of a group/org to create services",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{projectId}/services/templates": {
@@ -13879,7 +14701,9 @@
           }
         ],
         "summary": "List one-click service templates",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       }
     },
     "/projects/{projectId}/services/templates": {
@@ -13897,7 +14721,9 @@
           }
         ],
         "summary": "List one-click service templates",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{projectId}/services/templates/{templateId}": {
@@ -13942,7 +14768,9 @@
           }
         ],
         "summary": "Create every service of a one-click template",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       }
     },
     "/projects/{projectId}/services/templates/{templateId}": {
@@ -13987,7 +14815,9 @@
           }
         ],
         "summary": "Create every service of a one-click template",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{projectId}/services/{serviceId}": {
@@ -14022,7 +14852,9 @@
           }
         ],
         "summary": "Service details",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       },
       "put": {
         "operationId": "ServicesController_update[0]",
@@ -14065,7 +14897,9 @@
           }
         ],
         "summary": "Update a service",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       },
       "delete": {
         "operationId": "ServicesController_remove[0]",
@@ -14098,7 +14932,9 @@
           }
         ],
         "summary": "Delete a service",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       }
     },
     "/projects/{projectId}/services/{serviceId}": {
@@ -14133,7 +14969,9 @@
           }
         ],
         "summary": "Service details",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       },
       "put": {
         "operationId": "ServicesController_update[1]",
@@ -14176,7 +15014,9 @@
           }
         ],
         "summary": "Update a service",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       },
       "delete": {
         "operationId": "ServicesController_remove[1]",
@@ -14209,7 +15049,9 @@
           }
         ],
         "summary": "Delete a service",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       }
     },
     "/workspaces/{workspaceId}/projects/{projectId}/services/{serviceId}/credentials": {
@@ -14244,7 +15086,9 @@
           }
         ],
         "summary": "Get a DATABASE service credentials (dedicated, gated — not the listing route)",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       }
     },
     "/projects/{projectId}/services/{serviceId}/credentials": {
@@ -14279,7 +15123,9 @@
           }
         ],
         "summary": "Get a DATABASE service credentials (dedicated, gated — not the listing route)",
-        "tags": ["Services"]
+        "tags": [
+          "Services"
+        ]
       }
     },
     "/workspaces/{workspaceId}/volumes": {
@@ -14314,7 +15160,9 @@
           }
         ],
         "summary": "List volumes",
-        "tags": ["volumes"]
+        "tags": [
+          "volumes"
+        ]
       },
       "post": {
         "operationId": "VolumesController_create[0]",
@@ -14340,7 +15188,9 @@
           }
         ],
         "summary": "Create a persistent volume",
-        "tags": ["volumes"]
+        "tags": [
+          "volumes"
+        ]
       }
     },
     "/volumes": {
@@ -14375,7 +15225,9 @@
           }
         ],
         "summary": "List volumes",
-        "tags": ["volumes"]
+        "tags": [
+          "volumes"
+        ]
       },
       "post": {
         "operationId": "VolumesController_create[1]",
@@ -14401,7 +15253,9 @@
           }
         ],
         "summary": "Create a persistent volume",
-        "tags": ["volumes"]
+        "tags": [
+          "volumes"
+        ]
       }
     },
     "/workspaces/{workspaceId}/volumes/{id}": {
@@ -14428,7 +15282,9 @@
           }
         ],
         "summary": "Get a volume by ID",
-        "tags": ["volumes"]
+        "tags": [
+          "volumes"
+        ]
       },
       "patch": {
         "operationId": "VolumesController_update[0]",
@@ -14463,7 +15319,9 @@
           }
         ],
         "summary": "Update a volume",
-        "tags": ["volumes"]
+        "tags": [
+          "volumes"
+        ]
       },
       "delete": {
         "operationId": "VolumesController_remove[0]",
@@ -14488,7 +15346,9 @@
           }
         ],
         "summary": "Delete a volume",
-        "tags": ["volumes"]
+        "tags": [
+          "volumes"
+        ]
       }
     },
     "/volumes/{id}": {
@@ -14515,7 +15375,9 @@
           }
         ],
         "summary": "Get a volume by ID",
-        "tags": ["volumes"]
+        "tags": [
+          "volumes"
+        ]
       },
       "patch": {
         "operationId": "VolumesController_update[1]",
@@ -14550,7 +15412,9 @@
           }
         ],
         "summary": "Update a volume",
-        "tags": ["volumes"]
+        "tags": [
+          "volumes"
+        ]
       },
       "delete": {
         "operationId": "VolumesController_remove[1]",
@@ -14575,7 +15439,9 @@
           }
         ],
         "summary": "Delete a volume",
-        "tags": ["volumes"]
+        "tags": [
+          "volumes"
+        ]
       }
     },
     "/staff/login": {
@@ -14598,7 +15464,9 @@
           }
         },
         "summary": "Login back-office (staff)",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/forgot-password": {
@@ -14621,7 +15489,9 @@
           }
         },
         "summary": "Demander un code de récupération Staff",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/reset-password": {
@@ -14644,7 +15514,9 @@
           }
         },
         "summary": "Réinitialiser le mot de passe Staff",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/activate": {
@@ -14667,7 +15539,9 @@
           }
         },
         "summary": "Activer un compte staff avec le code reçu par email",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/request-activation-code": {
@@ -14690,7 +15564,9 @@
           }
         },
         "summary": "Demander un nouveau code d'activation Staff",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/logout": {
@@ -14708,7 +15584,9 @@
           }
         ],
         "summary": "Logout back-office (audit)",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/me": {
@@ -14726,7 +15604,9 @@
           }
         ],
         "summary": "Profil du staff connecté",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/staff": {
@@ -14761,7 +15641,9 @@
           }
         ],
         "summary": "Liste des comptes back-office",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       },
       "post": {
         "operationId": "StaffController_createStaff",
@@ -14787,7 +15669,9 @@
           }
         ],
         "summary": "Créer un compte back-office (ROOT uniquement)",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/staff/{id}": {
@@ -14824,7 +15708,9 @@
           }
         ],
         "summary": "Modifier un compte back-office (ROOT uniquement)",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/staff/{id}/invitation": {
@@ -14851,7 +15737,9 @@
           }
         ],
         "summary": "Renvoyer l'invitation d'un compte staff",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/settings/email": {
@@ -14869,7 +15757,9 @@
           }
         ],
         "summary": "Voir la configuration SMTP sans jamais lire le secret",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       },
       "put": {
         "operationId": "StaffController_updateEmailSettings",
@@ -14895,7 +15785,9 @@
           }
         ],
         "summary": "Modifier la configuration SMTP globale (ROOT)",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/settings/email/test": {
@@ -14923,7 +15815,9 @@
           }
         ],
         "summary": "Tester SMTP vers le staff connecté",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/overview": {
@@ -14941,7 +15835,9 @@
           }
         ],
         "summary": "Vue globale de la plateforme",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/audit-logs": {
@@ -14976,7 +15872,9 @@
           }
         ],
         "summary": "Journal d’audit du back-office (append-only)",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/users": {
@@ -15011,7 +15909,9 @@
           }
         ],
         "summary": "Liste des utilisateurs clients",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/teams": {
@@ -15046,7 +15946,9 @@
           }
         ],
         "summary": "Liste des équipes plateforme",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/subscriptions": {
@@ -15064,7 +15966,9 @@
           }
         ],
         "summary": "Liste des abonnements plateforme",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/users/{id}": {
@@ -15101,7 +16005,9 @@
           }
         ],
         "summary": "Bloquer/débloquer ou changer le rôle d’un client",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       },
       "delete": {
         "operationId": "StaffController_deleteUser",
@@ -15126,7 +16032,9 @@
           }
         ],
         "summary": "Supprimer définitivement un compte client (ROOT)",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     },
     "/staff/users/{id}/impersonate": {
@@ -15153,7 +16061,9 @@
           }
         ],
         "summary": "Se connecter « en tant que » un client — émet un JWT client, journalisé",
-        "tags": ["Back-office (staff)"]
+        "tags": [
+          "Back-office (staff)"
+        ]
       }
     }
   },
@@ -15193,7 +16103,11 @@
             "example": "NouveauMotDePasse123!"
           }
         },
-        "required": ["currentPassword", "newPassword", "confirmNewPassword"]
+        "required": [
+          "currentPassword",
+          "newPassword",
+          "confirmNewPassword"
+        ]
       },
       "RegisterDto": {
         "type": "object",
@@ -15219,7 +16133,12 @@
             "example": "Ma première équipe"
           }
         },
-        "required": ["email", "password", "fullName", "teamName"]
+        "required": [
+          "email",
+          "password",
+          "fullName",
+          "teamName"
+        ]
       },
       "VerifyEmailDto": {
         "type": "object",
@@ -15240,7 +16159,11 @@
             "example": "123456"
           }
         },
-        "required": ["email", "registrationId", "code"]
+        "required": [
+          "email",
+          "registrationId",
+          "code"
+        ]
       },
       "ResendVerificationCodeDto": {
         "type": "object",
@@ -15256,7 +16179,10 @@
             "example": "77a0b42f-f7af-41f0-a1a2-2f89095b9fd3"
           }
         },
-        "required": ["email", "registrationId"]
+        "required": [
+          "email",
+          "registrationId"
+        ]
       },
       "LoginDto": {
         "type": "object",
@@ -15269,7 +16195,10 @@
             "type": "string"
           }
         },
-        "required": ["email", "password"]
+        "required": [
+          "email",
+          "password"
+        ]
       },
       "ForgotPasswordDto": {
         "type": "object",
@@ -15280,7 +16209,9 @@
             "example": "user@example.com"
           }
         },
-        "required": ["email"]
+        "required": [
+          "email"
+        ]
       },
       "ResetPasswordDto": {
         "type": "object",
@@ -15303,7 +16234,11 @@
             "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$"
           }
         },
-        "required": ["email", "code", "password"]
+        "required": [
+          "email",
+          "code",
+          "password"
+        ]
       },
       "DeleteAccountDto": {
         "type": "object",
@@ -15315,7 +16250,9 @@
             "description": "Code de confirmation reçu par email"
           }
         },
-        "required": ["code"]
+        "required": [
+          "code"
+        ]
       },
       "CreateTeamDto": {
         "type": "object",
@@ -15327,7 +16264,9 @@
             "type": "string"
           }
         },
-        "required": ["name"]
+        "required": [
+          "name"
+        ]
       },
       "UpdateTeamDto": {
         "type": "object",
@@ -15349,30 +16288,47 @@
           },
           "role": {
             "type": "string",
-            "enum": ["ADMIN", "OWNER", "MEMBER"]
+            "enum": [
+              "ADMIN",
+              "OWNER",
+              "MEMBER"
+            ]
           }
         },
-        "required": ["userId"]
+        "required": [
+          "userId"
+        ]
       },
       "UpdateWorkspaceMemberRoleDto": {
         "type": "object",
         "properties": {
           "role": {
             "type": "string",
-            "enum": ["ADMIN", "OWNER", "MEMBER"]
+            "enum": [
+              "ADMIN",
+              "OWNER",
+              "MEMBER"
+            ]
           }
         },
-        "required": ["role"]
+        "required": [
+          "role"
+        ]
       },
       "UpdateWorkspaceMemberStatusDto": {
         "type": "object",
         "properties": {
           "status": {
-            "enum": ["ACTIVE", "SUSPENDED"],
+            "enum": [
+              "ACTIVE",
+              "SUSPENDED"
+            ],
             "type": "string"
           }
         },
-        "required": ["status"]
+        "required": [
+          "status"
+        ]
       },
       "InviteWorkspaceMemberDto": {
         "type": "object",
@@ -15383,10 +16339,16 @@
           },
           "role": {
             "type": "string",
-            "enum": ["ADMIN", "OWNER", "MEMBER"]
+            "enum": [
+              "ADMIN",
+              "OWNER",
+              "MEMBER"
+            ]
           }
         },
-        "required": ["email"]
+        "required": [
+          "email"
+        ]
       },
       "AcceptWorkspaceInvitationDto": {
         "type": "object",
@@ -15395,7 +16357,9 @@
             "type": "string"
           }
         },
-        "required": ["token"]
+        "required": [
+          "token"
+        ]
       },
       "CreateBuildConfigDto": {
         "type": "object",
@@ -15473,7 +16437,10 @@
             "type": "boolean"
           }
         },
-        "required": ["name", "providerUrl"]
+        "required": [
+          "name",
+          "providerUrl"
+        ]
       },
       "UpdateGitlabProviderDto": {
         "type": "object",
@@ -15511,7 +16478,11 @@
         "type": "object",
         "properties": {
           "provider": {
-            "enum": ["GITLAB", "GITHUB", "GITEA"],
+            "enum": [
+              "GITLAB",
+              "GITHUB",
+              "GITEA"
+            ],
             "type": "string",
             "example": "GITLAB",
             "description": "Type de provider Git (GITLAB ou GITHUB)"
@@ -15539,7 +16510,9 @@
             "description": "Access token (PAT or provider token)"
           }
         },
-        "required": ["provider"]
+        "required": [
+          "provider"
+        ]
       },
       "ConnectGitlabDto": {
         "type": "object",
@@ -15585,7 +16558,9 @@
             "minimum": 1
           }
         },
-        "required": ["branch"]
+        "required": [
+          "branch"
+        ]
       },
       "CreateProjectDto": {
         "type": "object",
@@ -15605,7 +16580,9 @@
             "description": "DEVELOPER user to assign as OWNER"
           }
         },
-        "required": ["name"]
+        "required": [
+          "name"
+        ]
       },
       "GitlabGroupImportRepositoryDto": {
         "type": "object",
@@ -15632,11 +16609,22 @@
             "example": "frontend"
           },
           "serviceType": {
-            "enum": ["APPLICATION", "DATABASE", "MANAGED", "WORKER", "CRON"],
+            "enum": [
+              "APPLICATION",
+              "DATABASE",
+              "MANAGED",
+              "WORKER",
+              "CRON"
+            ],
             "type": "string"
           }
         },
-        "required": ["id", "name", "pathWithNamespace", "defaultBranch"]
+        "required": [
+          "id",
+          "name",
+          "pathWithNamespace",
+          "defaultBranch"
+        ]
       },
       "ImportGitlabGroupDto": {
         "type": "object",
@@ -15667,7 +16655,10 @@
             "example": "company/my-apps"
           },
           "importMode": {
-            "enum": ["ONE_APPLICATION", "SEPARATE_PROJECTS"],
+            "enum": [
+              "ONE_APPLICATION",
+              "SEPARATE_PROJECTS"
+            ],
             "type": "string",
             "example": "ONE_APPLICATION"
           },
@@ -15685,7 +16676,12 @@
             "description": "DEVELOPER user to assign as OWNER"
           }
         },
-        "required": ["name", "groupId", "importMode", "repositories"]
+        "required": [
+          "name",
+          "groupId",
+          "importMode",
+          "repositories"
+        ]
       },
       "UpdateProjectDto": {
         "type": "object",
@@ -15719,7 +16715,11 @@
             "example": "dev@deployautomation.local"
           },
           "role": {
-            "enum": ["MAINTAINER", "DEVELOPER", "VIEWER"],
+            "enum": [
+              "MAINTAINER",
+              "DEVELOPER",
+              "VIEWER"
+            ],
             "type": "string",
             "default": "DEVELOPER"
           }
@@ -15729,11 +16729,17 @@
         "type": "object",
         "properties": {
           "role": {
-            "enum": ["MAINTAINER", "DEVELOPER", "VIEWER"],
+            "enum": [
+              "MAINTAINER",
+              "DEVELOPER",
+              "VIEWER"
+            ],
             "type": "string"
           }
         },
-        "required": ["role"]
+        "required": [
+          "role"
+        ]
       },
       "CreateEnvironmentDto": {
         "type": "object",
@@ -15755,7 +16761,9 @@
             "example": "{\"DB_PASSWORD\":\"...\"}"
           }
         },
-        "required": ["name"]
+        "required": [
+          "name"
+        ]
       },
       "UpdateEnvironmentDto": {
         "type": "object",
@@ -15849,7 +16857,10 @@
             "example": "main"
           }
         },
-        "required": ["serviceId", "environmentId"]
+        "required": [
+          "serviceId",
+          "environmentId"
+        ]
       },
       "UpdateServiceEnvironmentDto": {
         "type": "object",
@@ -15947,7 +16958,12 @@
             "nullable": true
           },
           "status": {
-            "enum": ["INSTALLED", "MISSING", "FAILED", "UNKNOWN"],
+            "enum": [
+              "INSTALLED",
+              "MISSING",
+              "FAILED",
+              "UNKNOWN"
+            ],
             "type": "string"
           },
           "installedAt": {
@@ -15956,7 +16972,13 @@
             "format": "date-time"
           }
         },
-        "required": ["id", "serverId", "toolKey", "displayName", "status"]
+        "required": [
+          "id",
+          "serverId",
+          "toolKey",
+          "displayName",
+          "status"
+        ]
       },
       "ServerActiveJobDto": {
         "type": "object",
@@ -15998,7 +17020,12 @@
             "nullable": true
           }
         },
-        "required": ["id", "type", "status", "createdAt"]
+        "required": [
+          "id",
+          "type",
+          "status",
+          "createdAt"
+        ]
       },
       "ServerResponseDto": {
         "type": "object",
@@ -16024,7 +17051,9 @@
           },
           "connectionMode": {
             "type": "string",
-            "enum": ["ssh"]
+            "enum": [
+              "ssh"
+            ]
           },
           "bastionHost": {
             "type": "string",
@@ -16165,7 +17194,9 @@
           },
           "connectionMode": {
             "type": "string",
-            "enum": ["ssh"]
+            "enum": [
+              "ssh"
+            ]
           },
           "bastionHost": {
             "type": "string",
@@ -16307,7 +17338,13 @@
             "type": "number"
           }
         },
-        "required": ["data", "total", "page", "limit", "totalPages"]
+        "required": [
+          "data",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
       },
       "ServerJobResponseDto": {
         "type": "object",
@@ -16413,7 +17450,13 @@
             "type": "number"
           }
         },
-        "required": ["data", "total", "page", "limit", "totalPages"]
+        "required": [
+          "data",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
       },
       "DeleteServerResponseDto": {
         "type": "object",
@@ -16423,7 +17466,9 @@
             "example": "Server deleted successfully"
           }
         },
-        "required": ["message"]
+        "required": [
+          "message"
+        ]
       },
       "InstallKeyResponseDto": {
         "type": "object",
@@ -16437,7 +17482,10 @@
             "example": "SSH public key installed successfully"
           }
         },
-        "required": ["success", "message"]
+        "required": [
+          "success",
+          "message"
+        ]
       },
       "CreateServerDto": {
         "type": "object",
@@ -16474,7 +17522,10 @@
             "description": "SSH private key (OpenSSH or PKCS8). If omitted, the platform auto-generates a key pair."
           },
           "verificationMode": {
-            "enum": ["manual", "ssh"],
+            "enum": [
+              "manual",
+              "ssh"
+            ],
             "type": "string",
             "default": "manual",
             "description": "Deprecated: this field is ignored. The server is created, then the SSH key must be installed via /servers/:id/install-key.",
@@ -16486,12 +17537,17 @@
           },
           "connectionMode": {
             "type": "string",
-            "enum": ["ssh"],
+            "enum": [
+              "ssh"
+            ],
             "default": "ssh",
             "description": "Connection mode: ssh (direct SSH)"
           }
         },
-        "required": ["name", "host"]
+        "required": [
+          "name",
+          "host"
+        ]
       },
       "UpdateServerDto": {
         "type": "object",
@@ -16528,7 +17584,9 @@
           },
           "connectionMode": {
             "type": "string",
-            "enum": ["ssh"]
+            "enum": [
+              "ssh"
+            ]
           },
           "isActive": {
             "type": "boolean",
@@ -16548,7 +17606,9 @@
             "example": "temporary-ssh-password"
           }
         },
-        "required": ["password"]
+        "required": [
+          "password"
+        ]
       },
       "RegisterRunnerDto": {
         "type": "object",
@@ -16560,17 +17620,25 @@
             "type": "string"
           }
         },
-        "required": ["gitlabUrl", "token"]
+        "required": [
+          "gitlabUrl",
+          "token"
+        ]
       },
       "SetServerRoleDto": {
         "type": "object",
         "properties": {
           "infraRole": {
             "type": "string",
-            "enum": ["STAGING", "PRODUCTION"]
+            "enum": [
+              "STAGING",
+              "PRODUCTION"
+            ]
           }
         },
-        "required": ["infraRole"]
+        "required": [
+          "infraRole"
+        ]
       },
       "UpsertDockerConnectionDto": {
         "type": "object",
@@ -16588,7 +17656,12 @@
             "type": "string"
           }
         },
-        "required": ["endpoint", "tlsCaCert", "tlsClientCert", "tlsClientKey"]
+        "required": [
+          "endpoint",
+          "tlsCaCert",
+          "tlsClientCert",
+          "tlsClientKey"
+        ]
       },
       "ServerAuditEventDto": {
         "type": "object",
@@ -16617,7 +17690,12 @@
             "format": "date-time"
           }
         },
-        "required": ["id", "serverId", "eventType", "createdAt"]
+        "required": [
+          "id",
+          "serverId",
+          "eventType",
+          "createdAt"
+        ]
       },
       "ServerLogDto": {
         "type": "object",
@@ -16632,7 +17710,11 @@
             "type": "string"
           },
           "level": {
-            "enum": ["INFO", "WARNING", "ERROR"],
+            "enum": [
+              "INFO",
+              "WARNING",
+              "ERROR"
+            ],
             "type": "string"
           },
           "context": {
@@ -16643,7 +17725,13 @@
             "format": "date-time"
           }
         },
-        "required": ["id", "serverId", "message", "level", "createdAt"]
+        "required": [
+          "id",
+          "serverId",
+          "message",
+          "level",
+          "createdAt"
+        ]
       },
       "ServerVerificationStatusDto": {
         "type": "object",
@@ -16783,7 +17871,14 @@
             "format": "date-time"
           }
         },
-        "required": ["id", "serverId", "key", "value", "source", "detectedAt"]
+        "required": [
+          "id",
+          "serverId",
+          "key",
+          "value",
+          "source",
+          "detectedAt"
+        ]
       },
       "CreateManagedServerDto": {
         "type": "object",
@@ -16793,13 +17888,20 @@
           },
           "provider": {
             "type": "string",
-            "enum": ["VPS", "DOCKER_HOST", "K8S"]
+            "enum": [
+              "VPS",
+              "DOCKER_HOST",
+              "K8S"
+            ]
           },
           "serverSize": {
             "type": "string"
           }
         },
-        "required": ["name", "provider"]
+        "required": [
+          "name",
+          "provider"
+        ]
       },
       "SetManagedHostDto": {
         "type": "object",
@@ -16808,7 +17910,9 @@
             "type": "string"
           }
         },
-        "required": ["host"]
+        "required": [
+          "host"
+        ]
       },
       "StartServerSetupDto": {
         "type": "object",
@@ -17017,7 +18121,12 @@
             "format": "date-time"
           }
         },
-        "required": ["serverId", "isReady", "checks", "blockingReasons"]
+        "required": [
+          "serverId",
+          "isReady",
+          "checks",
+          "blockingReasons"
+        ]
       },
       "ServerSetupLogDto": {
         "type": "object",
@@ -17029,7 +18138,11 @@
             "type": "string"
           },
           "level": {
-            "enum": ["INFO", "WARNING", "ERROR"],
+            "enum": [
+              "INFO",
+              "WARNING",
+              "ERROR"
+            ],
             "type": "string"
           },
           "source": {
@@ -17073,7 +18186,13 @@
             "type": "string"
           },
           "status": {
-            "enum": ["PENDING", "RUNNING", "SUCCESS", "FAILED", "CANCELED"],
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "SUCCESS",
+              "FAILED",
+              "CANCELED"
+            ],
             "type": "string"
           },
           "logs": {
@@ -17179,7 +18298,11 @@
                 "selfRequired": true
               }
             },
-            "required": ["databaseType", "databaseVersion", "credentials"]
+            "required": [
+              "databaseType",
+              "databaseVersion",
+              "credentials"
+            ]
           }
         },
         "required": [
@@ -17207,7 +18330,10 @@
             "type": "string"
           }
         },
-        "required": ["id", "name"]
+        "required": [
+          "id",
+          "name"
+        ]
       },
       "DeploymentServerSummaryDto": {
         "type": "object",
@@ -17222,7 +18348,11 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "host"]
+        "required": [
+          "id",
+          "name",
+          "host"
+        ]
       },
       "DeploymentServiceTargetSummaryDto": {
         "type": "object",
@@ -17246,7 +18376,10 @@
             "$ref": "#/components/schemas/DeploymentServerSummaryDto"
           }
         },
-        "required": ["id", "server"]
+        "required": [
+          "id",
+          "server"
+        ]
       },
       "DeploymentEnvironmentSummaryDto": {
         "type": "object",
@@ -17268,7 +18401,11 @@
             }
           }
         },
-        "required": ["id", "name", "server"]
+        "required": [
+          "id",
+          "name",
+          "server"
+        ]
       },
       "DeploymentUserSummaryDto": {
         "type": "object",
@@ -17283,7 +18420,11 @@
             "type": "string"
           }
         },
-        "required": ["id", "email", "fullName"]
+        "required": [
+          "id",
+          "email",
+          "fullName"
+        ]
       },
       "DeploymentServiceSummaryDto": {
         "type": "object",
@@ -17299,7 +18440,10 @@
             "nullable": true
           }
         },
-        "required": ["id", "name"]
+        "required": [
+          "id",
+          "name"
+        ]
       },
       "DeploymentDetailedResponseDto": {
         "type": "object",
@@ -17308,7 +18452,13 @@
             "type": "string"
           },
           "status": {
-            "enum": ["PENDING", "RUNNING", "SUCCESS", "FAILED", "CANCELED"],
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "SUCCESS",
+              "FAILED",
+              "CANCELED"
+            ],
             "type": "string"
           },
           "logs": {
@@ -17414,7 +18564,11 @@
                 "selfRequired": true
               }
             },
-            "required": ["databaseType", "databaseVersion", "credentials"]
+            "required": [
+              "databaseType",
+              "databaseVersion",
+              "credentials"
+            ]
           },
           "project": {
             "$ref": "#/components/schemas/DeploymentProjectSummaryDto"
@@ -17477,7 +18631,13 @@
             "type": "number"
           }
         },
-        "required": ["data", "total", "page", "limit", "totalPages"]
+        "required": [
+          "data",
+          "total",
+          "page",
+          "limit",
+          "totalPages"
+        ]
       },
       "ValidateDeploymentDto": {
         "type": "object",
@@ -17508,7 +18668,10 @@
             "type": "string"
           }
         },
-        "required": ["projectId", "environmentId"]
+        "required": [
+          "projectId",
+          "environmentId"
+        ]
       },
       "ValidationResultDto": {
         "type": "object",
@@ -17577,7 +18740,10 @@
             "example": "main"
           },
           "strategy": {
-            "enum": ["standard", "blue-green"],
+            "enum": [
+              "standard",
+              "blue-green"
+            ],
             "type": "string",
             "example": "standard",
             "description": "Deployment strategy: standard (simple restart) or blue-green (zero-downtime)"
@@ -17653,7 +18819,9 @@
             "required": []
           }
         },
-        "required": ["serviceEnvId"]
+        "required": [
+          "serviceEnvId"
+        ]
       },
       "CreateSshKeyDto": {
         "type": "object",
@@ -17672,10 +18840,17 @@
           },
           "keyType": {
             "type": "string",
-            "enum": ["rsa", "ed25519"]
+            "enum": [
+              "rsa",
+              "ed25519"
+            ]
           }
         },
-        "required": ["name", "privateKey", "publicKey"]
+        "required": [
+          "name",
+          "privateKey",
+          "publicKey"
+        ]
       },
       "CreateAutomationRunDto": {
         "type": "object",
@@ -17706,7 +18881,10 @@
             "maxLength": 32
           }
         },
-        "required": ["actionKey", "serverIds"]
+        "required": [
+          "actionKey",
+          "serverIds"
+        ]
       },
       "InstallMonitoringDto": {
         "type": "object",
@@ -17722,7 +18900,10 @@
             }
           }
         },
-        "required": ["actionKey", "serverIds"]
+        "required": [
+          "actionKey",
+          "serverIds"
+        ]
       },
       "CreateDnsProviderDto": {
         "type": "object",
@@ -17732,7 +18913,12 @@
             "example": "Manual DNS"
           },
           "type": {
-            "enum": ["CLOUDFLARE", "DIGITALOCEAN", "OVH", "MANUAL"],
+            "enum": [
+              "CLOUDFLARE",
+              "DIGITALOCEAN",
+              "OVH",
+              "MANUAL"
+            ],
             "type": "string",
             "example": "MANUAL"
           },
@@ -17749,7 +18935,10 @@
             "example": "zone-id"
           }
         },
-        "required": ["name", "type"]
+        "required": [
+          "name",
+          "type"
+        ]
       },
       "CreateDomainDto": {
         "type": "object",
@@ -17771,13 +18960,19 @@
             "example": "service-env-uuid"
           }
         },
-        "required": ["name"]
+        "required": [
+          "name"
+        ]
       },
       "UpsertDnsRecordDto": {
         "type": "object",
         "properties": {
           "type": {
-            "enum": ["A", "CNAME", "TXT"],
+            "enum": [
+              "A",
+              "CNAME",
+              "TXT"
+            ],
             "type": "string",
             "example": "A"
           },
@@ -17803,7 +18998,11 @@
             "example": "service_env-uuid"
           }
         },
-        "required": ["type", "name", "value"]
+        "required": [
+          "type",
+          "name",
+          "value"
+        ]
       },
       "CreateRegistryConfigDto": {
         "type": "object",
@@ -17813,7 +19012,13 @@
           },
           "type": {
             "type": "string",
-            "enum": ["GITLAB", "DOCKER_HUB", "DOCKER_REGISTRY", "ECR", "GCR"]
+            "enum": [
+              "GITLAB",
+              "DOCKER_HUB",
+              "DOCKER_REGISTRY",
+              "ECR",
+              "GCR"
+            ]
           },
           "username": {
             "type": "string"
@@ -17828,7 +19033,10 @@
             "type": "boolean"
           }
         },
-        "required": ["name", "type"]
+        "required": [
+          "name",
+          "type"
+        ]
       },
       "UpdateRegistryConfigDto": {
         "type": "object",
@@ -17838,7 +19046,13 @@
           },
           "type": {
             "type": "string",
-            "enum": ["GITLAB", "DOCKER_HUB", "DOCKER_REGISTRY", "ECR", "GCR"]
+            "enum": [
+              "GITLAB",
+              "DOCKER_HUB",
+              "DOCKER_REGISTRY",
+              "ECR",
+              "GCR"
+            ]
           },
           "username": {
             "type": "string"
@@ -17877,7 +19091,12 @@
             "default": true
           },
           "certType": {
-            "enum": ["LETS_ENCRYPT", "CUSTOM", "SELF_SIGNED", "NONE"],
+            "enum": [
+              "LETS_ENCRYPT",
+              "CUSTOM",
+              "SELF_SIGNED",
+              "NONE"
+            ],
             "type": "string",
             "default": "LETS_ENCRYPT"
           },
@@ -17886,7 +19105,11 @@
             "example": "service_env-uuid"
           }
         },
-        "required": ["domain", "targetPort", "serverId"]
+        "required": [
+          "domain",
+          "targetPort",
+          "serverId"
+        ]
       },
       "UpdateProxyRuleDto": {
         "type": "object",
@@ -17902,7 +19125,12 @@
             "example": false
           },
           "certType": {
-            "enum": ["LETS_ENCRYPT", "CUSTOM", "SELF_SIGNED", "NONE"],
+            "enum": [
+              "LETS_ENCRYPT",
+              "CUSTOM",
+              "SELF_SIGNED",
+              "NONE"
+            ],
             "type": "string"
           },
           "isActive": {
@@ -17915,7 +19143,11 @@
         "type": "object",
         "properties": {
           "provider": {
-            "enum": ["GITLAB", "GITHUB", "GITEA"],
+            "enum": [
+              "GITLAB",
+              "GITHUB",
+              "GITEA"
+            ],
             "type": "string"
           },
           "repoPath": {
@@ -17931,7 +19163,11 @@
             "example": "main"
           }
         },
-        "required": ["provider", "repoPath", "token"]
+        "required": [
+          "provider",
+          "repoPath",
+          "token"
+        ]
       },
       "CreateServiceDto": {
         "type": "object",
@@ -17941,7 +19177,13 @@
             "example": "api"
           },
           "type": {
-            "enum": ["APPLICATION", "DATABASE", "MANAGED", "WORKER", "CRON"],
+            "enum": [
+              "APPLICATION",
+              "DATABASE",
+              "MANAGED",
+              "WORKER",
+              "CRON"
+            ],
             "type": "string",
             "example": "APPLICATION"
           },
@@ -17950,7 +19192,11 @@
             "example": "Backend API NestJS"
           },
           "sourceType": {
-            "enum": ["GIT", "DOCKER_IMAGE", "NONE"],
+            "enum": [
+              "GIT",
+              "DOCKER_IMAGE",
+              "NONE"
+            ],
             "type": "string",
             "example": "GIT"
           },
@@ -17984,12 +19230,20 @@
             "example": "DOCKERFILE"
           },
           "buildMode": {
-            "enum": ["LOCAL", "REGISTRY"],
+            "enum": [
+              "LOCAL",
+              "REGISTRY"
+            ],
             "type": "string",
             "example": "LOCAL"
           },
           "deployTrigger": {
-            "enum": ["PUSH", "PIPELINE_SUCCESS", "CI_HOOK", "MANUAL"],
+            "enum": [
+              "PUSH",
+              "PIPELINE_SUCCESS",
+              "CI_HOOK",
+              "MANUAL"
+            ],
             "type": "string",
             "example": "PUSH"
           },
@@ -18049,7 +19303,13 @@
             "example": "api"
           },
           "databaseType": {
-            "enum": ["POSTGRES", "MYSQL", "REDIS", "MONGODB", "RABBITMQ"],
+            "enum": [
+              "POSTGRES",
+              "MYSQL",
+              "REDIS",
+              "MONGODB",
+              "RABBITMQ"
+            ],
             "type": "string",
             "example": "POSTGRES"
           },
@@ -18098,13 +19358,19 @@
             ]
           }
         },
-        "required": ["name"]
+        "required": [
+          "name"
+        ]
       },
       "DiscoverGroupDto": {
         "type": "object",
         "properties": {
           "provider": {
-            "enum": ["GITLAB", "GITHUB", "GITEA"],
+            "enum": [
+              "GITLAB",
+              "GITHUB",
+              "GITEA"
+            ],
             "type": "string"
           },
           "groupPath": {
@@ -18120,7 +19386,10 @@
             "example": "b5073d11-f378-4c71-87da-093f3ecf20af"
           }
         },
-        "required": ["provider", "groupPath"]
+        "required": [
+          "provider",
+          "groupPath"
+        ]
       },
       "CreateFromTemplateDto": {
         "type": "object",
@@ -18130,7 +19399,9 @@
             "example": "my-stack"
           }
         },
-        "required": ["name"]
+        "required": [
+          "name"
+        ]
       },
       "UpdateServiceDto": {
         "type": "object",
@@ -18140,7 +19411,13 @@
             "example": "api"
           },
           "type": {
-            "enum": ["APPLICATION", "DATABASE", "MANAGED", "WORKER", "CRON"],
+            "enum": [
+              "APPLICATION",
+              "DATABASE",
+              "MANAGED",
+              "WORKER",
+              "CRON"
+            ],
             "type": "string",
             "example": "APPLICATION"
           },
@@ -18149,7 +19426,11 @@
             "example": "Backend API NestJS"
           },
           "sourceType": {
-            "enum": ["GIT", "DOCKER_IMAGE", "NONE"],
+            "enum": [
+              "GIT",
+              "DOCKER_IMAGE",
+              "NONE"
+            ],
             "type": "string",
             "example": "GIT"
           },
@@ -18183,12 +19464,20 @@
             "example": "DOCKERFILE"
           },
           "buildMode": {
-            "enum": ["LOCAL", "REGISTRY"],
+            "enum": [
+              "LOCAL",
+              "REGISTRY"
+            ],
             "type": "string",
             "example": "LOCAL"
           },
           "deployTrigger": {
-            "enum": ["PUSH", "PIPELINE_SUCCESS", "CI_HOOK", "MANUAL"],
+            "enum": [
+              "PUSH",
+              "PIPELINE_SUCCESS",
+              "CI_HOOK",
+              "MANUAL"
+            ],
             "type": "string",
             "example": "PUSH"
           },
@@ -18248,7 +19537,13 @@
             "example": "api"
           },
           "databaseType": {
-            "enum": ["POSTGRES", "MYSQL", "REDIS", "MONGODB", "RABBITMQ"],
+            "enum": [
+              "POSTGRES",
+              "MYSQL",
+              "REDIS",
+              "MONGODB",
+              "RABBITMQ"
+            ],
             "type": "string",
             "example": "POSTGRES"
           },
@@ -18324,7 +19619,10 @@
             "example": "svc_xxx"
           }
         },
-        "required": ["name", "serverId"]
+        "required": [
+          "name",
+          "serverId"
+        ]
       },
       "UpdateVolumeDto": {
         "type": "object",
@@ -18353,7 +19651,10 @@
             "example": "S3cure-Password!"
           }
         },
-        "required": ["email", "password"]
+        "required": [
+          "email",
+          "password"
+        ]
       },
       "StaffForgotPasswordDto": {
         "type": "object",
@@ -18364,7 +19665,9 @@
             "example": "admin@sovrack.tech"
           }
         },
-        "required": ["email"]
+        "required": [
+          "email"
+        ]
       },
       "StaffResetPasswordDto": {
         "type": "object",
@@ -18388,7 +19691,11 @@
             "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$"
           }
         },
-        "required": ["email", "code", "password"]
+        "required": [
+          "email",
+          "code",
+          "password"
+        ]
       },
       "AcceptStaffInvitationDto": {
         "type": "object",
@@ -18412,7 +19719,11 @@
             "pattern": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$"
           }
         },
-        "required": ["email", "code", "password"]
+        "required": [
+          "email",
+          "code",
+          "password"
+        ]
       },
       "RequestStaffActivationCodeDto": {
         "type": "object",
@@ -18423,7 +19734,9 @@
             "example": "admin@sovrack.tech"
           }
         },
-        "required": ["email"]
+        "required": [
+          "email"
+        ]
       },
       "CreateStaffDto": {
         "type": "object",
@@ -18438,24 +19751,37 @@
             "example": "Sami Ben Salah"
           },
           "role": {
-            "enum": ["ADMIN", "OPERATOR"],
+            "enum": [
+              "ADMIN",
+              "OPERATOR"
+            ],
             "type": "string",
             "default": "OPERATOR",
             "description": "ROOT est réservé au bootstrap initial et n’est pas délégable"
           }
         },
-        "required": ["email", "fullName"]
+        "required": [
+          "email",
+          "fullName"
+        ]
       },
       "UpdateStaffDto": {
         "type": "object",
         "properties": {
           "role": {
-            "enum": ["ADMIN", "OPERATOR"],
+            "enum": [
+              "ADMIN",
+              "OPERATOR"
+            ],
             "type": "string",
             "description": "Le rôle ROOT est immuable et réservé au bootstrap initial"
           },
           "status": {
-            "enum": ["ACTIVE", "DISABLED", "BLOCKED"],
+            "enum": [
+              "ACTIVE",
+              "DISABLED",
+              "BLOCKED"
+            ],
             "type": "string",
             "description": "Statut du compte staff (ACTIVE / DISABLED / BLOCKED)"
           },
@@ -18481,7 +19807,11 @@
           },
           "security": {
             "type": "string",
-            "enum": ["none", "starttls", "tls"]
+            "enum": [
+              "none",
+              "starttls",
+              "tls"
+            ]
           },
           "user": {
             "type": "string",
@@ -18507,7 +19837,13 @@
             "pattern": "^[^\\r\\n]*$"
           }
         },
-        "required": ["enabled", "host", "port", "security", "from"]
+        "required": [
+          "enabled",
+          "host",
+          "port",
+          "security",
+          "from"
+        ]
       },
       "TestStaffEmailSettingsDto": {
         "type": "object",
@@ -18523,7 +19859,11 @@
         "type": "object",
         "properties": {
           "role": {
-            "enum": ["SUPER_ADMIN", "OWNER", "MEMBER"],
+            "enum": [
+              "SUPER_ADMIN",
+              "OWNER",
+              "MEMBER"
+            ],
             "type": "string"
           },
           "isActive": {
