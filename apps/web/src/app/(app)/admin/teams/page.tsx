@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Users2 } from "lucide-react";
+import Link from "next/link";
 import { PageHeader } from "@/shared/layout/page-header";
 import { SectionCard } from "@/shared/layout/section-card";
 import { Button } from "@/shared/ui/button";
@@ -38,11 +39,11 @@ export default function AdminTeamsPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Administration"
-        title="Équipes"
-        description="Organisez les utilisateurs en équipes pour gérer les accès aux projets."
+        title="Espaces de travail"
+        description="Séparez votre espace personnel des organisations dans lesquelles vous collaborez."
         actions={
           <Button onClick={() => setDialogOpen(true)} icon={<Plus size={14} />}>
-            Créer une équipe
+            Créer une organisation
           </Button>
         }
       />
@@ -58,26 +59,27 @@ export default function AdminTeamsPage() {
       ) : teams.length === 0 ? (
         <EmptyState
           icon={Users2}
-          title="Aucune équipe"
-          description="Créez votre première équipe pour grouper les utilisateurs et gérer les accès en lot."
+          title="Aucun espace"
+          description="Créez une organisation pour collaborer et gérer les accès aux projets."
           action={
             <Button
               onClick={() => setDialogOpen(true)}
               icon={<Plus size={14} />}
             >
-              Créer une équipe
+              Créer une organisation
             </Button>
           }
         />
       ) : (
         <SectionCard
-          title={`${teams.length} équipe${teams.length > 1 ? "s" : ""}`}
+          title={`${teams.length} espace${teams.length > 1 ? "s" : ""}`}
           contentClassName="space-y-2"
         >
           {teams.map((team) => (
-            <div
+            <Link
               key={team.id}
-              className="rounded-lg border border-[var(--border)] bg-[var(--hover)] px-4 py-3"
+              href={`/admin/teams/${team.id}`}
+              className="block rounded-lg border border-[var(--border)] bg-[var(--hover)] px-4 py-3 transition hover:border-[var(--text-muted)]"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -90,11 +92,16 @@ export default function AdminTeamsPage() {
                     </p>
                   )}
                 </div>
-                <span className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
-                  {team.members.length} membre{team.members.length > 1 ? "s" : ""}
-                </span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
+                    {team.type === "PERSONAL" ? "Personnel" : "Organisation"}
+                  </span>
+                  <span className="rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
+                    {team.role}
+                  </span>
+                </div>
               </div>
-            </div>
+            </Link>
           ))}
         </SectionCard>
       )}

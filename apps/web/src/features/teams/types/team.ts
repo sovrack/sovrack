@@ -1,4 +1,7 @@
-export type WorkspaceRole = "OWNER" | "ADMIN" | "MEMBER";
+export type WorkspaceRole = "OWNER" | "ADMIN" | "BILLING" | "MEMBER";
+export type WorkspaceType = "PERSONAL" | "ORGANIZATION";
+export type WorkspaceStatus =
+  "ACTIVE" | "SUSPENDED" | "ARCHIVED" | "DELETION_PENDING";
 
 export type TeamMemberUser = {
   id: string;
@@ -19,14 +22,21 @@ export type TeamMember = {
   user: TeamMemberUser;
 };
 
-export type Team = {
+export type WorkspaceSummary = {
   id: string;
   name: string;
   slug: string;
   description: string | null;
-  members: TeamMember[];
+  type: WorkspaceType;
+  status: WorkspaceStatus;
+  role: WorkspaceRole;
+  membershipStatus: "ACTIVE" | "SUSPENDED";
   createdAt: string;
   updatedAt: string;
+};
+
+export type Team = Omit<WorkspaceSummary, "role" | "membershipStatus"> & {
+  members: TeamMember[];
 };
 
 export type CreateTeamPayload = { name: string; description?: string };

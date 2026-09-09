@@ -6,12 +6,13 @@ import type {
   AddTeamMemberPayload,
   WorkspaceInvitation,
   WorkspaceRole,
+  WorkspaceSummary,
 } from "@/features/teams/types/team";
 
 export const teamsService = {
   /** List the workspaces of the current identity. */
-  async getAll(): Promise<Team[]> {
-    const res = await api.get<Team[]>("/workspaces");
+  async getAll(): Promise<WorkspaceSummary[]> {
+    const res = await api.get<WorkspaceSummary[]>("/workspaces");
     return res.data;
   },
 
@@ -24,6 +25,14 @@ export const teamsService = {
   /** Create a new team */
   async create(payload: CreateTeamPayload): Promise<Team> {
     const res = await api.post<Team>("/workspaces", payload);
+    return res.data;
+  },
+
+  async convertToOrganization(id: string, name: string): Promise<Team> {
+    const res = await api.post<Team>(
+      `/workspaces/${id}/convert-to-organization`,
+      { name },
+    );
     return res.data;
   },
 
@@ -43,10 +52,7 @@ export const teamsService = {
     teamId: string,
     payload: AddTeamMemberPayload,
   ): Promise<Team> {
-    const res = await api.post<Team>(
-      `/workspaces/${teamId}/members`,
-      payload,
-    );
+    const res = await api.post<Team>(`/workspaces/${teamId}/members`, payload);
     return res.data;
   },
 
@@ -104,9 +110,7 @@ export const teamsService = {
     workspaceId: string,
     invitationId: string,
   ): Promise<void> {
-    await api.delete(
-      `/workspaces/${workspaceId}/invitations/${invitationId}`,
-    );
+    await api.delete(`/workspaces/${workspaceId}/invitations/${invitationId}`);
   },
 
   async acceptInvitation(token: string): Promise<Team> {

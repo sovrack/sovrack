@@ -14,6 +14,9 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
     NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001',
+    NEXT_PUBLIC_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_PUBLIC_SITE_URL || '',
+    NEXT_PUBLIC_CUSTOMER_APP_URL: process.env.NEXT_PUBLIC_CUSTOMER_APP_URL || '',
+    NEXT_PUBLIC_STAFF_APP_URL: process.env.NEXT_PUBLIC_STAFF_APP_URL || '',
   },
   async rewrites() {
     // Le proxy /backend-api tourne CÔTÉ SERVEUR Next : en déploiement

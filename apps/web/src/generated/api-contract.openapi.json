@@ -318,6 +318,26 @@
         ]
       }
     },
+    "/auth/session": {
+      "get": {
+        "operationId": "AuthController_getSession",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the active authentication session metadata",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/auth/logout": {
       "post": {
         "operationId": "AuthController_logout",
@@ -694,6 +714,45 @@
           }
         ],
         "summary": "Delete a team",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
+    "/workspaces/{id}/convert-to-organization": {
+      "post": {
+        "operationId": "TeamsController_convertToOrganization",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertPersonalWorkspaceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Convert a personal workspace to an organization",
         "tags": [
           "Teams"
         ]
@@ -16004,7 +16063,7 @@
             "bearer": []
           }
         ],
-        "summary": "Bloquer/débloquer ou changer le rôle d’un client",
+        "summary": "Bloquer ou débloquer une identité cliente",
         "tags": [
           "Back-office (staff)"
         ]
@@ -16050,6 +16109,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStaffImpersonationDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -16060,9 +16129,134 @@
             "bearer": []
           }
         ],
-        "summary": "Se connecter « en tant que » un client — émet un JWT client, journalisé",
+        "summary": "Créer une autorisation client éphémère et journalisée",
         "tags": [
           "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/impersonation/exchange": {
+      "post": {
+        "operationId": "StaffController_exchangeImpersonation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExchangeStaffImpersonationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Échanger une autorisation d'assistance à usage unique",
+        "tags": [
+          "Back-office (staff)"
+        ]
+      }
+    },
+    "/staff/settings/security/mfa": {
+      "get": {
+        "operationId": "StaffMfaController_getStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "État MFA du staff connecté",
+        "tags": [
+          "Back-office MFA"
+        ]
+      }
+    },
+    "/staff/settings/security/mfa/setup": {
+      "post": {
+        "operationId": "StaffMfaController_beginSetup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Démarrer l'enrôlement TOTP du staff connecté",
+        "tags": [
+          "Back-office MFA"
+        ]
+      }
+    },
+    "/staff/settings/security/mfa/enable": {
+      "post": {
+        "operationId": "StaffMfaController_enable",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffEnableMfaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Vérifier le TOTP et activer la MFA",
+        "tags": [
+          "Back-office MFA"
+        ]
+      }
+    },
+    "/staff/settings/security/mfa/reset": {
+      "post": {
+        "operationId": "StaffMfaController_reset",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffResetMfaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remplacer l'authentificateur MFA actuel",
+        "tags": [
+          "Back-office MFA"
         ]
       }
     }
@@ -16128,16 +16322,26 @@
             "type": "string",
             "example": "John Developer"
           },
-          "teamName": {
+          "workspaceType": {
+            "enum": [
+              "PERSONAL",
+              "ORGANIZATION"
+            ],
             "type": "string",
-            "example": "Ma première équipe"
+            "example": "PERSONAL"
+          },
+          "workspaceName": {
+            "type": "string",
+            "maxLength": 120,
+            "example": "Acme Engineering",
+            "description": "Obligatoire uniquement pour un espace organisation"
           }
         },
         "required": [
           "email",
           "password",
           "fullName",
-          "teamName"
+          "workspaceType"
         ]
       },
       "VerifyEmailDto": {
@@ -16268,6 +16472,18 @@
           "name"
         ]
       },
+      "ConvertPersonalWorkspaceDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
       "UpdateTeamDto": {
         "type": "object",
         "properties": {
@@ -16291,7 +16507,8 @@
             "enum": [
               "ADMIN",
               "OWNER",
-              "MEMBER"
+              "MEMBER",
+              "BILLING"
             ]
           }
         },
@@ -16307,7 +16524,8 @@
             "enum": [
               "ADMIN",
               "OWNER",
-              "MEMBER"
+              "MEMBER",
+              "BILLING"
             ]
           }
         },
@@ -16342,7 +16560,8 @@
             "enum": [
               "ADMIN",
               "OWNER",
-              "MEMBER"
+              "MEMBER",
+              "BILLING"
             ]
           }
         },
@@ -19649,6 +19868,12 @@
           "password": {
             "type": "string",
             "example": "S3cure-Password!"
+          },
+          "mfaCode": {
+            "type": "string",
+            "pattern": "^(?:\\d{6}|[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2})$",
+            "description": "Code TOTP à 6 chiffres ou code de secours à usage unique",
+            "example": "123456"
           }
         },
         "required": [
@@ -19858,19 +20083,72 @@
       "StaffUpdateUserDto": {
         "type": "object",
         "properties": {
-          "role": {
-            "enum": [
-              "SUPER_ADMIN",
-              "OWNER",
-              "MEMBER"
-            ],
-            "type": "string"
-          },
           "isActive": {
             "type": "boolean",
             "description": "Désactiver (false) ou réactiver (true)"
           }
         }
+      },
+      "CreateStaffImpersonationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500,
+            "description": "Motif opérationnel obligatoire, conservé dans le journal d'audit",
+            "example": "Diagnostic du déploiement signalé par le client dans INC-142"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "ExchangeStaffImpersonationDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 256,
+            "description": "Autorisation d'assistance éphémère reçue du back-office"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "StaffEnableMfaDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "StaffResetMfaDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "example": "S3cure-Password!"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^(?:\\d{6}|[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2})$",
+            "description": "Code TOTP à 6 chiffres ou code de secours à usage unique",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "password",
+          "code"
+        ]
       }
     }
   }

@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { CreditCard, Rocket, ShieldCheck, Users } from "lucide-react";
+import { CreditCard, Rocket, Users } from "lucide-react";
 import { staffService } from "@/features/staff/api/staff.service";
 
 export default function StaffDashboardPage() {
@@ -95,12 +95,7 @@ export default function StaffDashboardPage() {
                   <td className="px-4 py-3 text-zinc-400">{u.email}</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-white">
-                      {u.role === "SUPER_ADMIN" && <ShieldCheck size={12} />}
-                      {u.role === "SUPER_ADMIN"
-                        ? "Super admin"
-                        : u.role === "OWNER"
-                          ? "Propriétaire"
-                          : "Membre"}
+                      {u.role === "OWNER" ? "Propriétaire" : "Membre"}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-zinc-500">

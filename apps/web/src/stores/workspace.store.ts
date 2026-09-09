@@ -1,18 +1,18 @@
 import { create } from "zustand";
-import type { Team } from "@/features/teams/types/team";
+import type { WorkspaceSummary } from "@/features/teams/types/team";
 import {
   readWorkspaceSelection,
   writeWorkspaceSelection,
 } from "@/shared/lib/workspace-storage";
 
 type WorkspaceState = {
-  workspaces: Team[];
+  workspaces: WorkspaceSummary[];
   selectedWorkspaceId: string | null;
   loading: boolean;
   initialized: boolean;
   error: string | null;
   beginLoading: () => void;
-  setWorkspaces: (workspaces: Team[]) => void;
+  setWorkspaces: (workspaces: WorkspaceSummary[]) => void;
   setError: (message: string) => void;
   selectWorkspace: (workspaceId: string) => void;
   clear: () => void;

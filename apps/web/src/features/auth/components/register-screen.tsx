@@ -3,6 +3,7 @@
 import { FormEvent, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Building2, UserRound } from "lucide-react";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
 import { useAuth } from "@/features/auth/api/use-auth";
@@ -25,7 +26,10 @@ export function RegisterScreen() {
   const [step, setStep] = useState<Step>("form");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [teamName, setTeamName] = useState("");
+  const [workspaceType, setWorkspaceType] = useState<
+    "PERSONAL" | "ORGANIZATION"
+  >("PERSONAL");
+  const [workspaceName, setWorkspaceName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -54,6 +58,10 @@ export function RegisterScreen() {
       setError(SOVRACK_PASSWORD_MESSAGE);
       return;
     }
+    if (workspaceType === "ORGANIZATION" && !workspaceName.trim()) {
+      setError("Indiquez le nom de votre organisation.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -61,7 +69,10 @@ export function RegisterScreen() {
         email,
         password,
         fullName,
-        teamName,
+        workspaceType,
+        ...(workspaceType === "ORGANIZATION"
+          ? { workspaceName: workspaceName.trim() }
+          : {}),
       });
       setRegistrationId(pendingRegistrationId);
       setLoading(false);
@@ -223,23 +234,82 @@ export function RegisterScreen() {
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300">
-                    Nom de l&apos;équipe
-                  </label>
-                  <input
-                    type="text"
-                    value={teamName}
-                    onChange={(e) => setTeamName(e.target.value)}
-                    placeholder="Mon équipe"
-                    autoComplete="organization"
-                    required
-                    className={inputClass}
-                  />
-                  <p className="mt-1 text-xs text-slate-500">
-                    Ce nom sert à créer votre espace de travail de test.
+                <fieldset>
+                  <legend className="block text-sm font-medium text-slate-300">
+                    Comment allez-vous utiliser Sovrack&nbsp;?
+                  </legend>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <label
+                      className={`cursor-pointer rounded-xl border p-4 transition ${
+                        workspaceType === "PERSONAL"
+                          ? "border-sky-400 bg-sky-400/10 ring-2 ring-sky-400/20"
+                          : "border-white/15 bg-white/5 hover:border-white/30"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="workspaceType"
+                        value="PERSONAL"
+                        checked={workspaceType === "PERSONAL"}
+                        onChange={() => setWorkspaceType("PERSONAL")}
+                        className="sr-only"
+                      />
+                      <span className="flex items-center gap-2 font-semibold text-white">
+                        <UserRound size={17} /> Personnel
+                      </span>
+                      <span className="mt-2 block text-xs leading-5 text-slate-400">
+                        Pour vous seul. Aucun membre ni invitation.
+                      </span>
+                    </label>
+                    <label
+                      className={`cursor-pointer rounded-xl border p-4 transition ${
+                        workspaceType === "ORGANIZATION"
+                          ? "border-sky-400 bg-sky-400/10 ring-2 ring-sky-400/20"
+                          : "border-white/15 bg-white/5 hover:border-white/30"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="workspaceType"
+                        value="ORGANIZATION"
+                        checked={workspaceType === "ORGANIZATION"}
+                        onChange={() => setWorkspaceType("ORGANIZATION")}
+                        className="sr-only"
+                      />
+                      <span className="flex items-center gap-2 font-semibold text-white">
+                        <Building2 size={17} /> Organisation
+                      </span>
+                      <span className="mt-2 block text-xs leading-5 text-slate-400">
+                        Pour collaborer avec une équipe et attribuer des rôles.
+                      </span>
+                    </label>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Un espace personnel peut être converti plus tard en
+                    organisation. La conversion est définitive.
                   </p>
-                </div>
+                </fieldset>
+
+                {workspaceType === "ORGANIZATION" && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300">
+                      Nom de l&apos;organisation
+                    </label>
+                    <input
+                      type="text"
+                      value={workspaceName}
+                      onChange={(e) => setWorkspaceName(e.target.value)}
+                      placeholder="Acme Engineering"
+                      autoComplete="organization"
+                      required
+                      maxLength={120}
+                      className={inputClass}
+                    />
+                    <p className="mt-1 text-xs text-slate-500">
+                      Ce nom sera visible par les membres invités.
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-slate-300">
                     Mot de passe

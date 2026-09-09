@@ -6,6 +6,7 @@ import {
   Languages,
   Loader2,
   Moon,
+  Palette,
   Sun,
   Trash2,
   User,
@@ -34,7 +35,7 @@ import { useThemeContext } from "@/shared/contexts/theme-context";
  */
 export default function MyAccountPage() {
   const { t, lang, setLang } = useI18n();
-  const { theme, toggleTheme } = useThemeContext();
+  const { theme, setTheme } = useThemeContext();
   const { user, workspaceRole } = useAuth();
   const router = useRouter();
 
@@ -243,14 +244,25 @@ export default function MyAccountPage() {
           >
             <Languages size={14} /> {lang === "en" ? "Français" : "English"}
           </button>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
-          >
-            {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}{" "}
-            {theme === "dark" ? t("Light theme") : t("Dark theme")}
-          </button>
+          {[
+            { id: "brand" as const, label: "Sovrack", icon: Palette },
+            { id: "dark" as const, label: t("Dark theme"), icon: Moon },
+            { id: "light" as const, label: t("Light theme"), icon: Sun },
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTheme(id)}
+              aria-pressed={theme === id}
+              className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+                theme === id
+                  ? "border-sky-400 bg-sky-400/10 text-[var(--text-primary)]"
+                  : "border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:bg-[var(--hover)]"
+              }`}
+            >
+              <Icon size={14} /> {label}
+            </button>
+          ))}
         </div>
       </SectionCard>
 

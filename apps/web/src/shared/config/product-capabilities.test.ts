@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   getCapabilitiesByStatus,
   isCapabilityEnabled,
+  PRIVATE_BETA_CAPABILITIES,
   PRODUCT_CAPABILITIES,
   PRODUCT_STAGE,
+  VALIDATION_GATED_PUBLIC_CAPABILITIES,
 } from "./product-capabilities";
 
 describe("product capabilities", () => {
@@ -16,6 +18,21 @@ describe("product capabilities", () => {
     expect(isCapabilityEnabled("managedInfrastructure")).toBe(false);
     expect(isCapabilityEnabled("automatedBackups")).toBe(false);
     expect(isCapabilityEnabled("mergeRequestPreviews")).toBe(false);
+  });
+
+  it("pins the exact scope of the first private beta", () => {
+    const configuredBeta = getCapabilitiesByStatus("beta")
+      .map(([name]) => name)
+      .sort();
+
+    expect(configuredBeta).toEqual([...PRIVATE_BETA_CAPABILITIES].sort());
+  });
+
+  it("keeps documentation, legal content and pricing gated", () => {
+    for (const capability of VALIDATION_GATED_PUBLIC_CAPABILITIES) {
+      expect(PRODUCT_CAPABILITIES[capability].status).toBe("planned");
+      expect(isCapabilityEnabled(capability)).toBe(false);
+    }
   });
 
   it("documents a decision for every capability", () => {

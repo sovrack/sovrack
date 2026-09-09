@@ -94,12 +94,12 @@ export function TeamCreateDialog({
       onClose={onClose}
       dismissable={!submitting}
       size="lg"
-      title="Create team"
-      description="Add a team to organize users and projects."
+      title="Créer une organisation"
+      description="Une organisation permet d’inviter des membres et de répartir les rôles."
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={submitting}>
-            Cancel
+            Annuler
           </Button>
           <Button
             type="submit"
@@ -111,7 +111,7 @@ export function TeamCreateDialog({
             ) : (
               <Save size={15} />
             )}
-            Create
+            Créer
           </Button>
         </>
       }
@@ -121,12 +121,12 @@ export function TeamCreateDialog({
 
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-            Team name <span className="text-red-400">*</span>
+            Nom de l&apos;organisation <span className="text-red-400">*</span>
           </label>
           <input
             value={form.name}
             onChange={(event) => setField("name", event.target.value)}
-            placeholder="Frontend Team"
+            placeholder="Acme Engineering"
             className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20"
           />
           {errors.name && (
@@ -141,7 +141,7 @@ export function TeamCreateDialog({
           <textarea
             value={form.description}
             onChange={(event) => setField("description", event.target.value)}
-            placeholder="Optional team description..."
+            placeholder="Description facultative…"
             rows={4}
             className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20"
           />

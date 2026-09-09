@@ -208,6 +208,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the active authentication session metadata */
+        get: operations["AuthController_getSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/logout": {
         parameters: {
             query?: never;
@@ -376,6 +393,23 @@ export interface paths {
         post?: never;
         /** Delete a team */
         delete: operations["TeamsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/convert-to-organization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Convert a personal workspace to an organization */
+        post: operations["TeamsController_convertToOrganization"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -6126,7 +6160,7 @@ export interface paths {
         delete: operations["StaffController_deleteUser"];
         options?: never;
         head?: never;
-        /** Bloquer/débloquer ou changer le rôle d’un client */
+        /** Bloquer ou débloquer une identité cliente */
         patch: operations["StaffController_updateUser"];
         trace?: never;
     };
@@ -6139,8 +6173,93 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Se connecter « en tant que » un client — émet un JWT client, journalisé */
+        /** Créer une autorisation client éphémère et journalisée */
         post: operations["StaffController_impersonate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/impersonation/exchange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Échanger une autorisation d'assistance à usage unique */
+        post: operations["StaffController_exchangeImpersonation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/settings/security/mfa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** État MFA du staff connecté */
+        get: operations["StaffMfaController_getStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/settings/security/mfa/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Démarrer l'enrôlement TOTP du staff connecté */
+        post: operations["StaffMfaController_beginSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/settings/security/mfa/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Vérifier le TOTP et activer la MFA */
+        post: operations["StaffMfaController_enable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/settings/security/mfa/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remplacer l'authentificateur MFA actuel */
+        post: operations["StaffMfaController_reset"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6169,8 +6288,16 @@ export interface components {
             password: string;
             /** @example John Developer */
             fullName: string;
-            /** @example Ma première équipe */
-            teamName: string;
+            /**
+             * @example PERSONAL
+             * @enum {string}
+             */
+            workspaceType: "PERSONAL" | "ORGANIZATION";
+            /**
+             * @description Obligatoire uniquement pour un espace organisation
+             * @example Acme Engineering
+             */
+            workspaceName?: string;
         };
         VerifyEmailDto: {
             /**
@@ -6232,6 +6359,9 @@ export interface components {
             name: string;
             description?: string;
         };
+        ConvertPersonalWorkspaceDto: {
+            name: string;
+        };
         UpdateTeamDto: {
             name?: string;
             description?: string;
@@ -6240,11 +6370,11 @@ export interface components {
             /** Format: uuid */
             userId: string;
             /** @enum {string} */
-            role?: "ADMIN" | "OWNER" | "MEMBER";
+            role?: "ADMIN" | "OWNER" | "MEMBER" | "BILLING";
         };
         UpdateWorkspaceMemberRoleDto: {
             /** @enum {string} */
-            role: "ADMIN" | "OWNER" | "MEMBER";
+            role: "ADMIN" | "OWNER" | "MEMBER" | "BILLING";
         };
         UpdateWorkspaceMemberStatusDto: {
             /** @enum {string} */
@@ -6254,7 +6384,7 @@ export interface components {
             /** Format: email */
             email: string;
             /** @enum {string} */
-            role?: "ADMIN" | "OWNER" | "MEMBER";
+            role?: "ADMIN" | "OWNER" | "MEMBER" | "BILLING";
         };
         AcceptWorkspaceInvitationDto: {
             token: string;
@@ -7491,6 +7621,11 @@ export interface components {
             email: string;
             /** @example S3cure-Password! */
             password: string;
+            /**
+             * @description Code TOTP à 6 chiffres ou code de secours à usage unique
+             * @example 123456
+             */
+            mfaCode?: string;
         };
         StaffForgotPasswordDto: {
             /**
@@ -7571,10 +7706,32 @@ export interface components {
             recipient?: string;
         };
         StaffUpdateUserDto: {
-            /** @enum {string} */
-            role?: "SUPER_ADMIN" | "OWNER" | "MEMBER";
             /** @description Désactiver (false) ou réactiver (true) */
             isActive?: boolean;
+        };
+        CreateStaffImpersonationDto: {
+            /**
+             * @description Motif opérationnel obligatoire, conservé dans le journal d'audit
+             * @example Diagnostic du déploiement signalé par le client dans INC-142
+             */
+            reason: string;
+        };
+        ExchangeStaffImpersonationDto: {
+            /** @description Autorisation d'assistance éphémère reçue du back-office */
+            token: string;
+        };
+        StaffEnableMfaDto: {
+            /** @example 123456 */
+            code: string;
+        };
+        StaffResetMfaDto: {
+            /** @example S3cure-Password! */
+            password: string;
+            /**
+             * @description Code TOTP à 6 chiffres ou code de secours à usage unique
+             * @example 123456
+             */
+            code: string;
         };
     };
     responses: never;
@@ -7946,6 +8103,23 @@ export interface operations {
             };
         };
     };
+    AuthController_getSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AuthController_logout: {
         parameters: {
             query?: never;
@@ -8285,6 +8459,29 @@ export interface operations {
             };
             /** @description Team not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TeamsController_convertToOrganization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConvertPersonalWorkspaceDto"];
+            };
+        };
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -18310,9 +18507,110 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStaffImpersonationDto"];
+            };
+        };
         responses: {
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffController_exchangeImpersonation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExchangeStaffImpersonationDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffMfaController_getStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffMfaController_beginSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffMfaController_enable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffEnableMfaDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffMfaController_reset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffResetMfaDto"];
+            };
+        };
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

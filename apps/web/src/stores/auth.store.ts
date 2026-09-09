@@ -22,7 +22,8 @@ type AuthActions = {
     email: string;
     password: string;
     fullName: string;
-    teamName: string;
+    workspaceType: "PERSONAL" | "ORGANIZATION";
+    workspaceName?: string;
   }) => Promise<string>;
   verifyEmail: (
     email: string,
@@ -118,7 +119,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         email: string;
         password: string;
         fullName: string;
-        teamName: string;
+        workspaceType: "PERSONAL" | "ORGANIZATION";
+        workspaceName?: string;
       }) => {
         set({ loading: true, error: null });
 
@@ -130,7 +132,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             email: input.email,
             password: input.password,
             fullName: input.fullName,
-            teamName: input.teamName,
+            workspaceType: input.workspaceType,
+            ...(input.workspaceType === "ORGANIZATION"
+              ? { workspaceName: input.workspaceName }
+              : {}),
           });
 
           set({ loading: false, error: null });

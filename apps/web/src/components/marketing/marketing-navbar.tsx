@@ -1,32 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import { SovrackLogo } from "./sovrack-logo";
+import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
 
 const productLinks = isCapabilityEnabled("publicMarketingCopy")
   ? [
-      { href: "/#platforme", label: "La plateforme" },
-      { href: "/#features", label: "Fonctionnalités" },
-      { href: "/#how-it-works", label: "Comment ça marche" },
+      { href: publicSitePath("/#plateforme"), label: "La plateforme" },
+      { href: publicSitePath("/#features"), label: "Fonctionnalités" },
+      { href: publicSitePath("/#how-it-works"), label: "Comment ça marche" },
     ]
   : [];
 
 const resourcesLinks = [
   ...(isCapabilityEnabled("publicDocumentation")
-    ? [{ href: "/docs", label: "Documentation" }]
+    ? [{ href: publicSitePath("/docs"), label: "Documentation" }]
     : []),
-  { href: "/legal", label: "Légal" },
+  { href: publicSitePath("/legal"), label: "Légal" },
 ];
 
 const publicPricingEnabled = isCapabilityEnabled("publicPricing");
 
 export function MarketingNavbar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -56,7 +56,7 @@ export function MarketingNavbar() {
     await logout();
     setOpenMenu(null);
     setMobileMenuOpen(false);
-    router.push("/login");
+    window.location.assign(customerAppPath("/login"));
   }
 
   return (
@@ -64,7 +64,7 @@ export function MarketingNavbar() {
       <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <div className="flex flex-1">
           <Link
-            href={isAuthenticated ? "/dashboard" : "/"}
+            href={publicSitePath("/")}
             className="group flex items-center gap-2.5"
           >
             <SovrackLogo
@@ -186,7 +186,7 @@ export function MarketingNavbar() {
 
             {publicPricingEnabled && (
               <Link
-                href="/pricing"
+                href={publicSitePath("/pricing")}
                 className={`relative text-base font-medium transition ${
                   pathname === "/pricing"
                     ? "text-white"
@@ -247,14 +247,14 @@ export function MarketingNavbar() {
                     </div>
                   </div>
                   <Link
-                    href="/dashboard"
+                    href={customerAppPath("/dashboard")}
                     className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
                     onClick={() => setOpenMenu(null)}
                   >
                     Mon espace
                   </Link>
                   <Link
-                    href="/settings/account"
+                    href={customerAppPath("/settings/account")}
                     className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
                     onClick={() => setOpenMenu(null)}
                   >
@@ -262,7 +262,7 @@ export function MarketingNavbar() {
                   </Link>
                   {isAdmin && (
                     <Link
-                      href="/admin/teams"
+                      href={customerAppPath("/admin/teams")}
                       className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
                       onClick={() => setOpenMenu(null)}
                     >
@@ -281,13 +281,13 @@ export function MarketingNavbar() {
           ) : (
             <div className="flex items-center gap-3">
               <Link
-                href="/login"
+                href={customerAppPath("/login")}
                 className="rounded-lg px-4 py-2 text-base font-medium text-slate-100 transition hover:text-white"
               >
                 Se connecter
               </Link>
               <Link
-                href="/register"
+                href={customerAppPath("/register")}
                 className="rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110"
               >
                 S&apos;inscrire
@@ -333,7 +333,7 @@ export function MarketingNavbar() {
             <div className="flex flex-col gap-2 border-b border-white/10 pb-4 pt-2">
               {publicPricingEnabled && (
                 <Link
-                  href="/pricing"
+                  href={publicSitePath("/pricing")}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`text-base font-medium ${
                     pathname === "/pricing"
@@ -363,14 +363,14 @@ export function MarketingNavbar() {
               {!isAuthenticated && (
                 <>
                   <Link
-                    href="/login"
+                    href={customerAppPath("/login")}
                     onClick={() => setMobileMenuOpen(false)}
                     className="text-base font-medium text-slate-100 hover:text-white"
                   >
                     Se connecter
                   </Link>
                   <Link
-                    href="/register"
+                    href={customerAppPath("/register")}
                     onClick={() => setMobileMenuOpen(false)}
                     className="rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 px-4 py-2.5 text-center font-semibold text-white"
                   >
@@ -381,14 +381,14 @@ export function MarketingNavbar() {
               {isAuthenticated && (
                 <>
                   <Link
-                    href="/dashboard"
+                    href={customerAppPath("/dashboard")}
                     onClick={() => setMobileMenuOpen(false)}
                     className="text-base font-medium text-slate-100 hover:text-white"
                   >
                     Mon espace
                   </Link>
                   <Link
-                    href="/settings/account"
+                    href={customerAppPath("/settings/account")}
                     onClick={() => setMobileMenuOpen(false)}
                     className="text-base font-medium text-slate-100 hover:text-white"
                   >
@@ -396,7 +396,7 @@ export function MarketingNavbar() {
                   </Link>
                   {isAdmin && (
                     <Link
-                      href="/admin/teams"
+                      href={customerAppPath("/admin/teams")}
                       onClick={() => setMobileMenuOpen(false)}
                       className="text-base font-medium text-slate-100 hover:text-white"
                     >

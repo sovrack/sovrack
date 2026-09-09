@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import api, { getApiErrorMessage } from "@/shared/lib/api";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { teamsService } from "@/features/teams/api/teams.service";
-import type { Team } from "@/features/teams/types/team";
+import type { WorkspaceSummary } from "@/features/teams/types/team";
 import { useWorkspaceStore } from "@/stores/workspace.store";
 
 function InvitationAcceptance() {
@@ -31,7 +31,7 @@ function InvitationAcceptance() {
     setError(null);
     try {
       await teamsService.acceptInvitation(token);
-      const response = await api.get<Team[]>("/workspaces");
+      const response = await api.get<WorkspaceSummary[]>("/workspaces");
       setWorkspaces(response.data);
       router.replace("/dashboard");
     } catch (acceptError) {

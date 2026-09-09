@@ -25,9 +25,10 @@ export default function StaffTeamsPage() {
           <Rocket size={18} />
         </span>
         <div>
-          <h1 className="text-2xl font-bold text-white">Équipes</h1>
+          <h1 className="text-2xl font-bold text-white">Espaces</h1>
           <p className="text-sm text-zinc-400">
-            Toutes les équipes de la plateforme ({data?.total ?? "…"}).
+            Espaces personnels et organisations de la plateforme (
+            {data?.total ?? "…"}).
           </p>
         </div>
       </div>
@@ -37,6 +38,8 @@ export default function StaffTeamsPage() {
           <thead className="border-b border-white/10 bg-white/5 text-zinc-400">
             <tr>
               <th className="px-4 py-3 font-medium">Nom</th>
+              <th className="px-4 py-3 font-medium">Type</th>
+              <th className="px-4 py-3 font-medium">État</th>
               <th className="px-4 py-3 font-medium">Membres</th>
               <th className="px-4 py-3 font-medium">Projets</th>
               <th className="px-4 py-3 font-medium">Serveurs</th>
@@ -47,6 +50,10 @@ export default function StaffTeamsPage() {
             {(data?.items ?? []).map((t) => (
               <tr key={t.id} className="hover:bg-white/5">
                 <td className="px-4 py-3 font-medium text-white">{t.name}</td>
+                <td className="px-4 py-3 text-zinc-400">
+                  {t.type === "PERSONAL" ? "Personnel" : "Organisation"}
+                </td>
+                <td className="px-4 py-3 text-zinc-400">{t.status}</td>
                 <td className="px-4 py-3 text-zinc-400">{t._count.members}</td>
                 <td className="px-4 py-3 text-zinc-400">{t._count.projects}</td>
                 <td className="px-4 py-3 text-zinc-400">{t._count.servers}</td>
@@ -57,8 +64,8 @@ export default function StaffTeamsPage() {
             ))}
             {!isLoading && (data?.items ?? []).length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
-                  Aucune équipe.
+                <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
+                  Aucun espace.
                 </td>
               </tr>
             )}

@@ -39,13 +39,11 @@ type ToastState = { message: string; tone: "success" | "error" } | null;
 export default function TeamDetailPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
   const workspaces = useWorkspaceStore((state) => state.workspaces);
   const selectWorkspace = useWorkspaceStore((state) => state.selectWorkspace);
-  const targetMembership = workspaces
-    .find((workspace) => workspace.id === id)
-    ?.members.find((member) => member.userId === user?.id);
-  const workspaceRole = targetMembership?.role ?? null;
+  const targetWorkspace = workspaces.find((workspace) => workspace.id === id);
+  const workspaceRole = targetWorkspace?.role ?? null;
   const isAdmin = workspaceRole === "OWNER" || workspaceRole === "ADMIN";
 
   const queryClient = useQueryClient();
@@ -55,7 +53,7 @@ export default function TeamDetailPage({ params }: Props) {
   const invitationsQuery = useQuery({
     queryKey: ["workspace-invitations", id],
     queryFn: () => teamsService.listInvitations(id),
-    enabled: canQuery,
+    enabled: canQuery && team?.type === "ORGANIZATION",
   });
   const invitations = invitationsQuery.data ?? [];
   const loading = teamQuery.isLoading || invitationsQuery.isLoading;
@@ -65,6 +63,7 @@ export default function TeamDetailPage({ params }: Props) {
   }, [id, isAdmin, selectWorkspace]);
 
   const [saving, setSaving] = useState(false);
+  const [converting, setConverting] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<WorkspaceRole>("MEMBER");
   const [inviting, setInviting] = useState(false);
@@ -153,6 +152,20 @@ export default function TeamDetailPage({ params }: Props) {
     }
   };
 
+  const handleConvert = async () => {
+    setConverting(true);
+    try {
+      const converted = await teamsService.convertToOrganization(id, form.name);
+      queryClient.setQueryData(teamKey(id), converted);
+      await queryClient.invalidateQueries({ queryKey: ["teams"] });
+      showToast("L’espace est maintenant une organisation.", "success");
+    } catch (err) {
+      showToast(getApiErrorMessage(err), "error");
+    } finally {
+      setConverting(false);
+    }
+  };
+
   const handleRoleChange = async (userId: string, role: WorkspaceRole) => {
     try {
       const updated = await teamsService.updateMemberRole(id, userId, role);
@@ -219,7 +232,11 @@ export default function TeamDetailPage({ params }: Props) {
       <PageHeader
         eyebrow="Administration"
         title={team.name}
-        description="Edit the details and manage this team's members."
+        description={
+          team.type === "PERSONAL"
+            ? "Espace personnel réservé à votre usage."
+            : "Gérez les informations, les membres et leurs rôles."
+        }
         actions={
           <Link
             href="/admin/teams"
@@ -290,134 +307,181 @@ export default function TeamDetailPage({ params }: Props) {
         </form>
       </SectionCard>
 
-      <SectionCard title={`Membres (${team.members.length})`}>
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)]">
-            <Users size={18} className="text-[var(--text-secondary)]" />
-            Membres
-          </div>
-
-          {team.members.length === 0 ? (
+      {team.type === "PERSONAL" ? (
+        <SectionCard
+          title="Espace personnel"
+          description="Cet espace est limité à un seul utilisateur et ne permet pas les invitations."
+        >
+          <div className="space-y-3">
             <p className="text-sm text-[var(--text-secondary)]">
-              No members yet.
+              Si vous souhaitez collaborer, convertissez-le en organisation.
+              Cette conversion est définitive et conservera vos projets,
+              serveurs et déploiements.
             </p>
-          ) : (
-            <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
-              {team.members.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center justify-between px-4 py-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-[var(--text-primary)]">
-                      {member.user.fullName}
-                    </p>
-                    <p className="text-xs text-[var(--text-secondary)]">
-                      {member.user.email}
-                    </p>
+            <button
+              type="button"
+              onClick={() => void handleConvert()}
+              disabled={converting || workspaceRole !== "OWNER"}
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] disabled:opacity-50"
+            >
+              {converting && <Loader2 size={14} className="animate-spin" />}
+              Convertir en organisation
+            </button>
+          </div>
+        </SectionCard>
+      ) : (
+        <SectionCard title={`Membres (${team.members.length})`}>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)]">
+              <Users size={18} className="text-[var(--text-secondary)]" />
+              Membres
+            </div>
+
+            {team.members.length === 0 ? (
+              <p className="text-sm text-[var(--text-secondary)]">
+                No members yet.
+              </p>
+            ) : (
+              <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
+                {team.members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between px-4 py-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                        {member.user.fullName}
+                      </p>
+                      <p className="text-xs text-[var(--text-secondary)]">
+                        {member.user.email}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleStatusChange(
+                            member.userId,
+                            member.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE",
+                          )
+                        }
+                        className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium"
+                      >
+                        {member.status === "ACTIVE" ? "Suspendre" : "Réactiver"}
+                      </button>
+                      <select
+                        aria-label={`Role de ${member.user.email}`}
+                        value={member.role}
+                        onChange={(event) =>
+                          void handleRoleChange(
+                            member.userId,
+                            event.target.value as WorkspaceRole,
+                          )
+                        }
+                        className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs"
+                      >
+                        <option value="MEMBER">Member</option>
+                        {workspaceRole === "OWNER" && (
+                          <option value="ADMIN">Admin</option>
+                        )}
+                        {workspaceRole === "OWNER" && (
+                          <option value="BILLING">Facturation</option>
+                        )}
+                        {workspaceRole === "OWNER" && (
+                          <option value="OWNER">Owner</option>
+                        )}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => void handleRemoveMember(member.userId)}
+                        disabled={removingUserId === member.userId}
+                        className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                      >
+                        {removingUserId === member.userId ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <UserMinus size={13} />
+                        )}
+                        Retirer
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={handleInvite} className="flex flex-wrap gap-2 pt-2">
+              <input
+                type="email"
+                required
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                placeholder="member@example.com"
+                className="h-10 min-w-64 flex-1 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 text-sm"
+              />
+              <select
+                value={inviteRole}
+                onChange={(event) =>
+                  setInviteRole(event.target.value as WorkspaceRole)
+                }
+                className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm"
+              >
+                <option value="MEMBER">Member</option>
+                {workspaceRole === "OWNER" && (
+                  <option value="ADMIN">Admin</option>
+                )}
+                {workspaceRole === "OWNER" && (
+                  <option value="BILLING">Facturation</option>
+                )}
+                {workspaceRole === "OWNER" && (
+                  <option value="OWNER">Owner</option>
+                )}
+              </select>
+              <button
+                type="submit"
+                disabled={inviting}
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 text-sm font-semibold text-[var(--bg-app)] disabled:opacity-50"
+              >
+                {inviting ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <UserPlus size={14} />
+                )}
+                Invite
+              </button>
+            </form>
+
+            {invitations.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                  Pending invitations
+                </p>
+                {invitations.map((invitation) => (
+                  <div
+                    key={invitation.id}
+                    className="flex items-center justify-between rounded-xl border border-[var(--border)] px-4 py-3 text-sm"
+                  >
+                    <span>
+                      {invitation.email} · {invitation.role}
+                    </span>
                     <button
                       type="button"
                       onClick={() =>
-                        void handleStatusChange(
-                          member.userId,
-                          member.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE",
-                        )
+                        void teamsService
+                          .revokeInvitation(id, invitation.id)
+                          .then(() => invitationsQuery.refetch())
                       }
-                      className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium"
+                      className="text-xs font-semibold text-red-500"
                     >
-                      {member.status === "ACTIVE" ? "Suspendre" : "Réactiver"}
-                    </button>
-                    <select
-                      aria-label={`Role de ${member.user.email}`}
-                      value={member.role}
-                      onChange={(event) =>
-                        void handleRoleChange(
-                          member.userId,
-                          event.target.value as WorkspaceRole,
-                        )
-                      }
-                      className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs"
-                    >
-                      <option value="MEMBER">Member</option>
-                      {workspaceRole === "OWNER" && (
-                        <option value="ADMIN">Admin</option>
-                      )}
-                      {workspaceRole === "OWNER" && (
-                        <option value="OWNER">Owner</option>
-                      )}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => void handleRemoveMember(member.userId)}
-                      disabled={removingUserId === member.userId}
-                      className="inline-flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                    >
-                      {removingUserId === member.userId ? (
-                        <Loader2 size={13} className="animate-spin" />
-                      ) : (
-                        <UserMinus size={13} />
-                      )}
-                      Retirer
+                      Revoke
                     </button>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <form onSubmit={handleInvite} className="flex flex-wrap gap-2 pt-2">
-            <input
-              type="email"
-              required
-              value={inviteEmail}
-              onChange={(event) => setInviteEmail(event.target.value)}
-              placeholder="member@example.com"
-              className="h-10 min-w-64 flex-1 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 text-sm"
-            />
-            <select
-              value={inviteRole}
-              onChange={(event) =>
-                setInviteRole(event.target.value as WorkspaceRole)
-              }
-              className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm"
-            >
-              <option value="MEMBER">Member</option>
-              {workspaceRole === "OWNER" && <option value="ADMIN">Admin</option>}
-              {workspaceRole === "OWNER" && <option value="OWNER">Owner</option>}
-            </select>
-            <button
-              type="submit"
-              disabled={inviting}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 text-sm font-semibold text-[var(--bg-app)] disabled:opacity-50"
-            >
-              {inviting ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
-              Invite
-            </button>
-          </form>
-
-          {invitations.length > 0 && (
-            <div className="space-y-2 pt-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-                Pending invitations
-              </p>
-              {invitations.map((invitation) => (
-                <div key={invitation.id} className="flex items-center justify-between rounded-xl border border-[var(--border)] px-4 py-3 text-sm">
-                  <span>{invitation.email} · {invitation.role}</span>
-                  <button
-                    type="button"
-                    onClick={() => void teamsService.revokeInvitation(id, invitation.id).then(() => invitationsQuery.refetch())}
-                    className="text-xs font-semibold text-red-500"
-                  >
-                    Revoke
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </SectionCard>
+                ))}
+              </div>
+            )}
+          </div>
+        </SectionCard>
+      )}
 
       <SectionCard
         title="Zone dangereuse"

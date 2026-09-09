@@ -17,4 +17,5 @@ export type StaffUser = {
 
 export type StaffLoginResponse = {
   staff: StaffUser;
+  mfaEnrollmentRequired: boolean;
 };

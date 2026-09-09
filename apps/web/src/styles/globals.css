@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --font-outfit: 'Avenir Next', 'Segoe UI', sans-serif;
-  --font-plex-mono: 'IBM Plex Mono', 'SFMono-Regular', 'Consolas', monospace;
+  --font-outfit: "Avenir Next", "Segoe UI", sans-serif;
+  --font-plex-mono: "IBM Plex Mono", "SFMono-Regular", "Consolas", monospace;
   --bg-app: #fafafa;
   --bg-sidebar: #ffffff;
   --bg-card: #ffffff;
@@ -56,6 +56,28 @@
   --primary-foreground: 240 5.9% 10%;
 }
 
+.brand {
+  --bg-app: #070b14;
+  --bg-sidebar: #09101d;
+  --bg-card: #101827;
+  --border: #203047;
+  --text-primary: #f0f9ff;
+  --text-secondary: #a8bdd2;
+  --text-muted: #65809d;
+  --hover: #16243a;
+  --active: #18324c;
+  --sidebar-text: #d4e7f5;
+  --sidebar-text-muted: #7892ab;
+  --sidebar-text-active: #ffffff;
+  --sidebar-icon: #7dd3fc;
+  --sidebar-active-bg: #12304a;
+  --sidebar-hover-bg: rgba(18, 48, 74, 0.68);
+  --primary: 195 92% 48%;
+  --primary-foreground: 222 47% 8%;
+  --shadow-lg: 0 18px 44px rgba(2, 132, 199, 0.14);
+  --shadow-sm: 0 2px 12px rgba(2, 132, 199, 0.1);
+}
+
 * {
   @apply box-border;
 }
@@ -68,7 +90,7 @@ body {
 body {
   color: var(--text-primary);
   background-color: var(--bg-app);
-  font-family: var(--font-outfit), 'Avenir Next', 'Segoe UI', sans-serif;
+  font-family: var(--font-outfit), "Avenir Next", "Segoe UI", sans-serif;
   text-rendering: geometricPrecision;
   color-scheme: light;
 }

@@ -11,23 +11,21 @@ import {
   UserCheck,
   Users,
   XCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { staffService } from "@/features/staff/api/staff.service";
-import type { AuthUserView } from "@/features/staff/api/staff.service";
 import { useStaffAuth } from "@/features/staff/api/use-staff-auth";
+import { getApiErrorMessage } from "@/shared/lib/api";
 
 const PAGE_SIZE = 50;
 
-const CLIENT_ROLES: AuthUserView["role"][] = ["OWNER", "MEMBER"];
-
-function roleLabel(role: string): string {
-  if (role === "SUPER_ADMIN") return "Super admin";
-  if (role === "OWNER") return "Propriétaire";
-  return "Membre";
-}
-
 export default function StaffUsersPage() {
   const [page, setPage] = useState(1);
+  const [impersonationTarget, setImpersonationTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [impersonationReason, setImpersonationReason] = useState("");
   const queryClient = useQueryClient();
   const { staff } = useStaffAuth();
 
@@ -55,23 +53,18 @@ export default function StaffUsersPage() {
     onSuccess: invalidate,
   });
 
-  const roleMutation = useMutation({
-    mutationFn: ({ id, role }: { id: string; role: string }) =>
-      staffService.updateUser(id, { role: role as AuthUserView["role"] }),
-    onSuccess: invalidate,
-  });
-
   const deleteMutation = useMutation({
     mutationFn: (id: string) => staffService.deleteUser(id),
     onSuccess: invalidate,
   });
 
   const impersonateMutation = useMutation({
-    mutationFn: (id: string) => staffService.impersonateUser(id),
-    onSuccess: () => {
-      // Le cookie client a été posé par le backend → on bascule vers le
-      // dashboard du compte impersonné.
-      window.location.assign("/dashboard");
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      staffService.impersonateUser(id, reason),
+    onSuccess: ({ redirectUrl }) => {
+      // L'autorisation est transportée dans le fragment (jamais envoyé dans le
+      // Referer) puis échangée une seule fois sur le domaine client.
+      window.location.assign(redirectUrl);
     },
   });
 
@@ -86,7 +79,8 @@ export default function StaffUsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Utilisateurs</h1>
           <p className="text-sm text-zinc-400">
-            Tous les comptes créés sur la plateforme ({data?.total ?? "…"}).
+            Identités clientes pouvant accéder au produit ({data?.total ?? "…"}
+            ).
           </p>
         </div>
       </div>
@@ -97,7 +91,7 @@ export default function StaffUsersPage() {
             <tr>
               <th className="px-4 py-3 font-medium">Nom</th>
               <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Rôle</th>
+              <th className="px-4 py-3 font-medium">Espaces actifs</th>
               <th className="px-4 py-3 font-medium">État</th>
               <th className="px-4 py-3 font-medium">Créé le</th>
               <th className="px-4 py-3 text-right font-medium">Actions</th>
@@ -110,25 +104,15 @@ export default function StaffUsersPage() {
                   {u.fullName}
                 </td>
                 <td className="px-4 py-3 text-zinc-400">{u.email}</td>
-                <td className="px-4 py-3">
-                  <select
-                    value={u.role}
-                    onChange={(e) =>
-                      roleMutation.mutate({ id: u.id, role: e.target.value })
-                    }
-                    disabled={!u.isActive || roleMutation.isPending}
-                    className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1 text-xs font-medium text-white focus:border-blue-500 focus:outline-none disabled:opacity-40"
-                  >
-                    {u.role === "SUPER_ADMIN" ? (
-                      <option value={u.role}>Super admin</option>
-                    ) : (
-                      CLIENT_ROLES.map((r) => (
-                        <option key={r} value={r}>
-                          {roleLabel(r)}
-                        </option>
-                      ))
-                    )}
-                  </select>
+                <td className="px-4 py-3 text-zinc-400">
+                  {u.teams.length === 0
+                    ? "Aucun"
+                    : u.teams
+                        .map(
+                          ({ team, role }) =>
+                            `${team.name} · ${team.type === "PERSONAL" ? "Personnel" : role}`,
+                        )
+                        .join(", ")}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -167,7 +151,11 @@ export default function StaffUsersPage() {
                     )}
 
                     <button
-                      onClick={() => impersonateMutation.mutate(u.id)}
+                      onClick={() => {
+                        setImpersonationReason("");
+                        impersonateMutation.reset();
+                        setImpersonationTarget({ id: u.id, name: u.fullName });
+                      }}
                       disabled={!u.isActive || impersonateMutation.isPending}
                       title="Se connecter en tant que ce client"
                       className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-blue-300 disabled:opacity-40"
@@ -248,6 +236,98 @@ export default function StaffUsersPage() {
               Suivant
             </button>
           </div>
+        </div>
+      )}
+
+      {impersonationTarget && (
+        <div
+          role="presentation"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setImpersonationTarget(null);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="impersonation-title"
+            className="w-full max-w-lg rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl"
+          >
+            <div className="flex items-start gap-3">
+              <span className="rounded-xl bg-amber-500/10 p-2 text-amber-300">
+                <ShieldAlert size={20} aria-hidden="true" />
+              </span>
+              <div>
+                <h2
+                  id="impersonation-title"
+                  className="text-lg font-semibold text-white"
+                >
+                  Ouvrir une session d’assistance
+                </h2>
+                <p className="mt-1 text-sm text-zinc-400">
+                  Vous allez agir au nom de {impersonationTarget.name} pendant
+                  15 minutes. L’ouverture et son motif seront journalisés.
+                </p>
+              </div>
+            </div>
+
+            <label className="mt-5 block text-sm font-medium text-zinc-200">
+              Motif opérationnel
+              <textarea
+                autoFocus
+                value={impersonationReason}
+                onChange={(event) =>
+                  setImpersonationReason(event.target.value.slice(0, 500))
+                }
+                minLength={10}
+                maxLength={500}
+                rows={4}
+                placeholder="Ex. Diagnostic de l’incident INC-142 demandé par le client. Ne saisissez aucun secret."
+                className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-sky-500"
+              />
+            </label>
+            <div className="mt-1 text-right text-xs text-zinc-500">
+              {impersonationReason.trim().length}/500
+            </div>
+
+            {impersonateMutation.isError && (
+              <p role="alert" className="mt-3 text-sm text-red-400">
+                {getApiErrorMessage(impersonateMutation.error)}
+              </p>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setImpersonationTarget(null)}
+                disabled={impersonateMutation.isPending}
+                className="rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/5 disabled:opacity-40"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  impersonateMutation.mutate({
+                    id: impersonationTarget.id,
+                    reason: impersonationReason.trim(),
+                  })
+                }
+                disabled={
+                  impersonationReason.trim().length < 10 ||
+                  impersonateMutation.isPending
+                }
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {impersonateMutation.isPending && (
+                  <Loader2 size={15} className="animate-spin" />
+                )}
+                Confirmer et ouvrir
+              </button>
+            </div>
+          </section>
         </div>
       )}
     </div>

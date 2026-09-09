@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 
-export type Theme = "light" | "dark";
+export type Theme = "brand" | "light" | "dark";
 
 type ThemeContextValue = {
   theme: Theme;
@@ -20,19 +20,23 @@ type ThemeContextValue = {
 };
 
 const THEME_STORAGE_KEY = "deploy-automation-theme";
-const DEFAULT_THEME: Theme = "dark";
+const DEFAULT_THEME: Theme = "brand";
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 function isTheme(value: string | null): value is Theme {
-  return value === "dark" || value === "light";
+  return value === "brand" || value === "dark" || value === "light";
 }
 
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
-  root.classList.remove("light", "dark");
-  root.classList.add(theme);
-  root.style.colorScheme = theme;
+  root.classList.remove("brand", "light", "dark");
+  if (theme === "brand") {
+    root.classList.add("dark", "brand");
+  } else {
+    root.classList.add(theme);
+  }
+  root.style.colorScheme = theme === "light" ? "light" : "dark";
 }
 
 function persistTheme(theme: Theme) {
@@ -66,7 +70,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const toggleTheme = useCallback(() => {
     setThemeState((currentTheme) => {
-      const nextTheme: Theme = currentTheme === "dark" ? "light" : "dark";
+      const nextTheme: Theme =
+        currentTheme === "brand"
+          ? "dark"
+          : currentTheme === "dark"
+            ? "light"
+            : "brand";
       applyTheme(nextTheme);
       persistTheme(nextTheme);
       return nextTheme;

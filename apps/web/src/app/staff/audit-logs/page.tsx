@@ -17,6 +17,8 @@ const ACTION_LABELS: Record<string, string> = {
   "user.role.change": "Changement rôle client",
   "user.delete": "Suppression client",
   "user.impersonate": "Impression (session client)",
+  "user.impersonation.exchange": "Ouverture effective de la session client",
+  "user.impersonation.logout": "Fin de la session client",
 };
 
 function actionLabel(action: string): string {

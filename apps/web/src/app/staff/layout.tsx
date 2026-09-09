@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LogOut,
   Mail,
+  LockKeyhole,
   Rocket,
   ShieldCheck,
   Users,
@@ -19,6 +20,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import type { PlatformRole } from "@/features/staff/types/staff";
+import { publicSitePath } from "@/shared/config/product-urls";
 
 const NAV_ITEMS: Array<{
   href: string;
@@ -46,9 +48,15 @@ const NAV_ITEMS: Array<{
   },
   {
     href: "/staff/teams",
-    label: "Équipes",
+    label: "Workspaces",
     icon: Rocket,
     roles: ["ROOT", "ADMIN"],
+  },
+  {
+    href: "/staff/settings/security",
+    label: "Sécurité du compte",
+    icon: LockKeyhole,
+    roles: ["ROOT", "ADMIN", "OPERATOR"],
   },
   {
     href: "/staff/subscriptions",
@@ -191,7 +199,7 @@ export default function StaffLayout({
               Déconnexion
             </button>
             <Link
-              href="/"
+              href={publicSitePath("/")}
               className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-500 transition hover:bg-white/5 hover:text-white"
             >
               <Activity size={16} />

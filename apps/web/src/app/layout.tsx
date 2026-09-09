@@ -5,7 +5,8 @@ import "@/styles/globals.css";
 
 export const metadata: Metadata = {
   title: "Sovrack",
-  description: "Plateforme en cours de développement privé",
+  description:
+    "Plateforme de déploiement et d'exploitation d'applications sur vos serveurs.",
 };
 
 export const viewport = {
@@ -23,20 +24,21 @@ export default function RootLayout({
       try {
         var key = 'deploy-automation-theme';
         var saved = localStorage.getItem(key);
-        var theme = saved === 'light' || saved === 'dark' ? saved : 'dark';
+        var theme = saved === 'brand' || saved === 'light' || saved === 'dark' ? saved : 'brand';
         var root = document.documentElement;
-        root.classList.remove('light', 'dark');
-        root.classList.add(theme);
-        root.style.colorScheme = theme;
+        root.classList.remove('brand', 'light', 'dark');
+        if (theme === 'brand') root.classList.add('dark', 'brand');
+        else root.classList.add(theme);
+        root.style.colorScheme = theme === 'light' ? 'light' : 'dark';
       } catch (_error) {
-        document.documentElement.classList.add('dark');
+        document.documentElement.classList.add('dark', 'brand');
         document.documentElement.style.colorScheme = 'dark';
       }
     })();
   `;
 
   return (
-    <html lang="fr" className="dark" suppressHydrationWarning>
+    <html lang="fr" className="dark brand" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

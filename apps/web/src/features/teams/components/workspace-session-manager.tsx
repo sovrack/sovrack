@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import api, { getApiErrorMessage } from "@/shared/lib/api";
 import { useAuthStore } from "@/stores/auth.store";
 import { useWorkspaceStore } from "@/stores/workspace.store";
-import type { Team } from "@/features/teams/types/team";
+import type { WorkspaceSummary } from "@/features/teams/types/team";
 
 export function WorkspaceSessionManager({
   children,
@@ -28,7 +28,7 @@ export function WorkspaceSessionManager({
     let cancelled = false;
     beginLoading();
     void api
-      .get<Team[]>("/workspaces")
+      .get<WorkspaceSummary[]>("/workspaces")
       .then((response) => {
         if (!cancelled) setWorkspaces(response.data);
       })
@@ -38,7 +38,14 @@ export function WorkspaceSessionManager({
     return () => {
       cancelled = true;
     };
-  }, [authInitialized, beginLoading, clear, isAuthenticated, setError, setWorkspaces]);
+  }, [
+    authInitialized,
+    beginLoading,
+    clear,
+    isAuthenticated,
+    setError,
+    setWorkspaces,
+  ]);
 
   return <>{children}</>;
 }

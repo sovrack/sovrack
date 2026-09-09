@@ -1,15 +1,18 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { Team } from "@/features/teams/types/team";
+import type { WorkspaceSummary } from "@/features/teams/types/team";
 import { readWorkspaceSelection } from "@/shared/lib/workspace-storage";
 import { useWorkspaceStore } from "./workspace.store";
 
-function workspace(id: string): Team {
+function workspace(id: string): WorkspaceSummary {
   return {
     id,
     name: id,
     slug: id,
     description: null,
-    members: [],
+    type: "ORGANIZATION",
+    status: "ACTIVE",
+    role: "OWNER",
+    membershipStatus: "ACTIVE",
     createdAt: "2026-08-17T00:00:00.000Z",
     updatedAt: "2026-08-17T00:00:00.000Z",
   };
@@ -28,10 +31,9 @@ describe("workspace store", () => {
   });
 
   it("selects the first authorized workspace and persists the choice", () => {
-    useWorkspaceStore.getState().setWorkspaces([
-      workspace("workspace-1"),
-      workspace("workspace-2"),
-    ]);
+    useWorkspaceStore
+      .getState()
+      .setWorkspaces([workspace("workspace-1"), workspace("workspace-2")]);
 
     expect(useWorkspaceStore.getState().selectedWorkspaceId).toBe(
       "workspace-1",
@@ -40,10 +42,9 @@ describe("workspace store", () => {
   });
 
   it("keeps a valid previous choice and ignores foreign workspace ids", () => {
-    useWorkspaceStore.getState().setWorkspaces([
-      workspace("workspace-1"),
-      workspace("workspace-2"),
-    ]);
+    useWorkspaceStore
+      .getState()
+      .setWorkspaces([workspace("workspace-1"), workspace("workspace-2")]);
     useWorkspaceStore.getState().selectWorkspace("workspace-2");
     useWorkspaceStore.getState().selectWorkspace("foreign-workspace");
 

@@ -20,7 +20,9 @@ import {
   XCircle,
   Loader2,
   Rocket,
+  Globe2,
 } from "lucide-react";
+import { publicSitePath } from "@/shared/config/product-urls";
 import clsx from "clsx";
 import type { Deployment } from "@/features/deployments/types";
 import { timeAgoCompact } from "@/shared/lib/format-date";
@@ -246,7 +248,7 @@ export function TopNav() {
         <button
           type="button"
           onClick={toggleSidebar}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-900"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
           title="Toggle sidebar"
           aria-label="Toggle sidebar"
         >
@@ -255,6 +257,16 @@ export function TopNav() {
 
         <div className="ml-auto flex items-center gap-1.5">
           <WorkspaceSwitcher />
+          <Link
+            href={publicSitePath("/")}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Ouvrir le site public"
+            aria-label="Ouvrir le site public dans un nouvel onglet"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+          >
+            <Globe2 size={17} />
+          </Link>
           <LanguageToggle />
           <ThemeToggle />
           <NotificationBell />

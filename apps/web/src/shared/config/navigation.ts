@@ -105,7 +105,7 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
       },
       {
         href: "/admin/teams",
-        label: "Workspace Members",
+        label: "Workspaces",
         icon: Users,
         adminOnly: true,
       },

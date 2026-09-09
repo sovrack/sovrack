@@ -40,12 +40,22 @@ export type StaffUserView = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  teams: Array<{
+    role: "OWNER" | "ADMIN" | "BILLING" | "MEMBER";
+    team: {
+      id: string;
+      name: string;
+      type: "PERSONAL" | "ORGANIZATION";
+    };
+  }>;
 };
 
 export type StaffTeam = {
   id: string;
   name: string;
   description: string | null;
+  type: "PERSONAL" | "ORGANIZATION";
+  status: "ACTIVE" | "SUSPENDED" | "ARCHIVED" | "DELETION_PENDING";
   createdAt: string;
   _count: { members: number; projects: number; servers: number };
 };
@@ -90,10 +100,7 @@ export const staffService = {
     return res.data;
   },
 
-  updateUser: async (
-    id: string,
-    body: { role?: UserRole; isActive?: boolean },
-  ) => {
+  updateUser: async (id: string, body: { isActive?: boolean }) => {
     const res = await api.patch(`/staff/users/${id}`, body);
     return res.data;
   },
@@ -105,11 +112,27 @@ export const staffService = {
 
   impersonateUser: async (
     id: string,
+    reason: string,
+  ): Promise<{
+    redirectUrl: string;
+    user: AuthUserView;
+    expiresInSeconds: number;
+  }> => {
+    const res = await api.post<{
+      redirectUrl: string;
+      user: AuthUserView;
+      expiresInSeconds: number;
+    }>(`/staff/users/${id}/impersonate`, { reason });
+    return res.data;
+  },
+
+  exchangeImpersonation: async (
+    token: string,
   ): Promise<{ user: AuthUserView; expiresInSeconds: number }> => {
     const res = await api.post<{
       user: AuthUserView;
       expiresInSeconds: number;
-    }>(`/staff/users/${id}/impersonate`);
+    }>("/staff/impersonation/exchange", { token });
     return res.data;
   },
 
@@ -191,6 +214,38 @@ export const staffService = {
     return res.data;
   },
 
+  getMfaStatus: async (): Promise<StaffMfaStatus> => {
+    const res = await api.get<StaffMfaStatus>("/staff/settings/security/mfa");
+    return res.data;
+  },
+
+  beginMfaSetup: async (): Promise<StaffMfaSetup> => {
+    const res = await api.post<StaffMfaSetup>(
+      "/staff/settings/security/mfa/setup",
+      {},
+    );
+    return res.data;
+  },
+
+  enableMfa: async (code: string): Promise<StaffMfaEnableResult> => {
+    const res = await api.post<StaffMfaEnableResult>(
+      "/staff/settings/security/mfa/enable",
+      { code },
+    );
+    return res.data;
+  },
+
+  resetMfa: async (
+    password: string,
+    code: string,
+  ): Promise<{ reauthenticationRequired: true }> => {
+    const res = await api.post<{ reauthenticationRequired: true }>(
+      "/staff/settings/security/mfa/reset",
+      { password, code },
+    );
+    return res.data;
+  },
+
   getAuditLogs: async (
     page = 1,
     limit = 50,
@@ -226,6 +281,22 @@ export const staffService = {
     }>("/staff/settings/email/test", {});
     return res.data;
   },
+};
+
+export type StaffMfaStatus = {
+  enabled: boolean;
+  required: boolean;
+  recoveryCodesRemaining: number;
+};
+
+export type StaffMfaSetup = {
+  secret: string;
+  otpauthUri: string;
+};
+
+export type StaffMfaEnableResult = {
+  recoveryCodes: string[];
+  reauthenticationRequired: true;
 };
 
 export type SmtpSecurityMode = "none" | "starttls" | "tls";

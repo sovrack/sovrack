@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import api, { getApiErrorMessage } from "@/shared/lib/api";
-import type { StaffUser, StaffLoginResponse } from "@/features/staff/types/staff";
+import type {
+  StaffUser,
+  StaffLoginResponse,
+} from "@/features/staff/types/staff";
 
 export const STAFF_COOKIE_NAME = "deploy_staff_token";
 
@@ -20,7 +23,11 @@ type StaffAuthActions = {
   setStaff: (staff: StaffUser | null) => void;
   clearStaff: () => void;
   clearError: () => void;
-  login: (email: string, password: string) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+    mfaCode?: string,
+  ) => Promise<"AUTHENTICATED" | "MFA_REQUIRED" | "ENROLLMENT_REQUIRED">;
   fetchMe: () => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -40,12 +47,13 @@ export const useStaffStore = create<StaffAuthState & StaffAuthActions>(
 
     clearError: () => set({ error: null }),
 
-    login: async (email: string, password: string) => {
+    login: async (email: string, password: string, mfaCode?: string) => {
       set({ loading: true, error: null });
       try {
         const response = await api.post<StaffLoginResponse>("/staff/login", {
           email,
           password,
+          ...(mfaCode ? { mfaCode } : {}),
         });
         set({
           staff: response.data.staff,
@@ -53,7 +61,17 @@ export const useStaffStore = create<StaffAuthState & StaffAuthActions>(
           error: null,
           initialized: true,
         });
+        return response.data.mfaEnrollmentRequired
+          ? "ENROLLMENT_REQUIRED"
+          : "AUTHENTICATED";
       } catch (error) {
+        const apiError = error as {
+          response?: { data?: { code?: string } };
+        };
+        if (apiError.response?.data?.code === "STAFF_MFA_REQUIRED") {
+          set({ loading: false, error: null });
+          return "MFA_REQUIRED";
+        }
         set({ loading: false, error: getApiErrorMessage(error) });
         throw error;
       }

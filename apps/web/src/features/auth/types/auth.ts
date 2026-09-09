@@ -1,4 +1,5 @@
-export type UserRole = "SUPER_ADMIN" | "OWNER" | "MEMBER";
+/** Platform staff roles are deliberately separate from customer identities. */
+export type UserRole = "OWNER" | "MEMBER";
 
 export type AuthUser = {
   id: string;
