@@ -1,0 +1,7 @@
+---
+- name: Prepare a Sovrack production host
+  hosts: all
+  become: true
+  gather_facts: true
+  roles:
+    - role: sovrack_host

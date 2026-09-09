@@ -22,6 +22,7 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=example.test' \
   -out "$TEMP_DIR/certs/fullchain.pem" >/dev/null 2>&1
 
 docker run --rm -d --name "$CONTAINER" -e DOMAIN=example.test \
+  -e APP_DOMAIN=app.example.test -e STAFF_DOMAIN=staff.example.test \
   -v "$ROOT/nginx/proxy.conf.template:/etc/nginx/proxy.conf.template:ro" \
   -v "$ROOT/nginx/acme-http.conf.template:/etc/nginx/acme-http.conf.template:ro" \
   -v "$ROOT/nginx/entrypoint.sh:/opt/sovrack/nginx-entrypoint.sh:ro" \

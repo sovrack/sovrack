@@ -48,8 +48,8 @@ nouvelles variables, sans modifier `CONFIG_SECRET`.
 Avec les mêmes images immuables et des limites identiques au VPS :
 
 1. restaurer une copie récente de la base 105 ;
-2. promouvoir localement `v2.0.0-rc.1` en topologie `compact` ;
-3. vérifier le passage exact à la migration 108 ;
+2. promouvoir localement `v3.0.0-rc.1` en topologie `compact` ;
+3. vérifier le passage exact à la migration déclarée dans le manifeste ;
 4. exécuter les tests métier ;
 5. restaurer le dump 105 avec la baseline R0 ;
 6. vérifier que l'ancienne version redémarre ;

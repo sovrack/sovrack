@@ -27,6 +27,11 @@ printf '%s\n' "$infra_commit" > "$RELEASE_ROOT/.infra-commit"
 
 cat > "$BASE_DIR/shared/.env" <<'EOF'
 DOMAIN=example.test
+APP_DOMAIN=app.example.test
+STAFF_DOMAIN=staff.example.test
+PUBLIC_SITE_URL=https://example.test
+CUSTOMER_APP_URL=https://app.example.test
+STAFF_APP_URL=https://staff.example.test
 POSTGRES_USER=backup_test
 POSTGRES_PASSWORD=postgres-test-password-000000
 POSTGRES_DB=backup_test

@@ -8,12 +8,15 @@ rollback de base réellement testé.
 ## Architecture
 
 ```text
-Internet -> Nginx/TLS -> Frontend + Backend
+Internet -> Nginx/TLS -> Site public + Console client + Back-office
+                                   -> Frontend + Backend
                                    |
                              PostgreSQL + Redis
 ```
 
 - Nginx est la seule entrée publique (`80/443`).
+- Les plans public, client et staff utilisent trois domaines et des cookies
+  host-only séparés.
 - PostgreSQL et Redis sont publiés uniquement sur `127.0.0.1`.
 - Le mode `compact` exécute API et tâches de fond dans un backend unique pour
   les petits hôtes ; le mode `split` ajoute un worker dédié.
@@ -38,6 +41,9 @@ jamais synchronisés par GitLab.
 Voir [le runbook de release](docs/RELEASE_RUNBOOK.md) et
 [la checklist de production](docs/PRODUCTION_CHECKLIST.md).
 
+La conception complète est décrite dans
+[ARCHITECTURE_V3.md](docs/ARCHITECTURE_V3.md).
+
 ## Commandes locales
 
 La recette d'acceptation locale démarre une pile entièrement isolée de la
@@ -48,16 +54,16 @@ ligne et refuse toute base distante.
 ```bash
 make local-up
 
-# Application et connexions clients
-# http://localhost:13080
-
-# Connexion staff
-# http://localhost:13080/staff/login
+# Site public, console client et back-office (vrais hôtes locaux)
+# http://sovrack.localhost:13080
+# http://app.sovrack.localhost:13080
+# http://staff.sovrack.localhost:13080/staff/login
 
 # Emails de validation capturés localement (aucun email Internet)
 # http://localhost:18025
 
 make local-logs
+make local-acceptance # E2E Chromium + mesures des pages lentes
 make local-down      # conserve la base locale
 make local-reset     # supprime uniquement les volumes sovrack-local
 ```
@@ -70,7 +76,7 @@ SMTP doit déjà être opérationnel : la commande crée le ROOT en état `INVIT
 et lui remet un code à usage unique de 8 chiffres, valable 10 minutes :
 
 ```bash
-sudo -u deploy make -C /srv/sovrack/current bootstrap-staff \
+sudo -u sovrack make -C /srv/sovrack/current bootstrap-staff \
   BASE_DIR=/srv/sovrack EMAIL=root@example.com
 ```
 
@@ -104,6 +110,10 @@ migration Phase 2.
 
 ## Exploitation
 
+- [Préparation reproductible d'un VPS](docs/HOST_PROVISIONING.md)
+- [Recette sur la VM locale](docs/LOCAL_ACCEPTANCE.md)
+- [Périmètre de la première bêta privée](docs/PRIVATE_BETA_SCOPE.md)
+- [Inventaire des cookies](docs/COOKIE_INVENTORY.md)
 - [Runners GitLab séparés](docs/RUNNER_HARDENING.md)
 - [Durcissement du VPS](docs/HOST_HARDENING.md)
 - [Nettoyage ciblé](docs/CLEANUP.md)

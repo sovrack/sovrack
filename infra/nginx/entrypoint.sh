@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 
+APP_DOMAIN="${APP_DOMAIN:-app.${DOMAIN}}"
+STAFF_DOMAIN="${STAFF_DOMAIN:-staff.${DOMAIN}}"
+export APP_DOMAIN STAFF_DOMAIN
+
 certificate_dir="/etc/letsencrypt/live/${DOMAIN}"
 tls_template="/etc/nginx/proxy.conf.template"
 http_template="/etc/nginx/acme-http.conf.template"
@@ -14,8 +18,8 @@ else
   echo "Sovrack nginx: certificat absent, mode bootstrap HTTP/ACME."
 fi
 
-# Ne remplace que DOMAIN ; les variables natives nginx ($host, $uri, etc.)
-# doivent rester intactes dans la configuration générée.
-envsubst '${DOMAIN}' < "$template" > "$target"
+# Ne remplace que les domaines ; les variables natives nginx ($host, $uri,
+# etc.) doivent rester intactes dans la configuration générée.
+envsubst '${DOMAIN} ${APP_DOMAIN} ${STAFF_DOMAIN}' < "$template" > "$target"
 nginx -t
 exec nginx -g 'daemon off;'

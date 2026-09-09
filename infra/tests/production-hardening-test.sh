@@ -40,6 +40,11 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
 
 cat > "$ENV_FILE" <<EOF
 DOMAIN=hardening.test
+APP_DOMAIN=app.hardening.test
+STAFF_DOMAIN=staff.hardening.test
+PUBLIC_SITE_URL=https://hardening.test
+CUSTOMER_APP_URL=https://app.hardening.test
+STAFF_APP_URL=https://staff.hardening.test
 FRONTEND_PUBLIC_URL=https://hardening.test
 FRONTEND_WS_PUBLIC_URL=wss://hardening.test
 POSTGRES_USER=sovrack_test

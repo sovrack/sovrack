@@ -12,9 +12,13 @@ x-backend-environment: &backend-environment
   STAFF_JWT_SECRET: local-staff-jwt-secret-2026-bbbbbbbbbbbbbbbbbbbbbbbb
   STAFF_JWT_EXPIRES_IN: 2h
   STAFF_OTP_SECRET: local-staff-otp-secret-2026-dddddddddddddddddddddddd
+  STAFF_MFA_REQUIRED_ROLES: ROOT,ADMIN
   CONFIG_SECRET: local-config-encryption-secret-2026-cccccccccccccccccc
-  FRONTEND_URL: http://localhost:13080
-  FRONTEND_URLS: http://localhost:13080
+  FRONTEND_URL: http://app.sovrack.localhost:13080
+  FRONTEND_URLS: http://sovrack.localhost:13080,http://app.sovrack.localhost:13080,http://staff.sovrack.localhost:13080
+  PUBLIC_SITE_URL: http://sovrack.localhost:13080
+  CUSTOMER_APP_URL: http://app.sovrack.localhost:13080
+  STAFF_APP_URL: http://staff.sovrack.localhost:13080
   AUTH_COOKIE_SECURE: "false"
   AUTH_COOKIE_SAME_SITE: lax
   STAFF_AUTH_COOKIE_SECURE: "false"
@@ -133,17 +137,26 @@ services:
         VCS_REF: local
         OPENAPI_SHA256: local
         NEXT_PUBLIC_API_URL: http://localhost:13080/backend-api
-        NEXT_PUBLIC_WS_URL: ws://localhost:13080/backend-api
+        NEXT_PUBLIC_WS_URL: ws://app.sovrack.localhost:13080/backend-api
         NEXT_PUBLIC_APP_NAME: Sovrack Local
         NEXT_PUBLIC_APP_VERSION: local
+        NEXT_PUBLIC_PUBLIC_SITE_URL: http://sovrack.localhost:13080
+        NEXT_PUBLIC_CUSTOMER_APP_URL: http://app.sovrack.localhost:13080
+        NEXT_PUBLIC_STAFF_APP_URL: http://staff.sovrack.localhost:13080
         BACKEND_INTERNAL_URL: http://backend:3001
     environment:
       NODE_ENV: production
       BACKEND_INTERNAL_URL: http://backend:3001
       NEXT_PUBLIC_API_URL: http://localhost:13080/backend-api
-      NEXT_PUBLIC_WS_URL: ws://localhost:13080/backend-api
+      NEXT_PUBLIC_WS_URL: ws://app.sovrack.localhost:13080/backend-api
       NEXT_PUBLIC_APP_NAME: Sovrack Local
       NEXT_PUBLIC_APP_VERSION: local
+      PUBLIC_SITE_URL: http://sovrack.localhost:13080
+      CUSTOMER_APP_URL: http://app.sovrack.localhost:13080
+      STAFF_APP_URL: http://staff.sovrack.localhost:13080
+      NEXT_PUBLIC_PUBLIC_SITE_URL: http://sovrack.localhost:13080
+      NEXT_PUBLIC_CUSTOMER_APP_URL: http://app.sovrack.localhost:13080
+      NEXT_PUBLIC_STAFF_APP_URL: http://staff.sovrack.localhost:13080
     depends_on:
       backend:
         condition: service_healthy
@@ -166,7 +179,7 @@ services:
       - ./nginx/proxy.dev.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./nginx/security-headers.conf:/etc/nginx/conf.d/security-headers.conf:ro
     environment:
-      DOMAIN: localhost
+      DOMAIN: sovrack.localhost app.sovrack.localhost staff.sovrack.localhost localhost
     depends_on:
       frontend:
         condition: service_healthy

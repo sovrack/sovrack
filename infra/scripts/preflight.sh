@@ -34,12 +34,40 @@ docker info >/dev/null 2>&1
 docker compose version >/dev/null 2>&1
 
 required_keys=(
-  DOMAIN POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB REDIS_PASSWORD
+  DOMAIN APP_DOMAIN STAFF_DOMAIN PUBLIC_SITE_URL CUSTOMER_APP_URL STAFF_APP_URL
+  POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB REDIS_PASSWORD
   JWT_SECRET STAFF_JWT_SECRET STAFF_OTP_SECRET CONFIG_SECRET
 )
 for key in "${required_keys[@]}"; do
   require_single_env_key "$key" "$SECRETS_ENV"
 done
+
+domain="$(read_env_value DOMAIN "$SECRETS_ENV")"
+app_domain="$(read_env_value APP_DOMAIN "$SECRETS_ENV")"
+staff_domain="$(read_env_value STAFF_DOMAIN "$SECRETS_ENV")"
+for candidate in "$domain" "$app_domain" "$staff_domain"; do
+  [[ "$candidate" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]] || {
+    echo "ERROR: domaine web invalide."
+    exit 1
+  }
+done
+[ "$domain" != "$app_domain" ] && [ "$domain" != "$staff_domain" ] \
+  && [ "$app_domain" != "$staff_domain" ] || {
+  echo "ERROR: les domaines public, client et staff doivent être distincts."
+  exit 1
+}
+[ "$(read_env_value PUBLIC_SITE_URL "$SECRETS_ENV")" = "https://$domain" ] || {
+  echo "ERROR: PUBLIC_SITE_URL doit correspondre à DOMAIN en HTTPS."
+  exit 1
+}
+[ "$(read_env_value CUSTOMER_APP_URL "$SECRETS_ENV")" = "https://$app_domain" ] || {
+  echo "ERROR: CUSTOMER_APP_URL doit correspondre à APP_DOMAIN en HTTPS."
+  exit 1
+}
+[ "$(read_env_value STAFF_APP_URL "$SECRETS_ENV")" = "https://$staff_domain" ] || {
+  echo "ERROR: STAFF_APP_URL doit correspondre à STAFF_DOMAIN en HTTPS."
+  exit 1
+}
 
 if grep -qE '(change_me_|CHANGE_ME_|REPLACE_WITH_|Dev_Test_Only_1192)' "$SECRETS_ENV"; then
   echo "ERROR: le fichier de secrets contient un placeholder connu."

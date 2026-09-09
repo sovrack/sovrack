@@ -23,10 +23,10 @@ compte de service `gitlab-runner`, sur la VM.
 Le compte de service appartient au groupe Docker, mais les conteneurs de jobs
 ne reçoivent jamais la socket Docker de l'hôte. Le démon conserve ses journaux
 avec rotation et `live-restore`. SSH accepte uniquement les clés publiques.
-UFW autorise le port 22 depuis le réseau libvirt local et, lorsque la cible de
-staging est cette même VM, depuis le sous-réseau exact du bridge Docker utilisé
-par le runner de déploiement. Ne pas ouvrir globalement `172.16.0.0/12` : les
-réseaux applicatifs n'ont pas à joindre le SSH de l'hôte.
+UFW autorise le port 22 depuis le réseau libvirt local. La recette locale
+s'exécute directement sur la VM et n'utilise pas le runner de production pour
+se reconnecter en SSH à son propre hôte. Ne pas ouvrir globalement
+`172.16.0.0/12` : les réseaux applicatifs n'ont pas à joindre le SSH de l'hôte.
 
 Le client SSH des jobs utilise des délais bornés, le mode non interactif et la
 vérification stricte de la clé hôte. Une erreur de routage ou de pare-feu échoue
@@ -54,9 +54,8 @@ préproduction.
 - concurrence 1 pour le déploiement et chaque job lourd ;
 - aucun montage `/var/run/docker.sock` ni d'un répertoire applicatif ;
 - token différent par runner ;
-- variables staging/production protégées, masquées et à portée
-  d'environnement ;
-- environnements `staging` et `production` protégés ;
+- variables de production protégées, masquées et à portée d'environnement ;
+- environnement `production` protégé ;
 - tags de release protégés ;
 - `resource_group` pour empêcher deux promotions concurrentes.
 

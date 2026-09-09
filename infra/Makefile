@@ -6,7 +6,7 @@ SHELL := /usr/bin/env bash
 BASE_DIR ?= /srv/sovrack
 CURRENT_COMPOSE := SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/current-compose.sh
 
-.PHONY: help bootstrap bootstrap-staff config up ps logs backup restore rollback preflight validate-ci test-scripts test-hardening certbot certbot-renew local-up local-down local-reset local-logs
+.PHONY: help bootstrap bootstrap-staff config up ps logs backup restore rollback preflight validate-ci test-scripts test-hardening certbot certbot-renew local-up local-down local-reset local-logs local-browser local-perf local-acceptance host-dependencies host-syntax host-prepare
 
 help: ## Affiche l'aide
 	@printf "Commandes Sovrack infra:\n"
@@ -47,6 +47,7 @@ validate-ci: ## Valide le compose dans les conditions CI (image docker cli)
 	docker compose --env-file .env.production.example -f docker-compose.prod.yml config -q
 
 test-scripts: ## Teste backup/restore dans une stack Docker jetable
+	./tests/ansible-layout-test.sh
 	./tests/release-manifest-test.sh
 	./tests/nginx-maintenance-test.sh
 	./tests/release-deploy-integration.sh
@@ -73,4 +74,19 @@ local-reset: ## Supprime uniquement les volumes de la recette locale
 local-logs: ## Affiche les logs de la recette locale
 	docker compose -f docker-compose.dev.yml logs -f backend frontend nginx mailpit
 
-.PHONY: help bootstrap config up ps logs backup restore validate-ci test-scripts certbot certbot-renew
+local-browser: ## Exécute les E2E navigateur sur les trois hôtes locaux
+	npm --prefix ../frontend run test:browser
+
+local-perf: ## Mesure Mon compte et Workspaces dans Chromium
+	npm --prefix ../frontend run perf:local
+
+local-acceptance: local-browser local-perf ## Exécute la recette navigateur et performance
+
+host-dependencies: ## Installe les collections Ansible épinglées
+	ansible-galaxy collection install -r ansible/requirements.yml
+
+host-syntax: ## Vérifie le playbook de préparation sans toucher une machine
+	cd ansible && ansible-playbook --syntax-check playbooks/prepare-host.yml
+
+host-prepare: ## Prépare un hôte (INVENTORY=... PRIVATE_KEY=...)
+	cd ansible && ansible-playbook -i $(INVENTORY) --private-key $(PRIVATE_KEY) playbooks/prepare-host.yml

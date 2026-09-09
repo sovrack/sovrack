@@ -11,7 +11,7 @@ Une release est un ensemble immuable :
 - topologie runtime (`compact`, `split` ou baseline `legacy-single`) ;
 - dernière migration Prisma attendue ;
 - SHA-256 du contrat OpenAPI ;
-- identifiant SemVer (`v2.0.0-rc.1`, puis `v2.0.0`).
+- identifiant SemVer (`v3.0.0-rc.1`, puis `v3.0.0`).
 
 Le VPS utilise le layout suivant :
 
@@ -46,11 +46,11 @@ migration, les contrôles de schéma et les healthchecks.
 10. Chaque environnement possède un deploy token GitLab distinct, limité à
     `read_registry`, protégé, masqué et assorti d'une date d'expiration.
 
-## Qualification locale lorsque staging n'est pas disponible
+## Qualification sur la VM locale
 
-Créer d'abord un tag `v2.0.0-rc.1`. Le PC de qualification doit restaurer une
-copie du schéma 105, puis exécuter le bundle exact sous les limites CPU/RAM du
-VPS. Le job distant `deploy:staging` reste disponible pour une évolution future.
+Créer d'abord un tag `v3.0.0-rc.1`. La VM de qualification doit restaurer une
+copie pseudonymisée du schéma de production, puis exécuter le bundle exact sous
+les limites CPU/RAM du VPS. Aucune pseudo-staging publique n'est utilisée.
 Exécuter ensuite :
 
 - inscription, vérification email et connexion ;
@@ -70,7 +70,7 @@ d'un identifiant de release existant.
 
 ## Promotion de production
 
-Créer le tag final `v2.0.0` uniquement après validation de la RC. Le job
+Créer le tag final `v3.0.0` uniquement après validation de la RC. Le job
 `deploy:production` doit être manuel, protégé et soumis à approbation dans
 GitLab.
 
@@ -105,7 +105,7 @@ Après la toute première release uniquement, et après validation SMTP, inviter
 le premier `ROOT` :
 
 ```bash
-sudo -u deploy make -C /srv/sovrack/current bootstrap-staff \
+sudo -u sovrack make -C /srv/sovrack/current bootstrap-staff \
   BASE_DIR=/srv/sovrack EMAIL=root@example.com
 ```
 
@@ -126,7 +126,7 @@ Un rollback après migration incompatible restaure obligatoirement la base et
 la release précédente :
 
 ```bash
-sudo -u deploy SOVRACK_BASE_DIR=/srv/sovrack \
+sudo -u sovrack SOVRACK_BASE_DIR=/srv/sovrack \
   /srv/sovrack/current/scripts/rollback.sh \
   <ancienne-release> \
   /srv/sovrack/shared/backups/<backup-pre-release>.sql.gz
@@ -230,7 +230,7 @@ sudo systemctl status sovrack-offsite-backup.service
 ## TLS
 
 `certbot.sh` écrit directement dans `sovrack-certbot-certs`, le volume lu par
-Nginx. `CERTBOT_DOMAINS` doit contenir l'apex et `www`.
+Nginx. `CERTBOT_DOMAINS` doit contenir l'apex, `www`, `app` et `staff`.
 
 ```bash
 SOVRACK_BASE_DIR=/srv/sovrack ENV_FILE=/srv/sovrack/shared/.env \
@@ -248,7 +248,9 @@ les fichiers présents dans le conteneur.
 ```bash
 SOVRACK_BASE_DIR=/srv/sovrack /srv/sovrack/current/scripts/current-compose.sh ps
 SOVRACK_BASE_DIR=/srv/sovrack /srv/sovrack/current/scripts/current-compose.sh logs --tail=150 migrator backend worker frontend nginx
-curl --fail --silent https://sovrack.tech/backend-api/health
+curl --fail --silent https://app.sovrack.tech/backend-api/health
+curl --fail --silent https://sovrack.tech/
+curl --fail --silent https://staff.sovrack.tech/staff/login
 ```
 
 Contrôler aussi les métriques authentifiées, les erreurs applicatives, l'espace

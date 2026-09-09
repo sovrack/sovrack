@@ -1,0 +1,10 @@
+all:
+  hosts:
+    sovrack_target:
+      ansible_host: 192.0.2.10
+      ansible_user: ubuntu
+      ansible_port: 22
+  vars:
+    # La clé privée reste hors Git :
+    # ansible-playbook --private-key /chemin/secret_ed25519 ...
+    sovrack_operator_public_key: ""
