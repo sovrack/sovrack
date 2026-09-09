@@ -101,7 +101,7 @@ else
     -v "$CERT_VOLUME:/etc/letsencrypt" \
     "$CERTBOT_IMAGE" \
     certonly --webroot --webroot-path /var/www/certbot \
-    --agree-tos --no-eff-email --non-interactive \
+    --agree-tos --no-eff-email --non-interactive --expand \
     --cert-name "$DOMAIN" --email "$EMAIL" "${domain_args[@]}"
 fi
 
