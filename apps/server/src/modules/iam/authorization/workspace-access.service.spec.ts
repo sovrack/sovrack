@@ -29,6 +29,7 @@ describe('WorkspaceAccessService', () => {
         role,
         status: 'ACTIVE',
         user: { isActive: true },
+        team: { status: 'ACTIVE' },
       });
       await expect(
         service.assertWorkspaceAction('w1', 'u1', WorkspaceActions.READ),
@@ -42,6 +43,7 @@ describe('WorkspaceAccessService', () => {
       role: WorkspaceRole.MEMBER,
       status: 'ACTIVE',
       user: { isActive: true },
+      team: { status: 'ACTIVE' },
     });
     await expect(
       service.assertWorkspaceAction('w1', 'u1', WorkspaceActions.UPDATE),
@@ -80,6 +82,7 @@ describe('WorkspaceAccessService', () => {
         role,
         status: 'ACTIVE',
         user: { isActive: true },
+        team: { status: 'ACTIVE' },
       });
       await expect(
         service.assertProjectAction('p1', 'u1', ProjectActions.ROLLBACK),
@@ -88,6 +91,36 @@ describe('WorkspaceAccessService', () => {
       });
     },
   );
+
+  it('requires an explicit project maintainer assignment before an ADMIN reads secrets', async () => {
+    const { prisma, service } = make();
+    prisma.project.findUnique.mockResolvedValue({
+      id: 'p1',
+      teamId: 'w1',
+      members: [],
+    });
+    prisma.teamMember.findUnique.mockResolvedValue({
+      role: WorkspaceRole.ADMIN,
+      status: 'ACTIVE',
+      user: { isActive: true },
+      team: { status: 'ACTIVE' },
+    });
+
+    await expect(
+      service.assertProjectAction('p1', 'u1', ProjectActions.READ_SECRETS),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    prisma.project.findUnique.mockResolvedValue({
+      id: 'p1',
+      teamId: 'w1',
+      members: [{ role: ProjectRole.MAINTAINER }],
+    });
+    await expect(
+      service.assertProjectAction('p1', 'u1', ProjectActions.READ_SECRETS),
+    ).resolves.toMatchObject({
+      effectiveProjectRole: ProjectRole.MAINTAINER,
+    });
+  });
 
   it('allows a developer to deploy but not to protected environments', async () => {
     const { prisma, service } = make();
@@ -100,6 +133,7 @@ describe('WorkspaceAccessService', () => {
       role: WorkspaceRole.MEMBER,
       status: 'ACTIVE',
       user: { isActive: true },
+      team: { status: 'ACTIVE' },
     });
     await expect(
       service.assertProjectAction('p1', 'u1', ProjectActions.DEPLOY),
@@ -120,6 +154,7 @@ describe('WorkspaceAccessService', () => {
       role: WorkspaceRole.MEMBER,
       status: 'ACTIVE',
       user: { isActive: true },
+      team: { status: 'ACTIVE' },
     });
     await expect(
       service.assertProjectAction('p1', 'u1', ProjectActions.READ),

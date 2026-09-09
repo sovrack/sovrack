@@ -94,12 +94,26 @@ dbDescribe('Secrets at rest (integration, requires DB)', () => {
   // The integration suite uses whatever CONFIG_SECRET the env provides (CI sets one).
   const crypto = new CryptoService();
   const tag = `attest-${Date.now()}`;
+  let teamId: string;
 
   beforeAll(async () => {
     await prisma.$connect();
+    const team = await prisma.team.create({
+      data: {
+        name: tag,
+        slug: tag,
+        type: 'ORGANIZATION',
+        organizationProfile: { create: {} },
+      },
+      select: { id: true },
+    });
+    teamId = team.id;
   });
 
   afterAll(async () => {
+    if (teamId) {
+      await prisma.team.delete({ where: { id: teamId } });
+    }
     await prisma.$disconnect();
   });
 
@@ -111,6 +125,7 @@ dbDescribe('Secrets at rest (integration, requires DB)', () => {
         name: tag,
         type: 'GITLAB',
         providerUrl: 'https://gitlab.example.com',
+        teamId,
         adminToken: crypto.encrypt(clearToken), // mirrors git-provider-config.service.ts
       },
       select: { id: true },
@@ -134,7 +149,12 @@ dbDescribe('Secrets at rest (integration, requires DB)', () => {
   it('DockerConnection.tlsClientKey is stored encrypted, not as raw PEM', async () => {
     const pem = `-----BEGIN PRIVATE KEY-----\n${tag}\n-----END PRIVATE KEY-----`;
     const server = await prisma.server.create({
-      data: { name: tag, host: '10.0.0.1', sshKey: crypto.encrypt('dummy') },
+      data: {
+        name: tag,
+        host: '10.0.0.1',
+        teamId,
+        sshKey: crypto.encrypt('dummy'),
+      },
       select: { id: true },
     });
     const conn = await prisma.dockerConnection.create({
@@ -165,7 +185,7 @@ dbDescribe('Secrets at rest (integration, requires DB)', () => {
   it('secretsEnv is encrypted at rest and decryptSafe round-trips', async () => {
     const plaintextSecrets = JSON.stringify({ DB_PASSWORD: `pw-${tag}` });
     const project = await prisma.project.create({
-      data: { name: tag },
+      data: { name: tag, teamId },
       select: { id: true },
     });
     const service = await prisma.service.create({

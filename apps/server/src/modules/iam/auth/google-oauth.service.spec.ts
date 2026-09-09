@@ -10,6 +10,7 @@ function makeUser(overrides: Partial<Record<string, unknown>> = {}) {
     googleId: 'google-1',
     role: 'OWNER',
     isActive: true,
+    legacyStaffRetiredAt: null,
     emailVerifiedAt: new Date(),
     ...overrides,
   };
@@ -85,6 +86,19 @@ describe('GoogleOAuthService', () => {
       const result = await svc.findOrCreateUser(profile);
       expect(result).toBe(existing);
       expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('refuse de reconnecter une identité Staff historique via Google', async () => {
+      const existing = makeUser({
+        googleId: profile.googleId,
+        legacyStaffRetiredAt: new Date('2026-09-08'),
+      });
+      const { svc, prisma } = makeSvc({ existing });
+      prisma.user.findUnique = jest.fn().mockResolvedValue(existing);
+
+      await expect(svc.findOrCreateUser(profile)).rejects.toThrow(
+        'Compte utilisateur indisponible',
+      );
     });
 
     it('links googleId to an existing email account', async () => {

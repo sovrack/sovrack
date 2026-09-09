@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsEmail,
   IsEnum,
@@ -6,9 +7,11 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  MaxLength,
   Matches,
+  MinLength,
 } from 'class-validator';
-import { PlatformRole, Role } from '@prisma/client';
+import { PlatformRole } from '@prisma/client';
 import {
   SOVRACK_PASSWORD_OPENAPI,
   IsSovrackPassword,
@@ -25,6 +28,41 @@ export class StaffLoginDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+
+  @ApiPropertyOptional({
+    description: 'Code TOTP à 6 chiffres ou code de secours à usage unique',
+    example: '123456',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^(?:\d{6}|[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2})$/i, {
+    message: 'Le second facteur doit être un TOTP ou un code de secours valide',
+  })
+  mfaCode?: string;
+}
+
+export class StaffEnableMfaDto {
+  @ApiProperty({ example: '123456' })
+  @IsString()
+  @Matches(/^\d{6}$/, { message: 'Le code TOTP doit contenir 6 chiffres' })
+  code: string;
+}
+
+export class StaffResetMfaDto {
+  @ApiProperty({ example: 'S3cure-Password!' })
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+
+  @ApiProperty({
+    description: 'Code TOTP à 6 chiffres ou code de secours à usage unique',
+    example: '123456',
+  })
+  @IsString()
+  @Matches(/^(?:\d{6}|[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2})$/i, {
+    message: 'Le second facteur doit être un TOTP ou un code de secours valide',
+  })
+  code: string;
 }
 
 export class StaffForgotPasswordDto {
@@ -50,6 +88,33 @@ export class StaffResetPasswordDto {
   @ApiProperty(SOVRACK_PASSWORD_OPENAPI)
   @IsSovrackPassword()
   password: string;
+}
+
+export class ExchangeStaffImpersonationDto {
+  @ApiProperty({
+    description: "Autorisation d'assistance éphémère reçue du back-office",
+  })
+  @IsString()
+  @MinLength(32)
+  @MaxLength(256)
+  token: string;
+}
+
+export class CreateStaffImpersonationDto {
+  @ApiProperty({
+    description:
+      "Motif opérationnel obligatoire, conservé dans le journal d'audit",
+    example: 'Diagnostic du déploiement signalé par le client dans INC-142',
+    minLength: 10,
+    maxLength: 500,
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsString()
+  @MinLength(10)
+  @MaxLength(500)
+  reason: string;
 }
 
 export class CreateStaffDto {
@@ -123,11 +188,6 @@ export class UpdateStaffDto {
 
 /** Mise à jour d'un utilisateur CLIENT depuis le back-office. */
 export class StaffUpdateUserDto {
-  @ApiPropertyOptional({ enum: Role })
-  @IsOptional()
-  @IsEnum(Role)
-  role?: Role;
-
   @ApiPropertyOptional({
     description: 'Désactiver (false) ou réactiver (true)',
   })

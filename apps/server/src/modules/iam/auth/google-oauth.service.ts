@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { Role, User } from '@prisma/client';
+import { Role, User, WorkspaceType } from '@prisma/client';
 import { UsersService } from '../users/users.service';
 import { TeamsService } from '../teams/teams.service';
 import { AuditService } from '../../audit/audit.service';
@@ -41,6 +41,9 @@ export class GoogleOAuthService {
       where: { googleId },
     });
     if (byGoogleId) {
+      if (!byGoogleId.isActive || byGoogleId.legacyStaffRetiredAt) {
+        throw new BadRequestException('Compte utilisateur indisponible');
+      }
       return byGoogleId;
     }
 
@@ -51,6 +54,9 @@ export class GoogleOAuthService {
     //      par Google). Le mot de passe reste fonctionnel.
     const existing = await this.usersService.findByEmail(email);
     if (existing) {
+      if (!existing.isActive || existing.legacyStaffRetiredAt) {
+        throw new BadRequestException('Compte utilisateur indisponible');
+      }
       const user = await this.prisma.user.update({
         where: { id: existing.id },
         data: {
@@ -82,7 +88,10 @@ export class GoogleOAuthService {
         },
       });
       const team = await this.teamsService.create(
-        { name: `${fullName.split(' ')[0]} Workspace` },
+        {
+          name: `${fullName.split(' ')[0]} — Personnel`,
+          type: WorkspaceType.PERSONAL,
+        },
         user.id,
         tx,
       );

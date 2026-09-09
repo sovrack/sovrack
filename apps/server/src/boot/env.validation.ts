@@ -23,6 +23,10 @@ const envSchema = z
     // Clé HMAC dédiée aux codes à usage unique (activation/récupération).
     // La séparer du JWT permet de renouveler l'une sans compromettre l'autre.
     STAFF_OTP_SECRET: z.string().min(32),
+    // Rôles qui doivent activer la MFA avant d'accéder aux opérations du
+    // back-office. L'inscription initiale reste possible via les seules routes
+    // d'enrôlement MFA.
+    STAFF_MFA_REQUIRED_ROLES: z.string().default('ROOT,ADMIN'),
 
     // ── Auth cookie ──────────────────────────────────────────────────────────
     AUTH_COOKIE_NAME: z.string().optional(),
@@ -34,6 +38,9 @@ const envSchema = z
     // ── CORS / frontend ──────────────────────────────────────────────────────
     FRONTEND_URL: z.url().default('http://localhost:3000'),
     FRONTEND_URLS: z.string().optional(),
+    PUBLIC_SITE_URL: z.url().optional(),
+    CUSTOMER_APP_URL: z.url().optional(),
+    STAFF_APP_URL: z.url().optional(),
 
     // ── Google OAuth (Se connecter avec Google) ───────────────────────────────
     // Optionnels : sans GOOGLE_CLIENT_ID/SECRET, la connexion Google est

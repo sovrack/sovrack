@@ -20,6 +20,7 @@ import { GetUser } from '../../../shared/decorators/get-user.decorator';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
 import { AddTeamMemberDto } from './dto/add-team-member.dto';
 import { CreateTeamDto } from './dto/create-team.dto';
+import { ConvertPersonalWorkspaceDto } from './dto/convert-personal-workspace.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { UpdateWorkspaceMemberRoleDto } from './dto/update-workspace-member-role.dto';
 import { UpdateWorkspaceMemberStatusDto } from './dto/update-workspace-member-status.dto';
@@ -52,6 +53,16 @@ export class TeamsController {
   @ApiResponse({ status: 409, description: 'Name already in use' })
   async create(@Body() dto: CreateTeamDto, @GetUser() user: JwtPayload) {
     return this.teamsService.create(dto, user.id);
+  }
+
+  @Post(':id/convert-to-organization')
+  @ApiOperation({ summary: 'Convert a personal workspace to an organization' })
+  async convertToOrganization(
+    @Param('id') id: string,
+    @Body() dto: ConvertPersonalWorkspaceDto,
+    @GetUser() user: JwtPayload,
+  ) {
+    return this.teamsService.convertPersonalToOrganization(id, dto.name, user);
   }
 
   @Put(':id')

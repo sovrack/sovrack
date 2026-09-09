@@ -14,6 +14,8 @@ export interface StaffJwtPayload {
   role: import('@prisma/client').PlatformRole;
   /** Revocable server-side session identifier. */
   sid: string;
+  /** Vrai uniquement si le second facteur requis a été vérifié au login. */
+  mfaVerified?: boolean;
 }
 
 /**

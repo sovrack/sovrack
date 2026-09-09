@@ -22,6 +22,7 @@ import {
 import { StaffOperationsService } from './staff-operations.service';
 import { StaffInvitationService } from './staff-invitation.service';
 import { type SafeStaff, toSafeStaff } from './staff-safe-view';
+import { StaffMfaService } from './staff-mfa.service';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ms = require('ms') as (value: string) => number;
@@ -31,6 +32,7 @@ export type { SafeStaff } from './staff-safe-view';
 export interface StaffAuthResponse {
   access_token: string;
   staff: SafeStaff;
+  mfaEnrollmentRequired: boolean;
 }
 
 @Injectable()
@@ -43,6 +45,7 @@ export class StaffService {
     private readonly config: ConfigService,
     private readonly operations: StaffOperationsService,
     private readonly invitations: StaffInvitationService,
+    private readonly mfa: StaffMfaService,
   ) {}
 
   // ──────────────────────────── AUTH ────────────────────────────
@@ -74,6 +77,19 @@ export class StaffService {
       throw new UnauthorizedException('Identifiants back-office incorrects');
     }
 
+    try {
+      await this.mfa.verifyLoginSecondFactor(staff, dto.mfaCode);
+    } catch (error: unknown) {
+      await this.audit.record({
+        staffId: staff.id,
+        action: 'staff.login.mfa_failed',
+        resource: 'staff',
+        resourceId: staff.id,
+        ip,
+      });
+      throw error;
+    }
+
     const updated = await this.prisma.staff.update({
       where: { id: staff.id },
       data: { lastLoginAt: new Date() },
@@ -86,6 +102,7 @@ export class StaffService {
       role: updated.role,
       sub: updated.id,
       sid: sessionId,
+      mfaVerified: updated.mfaEnabled || !this.mfa.isRequired(updated.role),
     };
     const token = this.jwtService.sign(payload);
     const expiresIn = this.config.get<string>('STAFF_JWT_EXPIRES_IN', '12h');
@@ -109,7 +126,12 @@ export class StaffService {
       ip,
     });
 
-    return { access_token: token, staff: toSafeStaff(updated) };
+    return {
+      access_token: token,
+      staff: toSafeStaff(updated),
+      mfaEnrollmentRequired:
+        !updated.mfaEnabled && this.mfa.isRequired(updated.role),
+    };
   }
 
   async logout(staffId: string, sessionId: string, ip?: string | null) {
@@ -323,13 +345,23 @@ export class StaffService {
     return this.operations.deleteUser(userId, actorId, ip);
   }
 
-  /** Impersonation : JWT client temporaire, journalisé en audit back-office. */
+  /** Impersonation : autorisation éphémère échangée sur le domaine client. */
   async impersonateUser(
     userId: string,
     actorStaffId: string,
+    reason: string,
     ip?: string | null,
-  ): ReturnType<StaffOperationsService['impersonateUser']> {
-    return this.operations.impersonateUser(userId, actorStaffId, ip);
+  ): ReturnType<StaffOperationsService['createImpersonationGrant']> {
+    return this.operations.createImpersonationGrant(
+      userId,
+      actorStaffId,
+      reason,
+      ip,
+    );
+  }
+
+  exchangeImpersonationGrant(token: string, ip?: string | null) {
+    return this.operations.exchangeImpersonationGrant(token, ip);
   }
 
   async listAudit(pagination?: { page?: number; limit?: number }) {

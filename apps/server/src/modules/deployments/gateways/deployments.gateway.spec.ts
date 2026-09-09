@@ -215,11 +215,11 @@ describe('DeploymentsGateway', () => {
       expect(client.join).toHaveBeenCalledWith('deployment:d1');
     });
 
-    it('denies a SUPER_ADMIN who is not a project member', async () => {
+    it('denies an OWNER who is not a project member', async () => {
       const { gateway } = makeGateway({ member: null });
       const client = makeSocket({
         userData: {
-          user: { id: 'admin1', role: Role.SUPER_ADMIN, email: 'a@t.com' },
+          user: { id: 'admin1', role: Role.OWNER, email: 'a@t.com' },
         },
       });
       const result = await gateway.handleJoinDeployment(client as never, {
@@ -329,7 +329,7 @@ describe('DeploymentsGateway', () => {
 
       const client = makeSocket({
         userData: {
-          user: { id: 'u1', role: Role.SUPER_ADMIN, email: 'a@t.com' },
+          user: { id: 'u1', role: Role.OWNER, email: 'a@t.com' },
         },
       });
       const result = await gateway.handleReplayRequest(client as never, {
@@ -365,7 +365,7 @@ describe('DeploymentsGateway', () => {
       const { gateway } = makeGateway();
       const client = makeSocket({
         userData: {
-          user: { id: 'u1', role: Role.SUPER_ADMIN, email: 'a@t.com' },
+          user: { id: 'u1', role: Role.OWNER, email: 'a@t.com' },
         },
       });
       const result = await gateway.handleLogsSubscribe(client as never, {
@@ -383,7 +383,7 @@ describe('DeploymentsGateway', () => {
       (logStreamService.subscribe as jest.Mock).mockReturnValue(null);
       const client = makeSocket({
         userData: {
-          user: { id: 'u1', role: Role.SUPER_ADMIN, email: 'a@t.com' },
+          user: { id: 'u1', role: Role.OWNER, email: 'a@t.com' },
         },
       });
       const result = await gateway.handleLogsSubscribe(client as never, {

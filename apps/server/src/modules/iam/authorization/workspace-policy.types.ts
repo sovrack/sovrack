@@ -7,6 +7,8 @@ export const WorkspaceActions = {
   INVITE_MEMBER: 'workspace.members.invite',
   MANAGE_MEMBERS: 'workspace.members.manage',
   MANAGE_OWNERS: 'workspace.owners.manage',
+  READ_BILLING: 'workspace.billing.read',
+  MANAGE_BILLING: 'workspace.billing.manage',
   CREATE_PROJECT: 'project.create',
   DELETE_PROJECT: 'project.delete',
   READ_SERVER: 'server.read',

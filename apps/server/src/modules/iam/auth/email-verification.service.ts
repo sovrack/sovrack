@@ -9,7 +9,7 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { NotificationsSmtpService } from '../../notifications/notifications-smtp.service';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { PasswordHasher } from '../security/password-hasher.service';
-import { Prisma, Role } from '@prisma/client';
+import { Prisma, Role, WorkspaceType } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import {
   generateOneTimeCode,
@@ -49,6 +49,7 @@ export class EmailVerificationService {
     password: string;
     fullName: string;
     workspaceName: string;
+    workspaceType: WorkspaceType;
     role: Role;
   }): Promise<{ registrationId: string }> {
     const existing = await this.prisma.user.findUnique({
@@ -70,6 +71,7 @@ export class EmailVerificationService {
           password: hashedPassword,
           fullName: params.fullName,
           pendingWorkspaceName: params.workspaceName,
+          pendingWorkspaceType: params.workspaceType,
           emailVerificationAttemptId: registrationId,
         },
       });
@@ -90,6 +92,7 @@ export class EmailVerificationService {
         password: hashedPassword,
         fullName: params.fullName,
         pendingWorkspaceName: params.workspaceName,
+        pendingWorkspaceType: params.workspaceType,
         role: params.role,
         isActive: false,
         emailVerificationCode: sealOneTimeCode(this.crypto, {
@@ -123,6 +126,7 @@ export class EmailVerificationService {
         email: string;
         fullName: string;
         workspaceName: string;
+        workspaceType: WorkspaceType;
       },
       database: Prisma.TransactionClient,
     ) => Promise<void>;
@@ -177,6 +181,7 @@ export class EmailVerificationService {
           emailVerificationExpiresAt: null,
           emailVerificationAttemptId: null,
           pendingWorkspaceName: null,
+          pendingWorkspaceType: null,
         },
       });
       await params.onActivate(
@@ -186,7 +191,8 @@ export class EmailVerificationService {
           fullName: user.fullName,
           workspaceName:
             user.pendingWorkspaceName?.trim() ||
-            `${user.fullName.split(' ')[0]} Workspace`,
+            `${user.fullName.split(' ')[0]} — Personnel`,
+          workspaceType: user.pendingWorkspaceType ?? WorkspaceType.PERSONAL,
         },
         tx,
       );

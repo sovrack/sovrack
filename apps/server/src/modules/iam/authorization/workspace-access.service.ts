@@ -4,7 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MembershipStatus, ProjectRole, WorkspaceRole } from '@prisma/client';
+import {
+  MembershipStatus,
+  ProjectRole,
+  WorkspaceRole,
+  WorkspaceStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import {
   ProjectAction,
@@ -31,6 +36,10 @@ const WORKSPACE_PERMISSIONS: Readonly<
     WorkspaceActions.USE_TERMINAL,
     WorkspaceActions.READ_INTEGRATION,
     WorkspaceActions.MANAGE_INTEGRATION,
+  ]),
+  BILLING: new Set([
+    WorkspaceActions.READ_BILLING,
+    WorkspaceActions.MANAGE_BILLING,
   ]),
   MEMBER: new Set([WorkspaceActions.READ]),
 };
@@ -90,13 +99,15 @@ export class WorkspaceAccessService {
         role: true,
         status: true,
         user: { select: { isActive: true } },
+        team: { select: { status: true } },
       },
     });
 
     if (
       !membership ||
       membership.status !== MembershipStatus.ACTIVE ||
-      !membership.user.isActive
+      !membership.user.isActive ||
+      membership.team.status !== WorkspaceStatus.ACTIVE
     ) {
       throw new NotFoundException('Workspace introuvable');
     }
@@ -147,11 +158,13 @@ export class WorkspaceAccessService {
     );
 
     const directRole = project.members[0]?.role ?? null;
-    const effectiveRole =
+    const inheritsMaintainer =
       workspace.workspaceRole === WorkspaceRole.OWNER ||
-      workspace.workspaceRole === WorkspaceRole.ADMIN
-        ? ProjectRole.MAINTAINER
-        : directRole;
+      (workspace.workspaceRole === WorkspaceRole.ADMIN &&
+        action !== ProjectActions.READ_SECRETS);
+    const effectiveRole = inheritsMaintainer
+      ? ProjectRole.MAINTAINER
+      : directRole;
 
     if (!effectiveRole) {
       throw new NotFoundException('Projet introuvable');

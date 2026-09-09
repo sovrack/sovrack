@@ -12,12 +12,18 @@ import type { Request } from 'express';
 import { PrismaService } from '../../shared/database/prisma.service';
 import type { PlatformRole } from '@prisma/client';
 import type { StaffJwtPayload } from './staff-jwt.strategy';
+import { ConfigService } from '@nestjs/config';
 
 export const STAFF_ROLES_KEY = 'staff_roles';
 export const STAFF_IS_PUBLIC_KEY = 'staff_is_public';
+export const STAFF_MFA_ENROLLMENT_ALLOWED_KEY = 'staff_mfa_enrollment_allowed';
 
 /** Exempts only the staff guard (the global customer guard uses @Public). */
 export const StaffPublic = () => SetMetadata(STAFF_IS_PUBLIC_KEY, true);
+
+/** Autorise une session staff limitée à consulter/configurer sa MFA. */
+export const StaffMfaEnrollmentAllowed = () =>
+  SetMetadata(STAFF_MFA_ENROLLMENT_ALLOWED_KEY, true);
 
 /** Définit les rôles staff autorisés sur une route back-office. */
 export const StaffRoles = (...roles: PlatformRole[]) =>
@@ -32,6 +38,7 @@ export class StaffJwtAuthGuard extends AuthGuard('staff-jwt') {
   constructor(
     private readonly reflector: Reflector,
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
   ) {
     super();
   }
@@ -62,6 +69,7 @@ export class StaffJwtAuthGuard extends AuthGuard('staff-jwt') {
           role: true,
           status: true,
           deletedAt: true,
+          mfaEnabled: true,
         },
       }),
       this.prisma.staffSession.findFirst({
@@ -85,6 +93,29 @@ export class StaffJwtAuthGuard extends AuthGuard('staff-jwt') {
     // dès la requête suivante, sans attendre l'expiration du token.
     payload.email = staff.email;
     payload.role = staff.role;
+
+    const requiredRoles = this.config
+      .get<string>('STAFF_MFA_REQUIRED_ROLES', 'ROOT,ADMIN')
+      .split(',')
+      .map((entry) => entry.trim().toUpperCase())
+      .filter(Boolean);
+    const enrollmentAllowed = this.reflector.getAllAndOverride<boolean>(
+      STAFF_MFA_ENROLLMENT_ALLOWED_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    const secondFactorRequired =
+      staff.mfaEnabled || requiredRoles.includes(staff.role);
+    if (
+      secondFactorRequired &&
+      (!staff.mfaEnabled || payload.mfaVerified !== true) &&
+      !enrollmentAllowed
+    ) {
+      throw new ForbiddenException({
+        code: 'STAFF_MFA_ENROLLMENT_REQUIRED',
+        message:
+          "La configuration MFA est obligatoire avant d'utiliser le back-office",
+      });
+    }
     return true;
   }
 }

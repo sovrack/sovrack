@@ -47,7 +47,7 @@ describe('ServicesService — soft-delete name collision', () => {
     const update = jest.fn().mockResolvedValue({});
     const service = buildService(update);
 
-    await service.remove(projectId, serviceId, 'user-1', Role.SUPER_ADMIN);
+    await service.remove(projectId, serviceId, 'user-1', Role.OWNER);
 
     expect(update).toHaveBeenCalledTimes(1);
     const data = update.mock.calls[0][0].data;
@@ -60,7 +60,7 @@ describe('ServicesService — soft-delete name collision', () => {
     const update = jest.fn().mockResolvedValue({});
     const service = buildService(update);
 
-    await service.remove(projectId, serviceId, 'user-1', Role.SUPER_ADMIN);
+    await service.remove(projectId, serviceId, 'user-1', Role.OWNER);
 
     // After archiving, the stored name no longer equals "api", so a new
     // service named "api" in the same project would not hit @@unique.
@@ -129,12 +129,12 @@ describe('ServicesService — CRUD', () => {
     const { service, prisma, projectAccess } = harness();
     prisma.service.findMany.mockResolvedValue([{ id: 's1' }, { id: 's2' }]);
 
-    const result = await service.findAll(projectId, userId, Role.SUPER_ADMIN);
+    const result = await service.findAll(projectId, userId, Role.OWNER);
 
     expect(projectAccess.assertCanAccessProject).toHaveBeenCalledWith(
       projectId,
       userId,
-      Role.SUPER_ADMIN,
+      Role.OWNER,
     );
     expect(result).toHaveLength(2);
   });
@@ -143,12 +143,7 @@ describe('ServicesService — CRUD', () => {
     const { service, prisma } = harness();
     prisma.service.findFirst.mockResolvedValue({ id: 's1', name: 'api' });
 
-    const result = await service.findOne(
-      projectId,
-      's1',
-      userId,
-      Role.SUPER_ADMIN,
-    );
+    const result = await service.findOne(projectId, 's1', userId, Role.OWNER);
 
     expect(result.id).toBe('s1');
   });
@@ -158,7 +153,7 @@ describe('ServicesService — CRUD', () => {
     prisma.service.findFirst.mockResolvedValue(null);
 
     await expect(
-      service.findOne(projectId, 'missing', userId, Role.SUPER_ADMIN),
+      service.findOne(projectId, 'missing', userId, Role.OWNER),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -174,7 +169,7 @@ describe('ServicesService — CRUD', () => {
     const { service, prisma } = harness();
     prisma.service.findMany.mockResolvedValue([]);
 
-    await service.findAll(projectId, userId, Role.SUPER_ADMIN);
+    await service.findAll(projectId, userId, Role.OWNER);
 
     const arg = prisma.service.findMany.mock.calls[0][0];
     const envLinks = arg.include.envLinks;
@@ -192,7 +187,7 @@ describe('ServicesService — CRUD', () => {
     const { service, prisma } = harness();
     prisma.service.findFirst.mockResolvedValue({ id: 's1' });
 
-    await service.findOne(projectId, 's1', userId, Role.SUPER_ADMIN);
+    await service.findOne(projectId, 's1', userId, Role.OWNER);
 
     const arg = prisma.service.findFirst.mock.calls[0][0];
     expect(arg.include.envLinks.select).not.toHaveProperty('secretsEnv');
@@ -211,7 +206,7 @@ describe('ServicesService — CRUD', () => {
     const { service, prisma } = harness();
     prisma.service.findMany.mockResolvedValue([]);
 
-    await service.findAll(projectId, userId, Role.SUPER_ADMIN);
+    await service.findAll(projectId, userId, Role.OWNER);
 
     const arg = prisma.service.findMany.mock.calls[0][0];
     expect(arg.omit).toEqual({
@@ -225,7 +220,7 @@ describe('ServicesService — CRUD', () => {
     const { service, prisma } = harness();
     prisma.service.findFirst.mockResolvedValue({ id: 's1' });
 
-    await service.findOne(projectId, 's1', userId, Role.SUPER_ADMIN);
+    await service.findOne(projectId, 's1', userId, Role.OWNER);
 
     const arg = prisma.service.findFirst.mock.calls[0][0];
     expect(arg.omit).toEqual({
@@ -245,7 +240,7 @@ describe('ServicesService — CRUD', () => {
       's1',
       { name: 'renamed' } as never,
       userId,
-      Role.SUPER_ADMIN,
+      Role.OWNER,
     );
 
     const arg = prisma.service.update.mock.calls[0][0];
@@ -268,7 +263,7 @@ describe('ServicesService — CRUD', () => {
         providerId: 'p1',
       } as never,
       userId,
-      Role.SUPER_ADMIN,
+      Role.OWNER,
     );
 
     expect(sourceProviders.discoverGroup).toHaveBeenCalledWith(
@@ -289,7 +284,7 @@ describe('ServicesService — CRUD', () => {
       projectId,
       { name: 'api', type: ServiceType.APPLICATION } as CreateServiceDto,
       userId,
-      Role.SUPER_ADMIN,
+      Role.OWNER,
     );
 
     // 5e argument = tx Prisma optionnel (undefined ici : create() n'est pas
@@ -300,7 +295,7 @@ describe('ServicesService — CRUD', () => {
       projectId,
       's1',
       userId,
-      Role.SUPER_ADMIN,
+      Role.OWNER,
       undefined,
     );
     expect(result.id).toBe('s1');
@@ -319,7 +314,7 @@ describe('ServicesService — CRUD', () => {
         secretsEnv: '{"API_KEY":"x"}',
       } as CreateServiceDto,
       userId,
-      Role.SUPER_ADMIN,
+      Role.OWNER,
     );
 
     expect(crypto.encryptOptional).toHaveBeenCalledWith('{"API_KEY":"x"}');
@@ -342,7 +337,7 @@ describe('ServicesService — CRUD', () => {
         projectId,
         { name: 'api', type: ServiceType.APPLICATION } as CreateServiceDto,
         userId,
-        Role.SUPER_ADMIN,
+        Role.OWNER,
       ),
     ).rejects.toBeInstanceOf(ConflictException);
   });
@@ -356,7 +351,7 @@ describe('ServicesService — CRUD', () => {
       projectId,
       { name: 'db', type: ServiceType.DATABASE } as CreateServiceDto,
       userId,
-      Role.SUPER_ADMIN,
+      Role.OWNER,
     );
 
     const sealed = prisma.service.create.mock.calls[0][0].data
@@ -378,7 +373,7 @@ describe('ServicesService — CRUD', () => {
       's1',
       { name: 'renamed' } as never,
       userId,
-      Role.SUPER_ADMIN,
+      Role.OWNER,
     );
 
     expect(prisma.service.update.mock.calls[0][0].data.name).toBe('renamed');

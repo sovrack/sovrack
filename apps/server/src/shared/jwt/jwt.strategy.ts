@@ -56,6 +56,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         emailVerifiedAt: true,
         provider: true,
         sessionVersion: true,
+        legacyStaffRetiredAt: true,
       },
     });
     if (
@@ -64,9 +65,37 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       user.email !== payload.email ||
       !Number.isInteger(payload.sessionVersion) ||
       user.sessionVersion !== payload.sessionVersion ||
+      Boolean(user.legacyStaffRetiredAt) ||
       (user.provider === 'email' && !user.emailVerifiedAt)
     ) {
       throw new UnauthorizedException('Session utilisateur révoquée');
+    }
+
+    if (payload.authType === 'staff-impersonation') {
+      if (!payload.impersonationGrantId || !payload.impersonatedByStaffId) {
+        throw new UnauthorizedException("Session d'assistance invalide");
+      }
+      const grant = await this.prisma.staffImpersonationGrant.findUnique({
+        where: { id: payload.impersonationGrantId },
+        select: {
+          userId: true,
+          staffId: true,
+          consumedAt: true,
+          sessionExpiresAt: true,
+          endedAt: true,
+        },
+      });
+      if (
+        !grant ||
+        grant.userId !== payload.id ||
+        grant.staffId !== payload.impersonatedByStaffId ||
+        !grant.consumedAt ||
+        !grant.sessionExpiresAt ||
+        grant.sessionExpiresAt.getTime() <= Date.now() ||
+        grant.endedAt
+      ) {
+        throw new UnauthorizedException("Session d'assistance terminée");
+      }
     }
     return payload;
   }

@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { BillingService } from './billing.service';
 import { Plan } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
 export type UsageAction =
   | 'CREATE_PROJECT'
@@ -34,8 +35,12 @@ export class UsageGuardService {
   }
 
   /** Variante scopée à une team précise (utilisée par les services internes). */
-  async guardForTeam(teamId: string, action: UsageAction): Promise<void> {
-    const subscription = await this.prisma.subscription.findUnique({
+  async guardForTeam(
+    teamId: string,
+    action: UsageAction,
+    database: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<void> {
+    const subscription = await database.subscription.findUnique({
       where: { teamId },
       select: { plan: true },
     });
@@ -44,10 +49,10 @@ export class UsageGuardService {
 
     const [projectCount, serverCount, memberCount, volumeCount] =
       await Promise.all([
-        this.prisma.project.count({ where: { teamId } }),
-        this.prisma.server.count({ where: { teamId } }),
-        this.prisma.teamMember.count({ where: { teamId } }),
-        this.prisma.volume.count({
+        database.project.count({ where: { teamId } }),
+        database.server.count({ where: { teamId } }),
+        database.teamMember.count({ where: { teamId } }),
+        database.volume.count({
           where: {
             server: { teamId },
           },

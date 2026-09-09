@@ -12,6 +12,7 @@ import { AppJwtModule } from '../../../shared/jwt/jwt.module';
 import { AuditModule } from '../../audit';
 import { TeamsModule } from '../teams/teams.module';
 import { NotificationsModule } from '../../notifications';
+import { ImpersonationSessionService } from './impersonation-session.service';
 
 /**
  * Module d'authentification
@@ -31,6 +32,7 @@ import { NotificationsModule } from '../../notifications';
     LoginRateLimitGuard,
     EmailVerificationService,
     GoogleOAuthService,
+    ImpersonationSessionService,
     // La stratégie Google n'est instanciée QUE si les variables Google OAuth
     // sont renseignées. Sinon (dev, ou pas encore configuré), la valeur fournie
     // est `undefined` : l'app tourne normalement et AuthGuard('google') reste

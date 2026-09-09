@@ -5,8 +5,13 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { MembershipStatus, Prisma, WorkspaceRole } from '@prisma/client';
-import { randomBytes } from 'crypto';
+import {
+  MembershipStatus,
+  Prisma,
+  WorkspaceRole,
+  WorkspaceStatus,
+  WorkspaceType,
+} from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { WorkspaceAccessService } from '../authorization/workspace-access.service';
 import { WorkspaceActions } from '../authorization/workspace-policy.types';
@@ -14,31 +19,22 @@ import { AddTeamMemberDto } from './dto/add-team-member.dto';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { UsageGuardService } from '../../billing/usage-guard.service';
+import {
+  buildWorkspaceSlug,
+  runSerializable,
+  WorkspaceWithMembers,
+  workspaceWithMembersInclude,
+} from './workspace-persistence';
+import {
+  assertCanAssignWorkspaceRole,
+  assertCollaborativeWorkspace,
+  assertNotLastWorkspaceOwner,
+  getActiveMembershipOrFail,
+} from './workspace-rules';
 
-const workspaceWithMembersInclude = {
-  members: {
-    where: {
-      status: { in: [MembershipStatus.ACTIVE, MembershipStatus.SUSPENDED] },
-    },
-    orderBy: { joinedAt: 'asc' as const },
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          fullName: true,
-          isActive: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      },
-    },
-  },
-} satisfies Prisma.TeamInclude;
-
-type WorkspaceWithMembers = Prisma.TeamGetPayload<{
-  include: typeof workspaceWithMembersInclude;
-}>;
+type WorkspaceCreationInput = CreateTeamDto & {
+  type?: WorkspaceType;
+};
 
 @Injectable()
 export class TeamsService {
@@ -50,16 +46,36 @@ export class TeamsService {
     private readonly workspaceAccess: WorkspaceAccessService,
   ) {}
 
-  async findAll(actor: { id: string }): Promise<WorkspaceWithMembers[]> {
-    return this.prisma.team.findMany({
+  async findAll(actor: { id: string }) {
+    const workspaces = await this.prisma.team.findMany({
       where: {
+        status: WorkspaceStatus.ACTIVE,
         members: {
           some: { userId: actor.id, status: MembershipStatus.ACTIVE },
         },
       },
-      include: workspaceWithMembersInclude,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        type: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        members: {
+          where: { userId: actor.id, status: MembershipStatus.ACTIVE },
+          select: { role: true, status: true },
+          take: 1,
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
+    return workspaces.map(({ members, ...workspace }) => ({
+      ...workspace,
+      role: members[0].role,
+      membershipStatus: members[0].status,
+    }));
   }
 
   async findOne(
@@ -80,16 +96,34 @@ export class TeamsService {
   }
 
   async create(
-    dto: CreateTeamDto,
+    dto: WorkspaceCreationInput,
     creatorUserId: string,
     database: Prisma.TransactionClient | PrismaService = this.prisma,
   ): Promise<WorkspaceWithMembers> {
     const name = dto.name.trim();
+    const type = dto.type ?? WorkspaceType.ORGANIZATION;
+    if (type === WorkspaceType.PERSONAL) {
+      const existing = await database.team.findFirst({
+        where: { personalOwnerId: creatorUserId },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new ConflictException(
+          'Ce compte possède déjà un espace personnel',
+        );
+      }
+    }
     const workspace = await database.team.create({
       data: {
         name,
-        slug: this.buildSlug(name),
+        slug: buildWorkspaceSlug(name),
         description: dto.description?.trim() || null,
+        type,
+        status: WorkspaceStatus.ACTIVE,
+        personalOwnerId: type === WorkspaceType.PERSONAL ? creatorUserId : null,
+        ...(type === WorkspaceType.ORGANIZATION
+          ? { organizationProfile: { create: {} } }
+          : {}),
         members: {
           create: {
             userId: creatorUserId,
@@ -154,10 +188,11 @@ export class TeamsService {
       actor.id,
       WorkspaceActions.MANAGE_MEMBERS,
     );
+    await assertCollaborativeWorkspace(this.prisma, id);
     await this.usageGuard.guardForTeam(id, 'ADD_TEAM_MEMBER');
 
     const targetRole = dto.role ?? WorkspaceRole.MEMBER;
-    this.assertCanAssignRole(actorContext.workspaceRole, targetRole);
+    assertCanAssignWorkspaceRole(actorContext.workspaceRole, targetRole);
     const user = await this.prisma.user.findUnique({
       where: { id: dto.userId },
       select: { id: true, isActive: true },
@@ -195,15 +230,16 @@ export class TeamsService {
       actor.id,
       WorkspaceActions.MANAGE_MEMBERS,
     );
-    this.assertCanAssignRole(actorContext.workspaceRole, role);
-    return this.runSerializable(async (tx) => {
-      const membership = await this.getMembershipOrFail(id, targetUserId, tx);
+    await assertCollaborativeWorkspace(this.prisma, id);
+    assertCanAssignWorkspaceRole(actorContext.workspaceRole, role);
+    return runSerializable(this.prisma, async (tx) => {
+      const membership = await getActiveMembershipOrFail(tx, id, targetUserId);
 
       if (
         membership.role === WorkspaceRole.OWNER &&
         role !== WorkspaceRole.OWNER
       ) {
-        await this.assertNotLastOwner(id, targetUserId, tx);
+        await assertNotLastWorkspaceOwner(tx, id, targetUserId);
       }
       if (
         membership.role === WorkspaceRole.OWNER &&
@@ -235,14 +271,15 @@ export class TeamsService {
       actor.id,
       WorkspaceActions.MANAGE_MEMBERS,
     );
-    return this.runSerializable(async (tx) => {
-      const membership = await this.getMembershipOrFail(id, userId, tx);
+    await assertCollaborativeWorkspace(this.prisma, id);
+    return runSerializable(this.prisma, async (tx) => {
+      const membership = await getActiveMembershipOrFail(tx, id, userId);
 
       if (membership.role === WorkspaceRole.OWNER) {
         if (actorContext.workspaceRole !== WorkspaceRole.OWNER) {
           throw new ForbiddenException('Seul un OWNER peut retirer un OWNER');
         }
-        await this.assertNotLastOwner(id, userId, tx);
+        await assertNotLastWorkspaceOwner(tx, id, userId);
       } else if (
         membership.role === WorkspaceRole.ADMIN &&
         actorContext.workspaceRole !== WorkspaceRole.OWNER
@@ -279,8 +316,9 @@ export class TeamsService {
       actor.id,
       WorkspaceActions.MANAGE_MEMBERS,
     );
+    await assertCollaborativeWorkspace(this.prisma, id);
 
-    return this.runSerializable(async (tx) => {
+    return runSerializable(this.prisma, async (tx) => {
       const membership = await tx.teamMember.findUnique({
         where: { teamId_userId: { teamId: id, userId: targetUserId } },
         include: { user: { select: { isActive: true } } },
@@ -301,7 +339,7 @@ export class TeamsService {
           membership.status === MembershipStatus.ACTIVE &&
           status === MembershipStatus.SUSPENDED
         ) {
-          await this.assertNotLastOwner(id, targetUserId, tx);
+          await assertNotLastWorkspaceOwner(tx, id, targetUserId);
         }
       } else if (
         membership.role === WorkspaceRole.ADMIN &&
@@ -323,85 +361,50 @@ export class TeamsService {
     });
   }
 
-  private async getMembershipOrFail(
-    teamId: string,
-    userId: string,
-    database: Prisma.TransactionClient | PrismaService = this.prisma,
-  ) {
-    const membership = await database.teamMember.findUnique({
-      where: { teamId_userId: { teamId, userId } },
-    });
-    if (!membership || membership.status !== MembershipStatus.ACTIVE) {
-      throw new NotFoundException('Membre du workspace introuvable');
-    }
-    return membership;
-  }
-
-  private assertCanAssignRole(
-    actorRole: WorkspaceRole,
-    targetRole: WorkspaceRole,
-  ): void {
-    if (
-      actorRole !== WorkspaceRole.OWNER &&
-      targetRole !== WorkspaceRole.MEMBER
-    ) {
+  async convertPersonalToOrganization(
+    id: string,
+    name: string,
+    actor: { id: string },
+  ): Promise<WorkspaceWithMembers> {
+    const context = await this.workspaceAccess.assertWorkspaceAction(
+      id,
+      actor.id,
+      WorkspaceActions.UPDATE,
+    );
+    if (context.workspaceRole !== WorkspaceRole.OWNER) {
       throw new ForbiddenException(
-        'Un ADMIN peut uniquement attribuer le rôle MEMBER',
+        'Seul le propriétaire peut convertir cet espace',
       );
     }
-  }
 
-  private async assertNotLastOwner(
-    teamId: string,
-    targetUserId: string,
-    database: Prisma.TransactionClient | PrismaService = this.prisma,
-  ): Promise<void> {
-    const ownerCount = await database.teamMember.count({
-      where: {
-        teamId,
-        role: WorkspaceRole.OWNER,
-        status: MembershipStatus.ACTIVE,
-        userId: { not: targetUserId },
-      },
-    });
-    if (ownerCount === 0) {
-      throw new ConflictException({
-        code: 'LAST_OWNER_REQUIRED',
-        message: 'Le workspace doit conserver au moins un OWNER actif',
+    return runSerializable(this.prisma, async (tx) => {
+      const workspace = await tx.team.findUnique({
+        where: { id },
+        select: { type: true, personalOwnerId: true },
       });
-    }
-  }
-
-  private async runSerializable<T>(
-    operation: (tx: Prisma.TransactionClient) => Promise<T>,
-  ): Promise<T> {
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      try {
-        return await this.prisma.$transaction(operation, {
-          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        });
-      } catch (error) {
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2034' &&
-          attempt < 3
-        ) {
-          continue;
-        }
-        throw error;
+      if (!workspace) throw new NotFoundException('Workspace introuvable');
+      if (workspace.type !== WorkspaceType.PERSONAL) {
+        throw new ConflictException(
+          'Seul un espace personnel peut être converti',
+        );
       }
-    }
-    throw new Error('Opération workspace impossible après plusieurs essais');
-  }
+      if (workspace.personalOwnerId !== actor.id) {
+        throw new ForbiddenException(
+          'Seul le propriétaire personnel peut effectuer cette conversion',
+        );
+      }
 
-  private buildSlug(name: string): string {
-    const base =
-      name
-        .normalize('NFKD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '') || 'workspace';
-    return `${base}-${randomBytes(4).toString('hex')}`;
+      const converted = await tx.team.update({
+        where: { id },
+        data: {
+          name: name.trim(),
+          type: WorkspaceType.ORGANIZATION,
+          personalOwnerId: null,
+          organizationProfile: { create: {} },
+        },
+        include: workspaceWithMembersInclude,
+      });
+      return converted;
+    });
   }
 }

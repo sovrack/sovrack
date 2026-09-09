@@ -1,4 +1,5 @@
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { WorkspaceType } from '@prisma/client';
 import { AuthService } from './auth.service';
 
 function makeUser(
@@ -8,6 +9,7 @@ function makeUser(
     password: string;
     isActive: boolean;
     role: string;
+    legacyStaffRetiredAt: Date | null;
   }> = {},
 ) {
   return {
@@ -16,6 +18,7 @@ function makeUser(
     password: 'argon2id-hash',
     isActive: true,
     role: 'USER',
+    legacyStaffRetiredAt: null,
     fullName: 'User Example',
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -152,6 +155,16 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
+    it('refuse une ancienne identité Staff même si elle était encore active', async () => {
+      const { svc, passwordHasher } = makeSvc({
+        user: makeUser({ legacyStaffRetiredAt: new Date('2026-09-08') }),
+      });
+      await expect(
+        svc.login({ email: 'user@example.com', password: 'pass' }),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(passwordHasher.verify).not.toHaveBeenCalled();
+    });
+
     it('rehashes password when needsRehash returns true', async () => {
       const { svc, passwordHasher, prisma } = makeSvc({ needsRehash: true });
       await svc.login({ email: 'user@example.com', password: 'pass' });
@@ -228,7 +241,8 @@ describe('AuthService', () => {
       email: 'new@example.com',
       password: 'StrongPass123!',
       fullName: 'New User',
-      teamName: 'New Team',
+      workspaceType: WorkspaceType.ORGANIZATION,
+      workspaceName: 'New Team',
     };
 
     it('creates a pending account without workspace or login', async () => {
@@ -238,7 +252,8 @@ describe('AuthService', () => {
         email: dto.email,
         password: dto.password,
         fullName: dto.fullName,
-        workspaceName: dto.teamName,
+        workspaceName: dto.workspaceName,
+        workspaceType: WorkspaceType.ORGANIZATION,
         role: 'MEMBER',
       });
       expect(usersService.create).not.toHaveBeenCalled();
@@ -271,6 +286,7 @@ describe('AuthService', () => {
               email: 'user@example.com',
               role: 'MEMBER',
               workspaceName: 'New Team',
+              workspaceType: WorkspaceType.ORGANIZATION,
             },
             prisma,
           );

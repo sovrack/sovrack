@@ -13,6 +13,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { StaffOperationsService } from './staff-operations.service';
 import { StaffPasswordRecoveryService } from './staff-password-recovery.service';
 import { StaffInvitationService } from './staff-invitation.service';
+import { StaffMfaService } from './staff-mfa.service';
+import { StaffMfaController } from './staff-mfa.controller';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ms = require('ms') as (value: string) => number;
 
@@ -40,18 +42,19 @@ const ms = require('ms') as (value: string) => number;
       },
     }),
   ],
-  controllers: [StaffController],
+  controllers: [StaffController, StaffMfaController],
   providers: [
     StaffService,
     StaffOperationsService,
     StaffPasswordRecoveryService,
     StaffInvitationService,
+    StaffMfaService,
     StaffAuditService,
     StaffJwtStrategy,
     StaffJwtAuthGuard,
     StaffRolesGuard,
     PasswordHasher,
   ],
-  exports: [StaffService, StaffJwtAuthGuard, StaffRolesGuard],
+  exports: [StaffService, StaffJwtAuthGuard, StaffRolesGuard, StaffMfaService],
 })
 export class StaffModule {}

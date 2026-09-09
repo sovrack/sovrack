@@ -56,13 +56,23 @@ docker run -d --name "$CONTAINER_NAME" \
   -p "$publish_address" \
   "$POSTGRES_IMAGE" >/dev/null
 
-for _attempt in $(seq 1 30); do
+ready_streak=0
+for _attempt in $(seq 1 60); do
   if docker exec "$CONTAINER_NAME" pg_isready -U postgres -d phase2_fresh >/dev/null 2>&1; then
-    break
+    ready_streak=$((ready_streak + 1))
+    # On a fresh data directory, the official image starts a temporary server,
+    # creates the requested database, stops it and then starts PostgreSQL for
+    # normal operation. Requiring three consecutive probes prevents CI from
+    # mistaking that temporary server for the final one.
+    if [ "$ready_streak" -ge 3 ]; then
+      break
+    fi
+  else
+    ready_streak=0
   fi
   sleep 1
 done
-docker exec "$CONTAINER_NAME" pg_isready -U postgres -d phase2_fresh >/dev/null || {
+[ "$ready_streak" -ge 3 ] || {
   echo "PostgreSQL n'est pas devenu prêt dans le délai imparti." >&2
   exit 1
 }
@@ -109,15 +119,17 @@ docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_fresh \
 
 # Chemin upgrade : applique uniquement l'historique antérieur à Phase 2, insère
 # un tenant représentatif et une credential DB legacy, puis exécute le même
-# ordre que le conteneur migrator de production.
+# ordre que le conteneur migrator de production. Retirer toutes les migrations
+# postérieures au point de coupure est important : certaines dépendent déjà du
+# schéma Phase 2 et ne peuvent pas appartenir à une base réellement pré-Phase 2.
 mkdir -p "$TEMP_DIR/migrations"
 cp -R prisma/migrations/. "$TEMP_DIR/migrations/"
-for migration in \
-  20260817183000_phase2_workspace_authorization \
-  20260817190000_phase2_server_runs_workspace \
-  20260818120000_phase2_security_invariants; do
-  [ -d "$TEMP_DIR/migrations/$migration" ]
-  find "$TEMP_DIR/migrations/$migration" -depth -delete
+phase2_cutoff="20260817183000_phase2_workspace_authorization"
+for migration_path in "$TEMP_DIR"/migrations/*; do
+  migration="${migration_path##*/}"
+  if [[ "$migration" == "$phase2_cutoff" || "$migration" > "$phase2_cutoff" ]]; then
+    find "$migration_path" -depth -delete
+  fi
 done
 
 docker exec "$CONTAINER_NAME" createdb -U postgres phase2_upgrade
@@ -132,6 +144,10 @@ INSERT INTO "User" (
 ) VALUES (
   'user-1', 'owner@example.test', 'test-hash', 'email', 'Owner', 'OWNER', TRUE,
   CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+), (
+  'legacy-super-admin', 'legacy-staff@example.test', 'legacy-hash', 'email',
+  'Legacy Staff', 'SUPER_ADMIN', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
+  CURRENT_TIMESTAMP
 );
 INSERT INTO "Team" ("id", "name", "createdAt", "updatedAt")
 VALUES ('team-1', 'Workspace Test', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
@@ -164,6 +180,12 @@ docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_upgrade \
 docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_upgrade \
   -c "SELECT trim(both '\"' from \"databaseCredentials\"::text) LIKE 'v2:%' FROM \"Service\" WHERE id='service-1';" \
   | grep -qx 't'
+docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_upgrade \
+  -c "SELECT \"role\"::text || ':' || \"isActive\"::text || ':' || (\"password\" IS NULL)::text || ':' || (\"legacyStaffRetiredAt\" IS NOT NULL)::text || ':' || \"sessionVersion\"::text FROM \"User\" WHERE id='legacy-super-admin';" \
+  | grep -qx 'MEMBER:false:true:true:1'
+docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_upgrade \
+  -c "SELECT EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='Role' AND e.enumlabel='SUPER_ADMIN');" \
+  | grep -qx 'f'
 
 # Atomicity path: deliberately violate the first Phase-2 precondition after
 # applying the complete historical schema. PostgreSQL must roll back every DDL
@@ -189,4 +211,4 @@ docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_atomicity \
 docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_atomicity \
   -c "SELECT to_regclass('\"Team_name_key\"') IS NOT NULL;" | grep -qx 't'
 
-echo "Fresh, pre-Phase-2 upgrade and transactional-failure migration paths passed."
+echo "Fresh, pre-Phase-2 upgrade, legacy SUPER_ADMIN retirement and transactional-failure migration paths passed."

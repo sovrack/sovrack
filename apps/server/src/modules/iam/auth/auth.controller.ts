@@ -8,6 +8,7 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -39,6 +40,11 @@ import {
   buildAuthCookieOptions,
   resolveAuthCookieName,
 } from '../../../shared/http/auth-cookie.util';
+import {
+  ImpersonationForbidden,
+  ImpersonationWriteAllowed,
+} from '../../../shared/decorators/impersonation-policy.decorator';
+import { ImpersonationSessionService } from './impersonation-session.service';
 
 /**
  * Contrôleur d'authentification
@@ -50,6 +56,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
+    private readonly impersonationSessions: ImpersonationSessionService,
   ) {}
 
   /**
@@ -193,6 +200,7 @@ export class AuthController {
    * @returns Informations de l'utilisateur
    */
   @Get('ws-token')
+  @ImpersonationForbidden()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
@@ -220,7 +228,25 @@ export class AuthController {
     return await this.authService.getMe(user.id);
   }
 
+  @Get('session')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get the active authentication session metadata' })
+  getSession(@GetUser() user: JwtPayload): {
+    authenticationType: 'user' | 'staff-impersonation';
+    expiresAt: string | null;
+  } {
+    return {
+      authenticationType:
+        user.authType === 'staff-impersonation'
+          ? 'staff-impersonation'
+          : 'user',
+      expiresAt: user.exp ? new Date(user.exp * 1000).toISOString() : null,
+    };
+  }
+
   @Post('logout')
+  @ImpersonationWriteAllowed()
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -235,6 +261,16 @@ export class AuthController {
       resolveAuthCookieName(this.configService),
       buildAuthCookieClearOptions(this.configService),
     );
+    if (user.authType === 'staff-impersonation') {
+      if (!user.impersonatedByStaffId || !user.impersonationGrantId) {
+        throw new UnauthorizedException("Session d'assistance invalide");
+      }
+      return this.impersonationSessions.logout({
+        userId: user.id,
+        staffId: user.impersonatedByStaffId,
+        grantId: user.impersonationGrantId,
+      });
+    }
     return await this.authService.logout(user.id);
   }
 

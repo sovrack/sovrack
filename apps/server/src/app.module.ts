@@ -9,6 +9,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppJwtModule } from './shared/jwt/jwt.module';
 import { JwtAuthGuard } from './shared/guards/jwt-auth.guard';
+import { ImpersonationReadonlyGuard } from './shared/guards/impersonation-readonly.guard';
 // Contextes consolidés — importés via leur porte publique (barrel index.ts)
 import {
   UsersModule,
@@ -121,6 +122,7 @@ import { QueueModule } from './shared/queue/queue.module';
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: ImpersonationReadonlyGuard },
   ],
 })
 export class AppModule {}

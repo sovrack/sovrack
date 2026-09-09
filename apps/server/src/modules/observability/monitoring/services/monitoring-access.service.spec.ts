@@ -44,9 +44,9 @@ function makeService(overrides: {
 describe('MonitoringAccessService', () => {
   it('hides a project from an identity without workspace/project access', async () => {
     const { svc } = makeService({});
-    await expect(
-      svc.assertProject('p1', 'u1', Role.SUPER_ADMIN),
-    ).rejects.toThrow(NotFoundException);
+    await expect(svc.assertProject('p1', 'u1', Role.OWNER)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('allows a DEVELOPER who is a project member', async () => {

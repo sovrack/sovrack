@@ -15,6 +15,7 @@ import { NotificationsSmtpService } from '../notifications/notifications-smtp.se
 import { StaffOperationsService } from './staff-operations.service';
 import { StaffInvitationService } from './staff-invitation.service';
 import type { Staff, User } from '@prisma/client';
+import { StaffMfaService } from './staff-mfa.service';
 
 const staffFixture: Staff = {
   id: 'staff-1',
@@ -25,6 +26,7 @@ const staffFixture: Staff = {
   status: StaffStatus.ACTIVE,
   mfaSecret: null,
   mfaEnabled: false,
+  mfaLastUsedStep: null,
   lastLoginAt: null,
   deletedAt: null,
   createdBy: 'seed',
@@ -41,6 +43,7 @@ const userFixture: User = {
   fullName: 'Client One',
   role: Role.OWNER,
   pendingWorkspaceName: null,
+  pendingWorkspaceType: null,
   isActive: true,
   emailVerificationCode: null,
   emailVerificationAttemptId: null,
@@ -53,6 +56,7 @@ const userFixture: User = {
   passwordResetRequestedAt: null,
   passwordResetAttempts: 0,
   sessionVersion: 0,
+  legacyStaffRetiredAt: null,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
 };
@@ -75,6 +79,12 @@ describe('StaffService', () => {
       upsert: jest.fn(),
       updateMany: jest.fn(),
     },
+    staffImpersonationGrant: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    staffAuditLog: { create: jest.fn() },
     user: {
       findUnique: jest.fn(),
       count: jest.fn(),
@@ -114,6 +124,10 @@ describe('StaffService', () => {
   };
   let service: StaffService;
   let invitationService: StaffInvitationService;
+  const mfa = {
+    verifyLoginSecondFactor: jest.fn(async () => undefined),
+    isRequired: jest.fn((role: PlatformRole) => role !== PlatformRole.OPERATOR),
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -142,6 +156,7 @@ describe('StaffService', () => {
         accountDeletion as unknown as AccountDeletionService,
       ),
       invitationService,
+      mfa as unknown as StaffMfaService,
     );
   });
 
@@ -486,6 +501,17 @@ describe('StaffService', () => {
         service.setUserActive('nope', true, 'staff-1'),
       ).rejects.toThrow(NotFoundException);
     });
+
+    it('ne traite jamais une ancienne identité Staff comme un client', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...userFixture,
+        legacyStaffRetiredAt: new Date('2026-09-08'),
+      });
+      await expect(
+        service.setUserActive('legacy-staff', false, 'staff-1'),
+      ).rejects.toThrow(NotFoundException);
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('setUserRole', () => {
@@ -537,6 +563,95 @@ describe('StaffService', () => {
         }),
       );
       expect(result.message).toContain('supprimé');
+    });
+  });
+
+  describe('impersonation cross-domain', () => {
+    it('crée un grant bref sans retourner de JWT client au domaine staff', async () => {
+      prisma.user.findUnique.mockResolvedValue(userFixture);
+      prisma.staffImpersonationGrant.create.mockResolvedValue({
+        id: 'grant-1',
+      });
+      config.get.mockImplementation((key: string, fallback: string) =>
+        key === 'CUSTOMER_APP_URL' ? 'https://app.sovrack.test' : fallback,
+      );
+
+      const result = await service.impersonateUser(
+        userFixture.id,
+        staffFixture.id,
+        'Diagnostic incident INC-142',
+        '::1',
+      );
+
+      expect(result.redirectUrl).toMatch(
+        /^https:\/\/app\.sovrack\.test\/staff-session-exchange#token=/,
+      );
+      expect(result).not.toHaveProperty('access_token');
+      expect(prisma.staffImpersonationGrant.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: userFixture.id,
+            staffId: staffFixture.id,
+            reason: 'Diagnostic incident INC-142',
+            tokenHash: expect.stringMatching(/^[0-9a-f]{64}$/),
+          }),
+        }),
+      );
+    });
+
+    it("refuse l'impersonation d'une ancienne identité Staff", async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        ...userFixture,
+        legacyStaffRetiredAt: new Date('2026-09-08'),
+      });
+
+      await expect(
+        service.impersonateUser(
+          'legacy-staff',
+          staffFixture.id,
+          'Diagnostic incident INC-142',
+        ),
+      ).rejects.toThrow(NotFoundException);
+      expect(prisma.staffImpersonationGrant.create).not.toHaveBeenCalled();
+    });
+
+    it('consomme le grant une seule fois puis émet un JWT client de quinze minutes', async () => {
+      prisma.staffImpersonationGrant.findUnique.mockResolvedValue({
+        id: 'grant-1',
+        staffId: staffFixture.id,
+        reason: 'Diagnostic incident INC-142',
+        consumedAt: null,
+        expiresAt: new Date(Date.now() + 60_000),
+        user: userFixture,
+      });
+      prisma.staffImpersonationGrant.updateMany.mockResolvedValue({ count: 1 });
+      config.get.mockImplementation((key: string, fallback: string) =>
+        key === 'JWT_SECRET'
+          ? 'customer-jwt-secret-at-least-32-chars'
+          : fallback,
+      );
+
+      const result = await service.exchangeImpersonationGrant('a'.repeat(43));
+
+      expect(result.access_token).toBe('token-staff');
+      expect(jwt.sign).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authType: 'staff-impersonation',
+          impersonatedByStaffId: staffFixture.id,
+          impersonationGrantId: 'grant-1',
+          sessionVersion: 0,
+        }),
+        expect.objectContaining({ expiresIn: '15m' }),
+      );
+      expect(prisma.staffAuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            staffId: staffFixture.id,
+            action: 'user.impersonation.exchange',
+            resourceId: userFixture.id,
+          }),
+        }),
+      );
     });
   });
 });

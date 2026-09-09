@@ -3,6 +3,8 @@ import {
   InvitationStatus,
   MembershipStatus,
   WorkspaceRole,
+  WorkspaceStatus,
+  WorkspaceType,
 } from '@prisma/client';
 import { createHash } from 'crypto';
 import { PrismaService } from '../../../shared/database/prisma.service';
@@ -15,6 +17,7 @@ describe('WorkspaceInvitationsService', () => {
   let prisma: {
     $transaction: jest.Mock;
     user: { findUnique: jest.Mock };
+    team: { findUnique: jest.Mock };
     teamMember: { upsert: jest.Mock };
     workspaceInvitation: {
       findMany: jest.Mock;
@@ -33,6 +36,12 @@ describe('WorkspaceInvitationsService', () => {
     prisma = {
       $transaction: jest.fn(),
       user: { findUnique: jest.fn().mockResolvedValue(null) },
+      team: {
+        findUnique: jest.fn().mockResolvedValue({
+          type: WorkspaceType.ORGANIZATION,
+          status: WorkspaceStatus.ACTIVE,
+        }),
+      },
       teamMember: { upsert: jest.fn().mockResolvedValue({}) },
       workspaceInvitation: {
         findMany: jest.fn().mockResolvedValue([]),
@@ -118,7 +127,12 @@ describe('WorkspaceInvitationsService', () => {
       role: WorkspaceRole.MEMBER,
       status: InvitationStatus.PENDING,
       expiresAt: new Date(Date.now() + 60_000),
-      team: { id: 'workspace-1', name: 'Core', slug: 'core-1234' },
+      team: {
+        id: 'workspace-1',
+        name: 'Core',
+        slug: 'core-1234',
+        type: WorkspaceType.ORGANIZATION,
+      },
     });
 
     await service.accept('raw-token', 'user-1');
@@ -127,7 +141,11 @@ describe('WorkspaceInvitationsService', () => {
       where: {
         tokenHash: createHash('sha256').update('raw-token').digest('hex'),
       },
-      include: { team: { select: { id: true, name: true, slug: true } } },
+      include: {
+        team: {
+          select: { id: true, name: true, slug: true, type: true },
+        },
+      },
     });
     expect(prisma.teamMember.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -159,7 +177,12 @@ describe('WorkspaceInvitationsService', () => {
       role: WorkspaceRole.MEMBER,
       status: InvitationStatus.PENDING,
       expiresAt: new Date(Date.now() + 60_000),
-      team: { id: 'workspace-1', name: 'Core', slug: 'core-1234' },
+      team: {
+        id: 'workspace-1',
+        name: 'Core',
+        slug: 'core-1234',
+        type: WorkspaceType.ORGANIZATION,
+      },
     });
 
     await expect(service.accept('raw-token', 'user-1')).rejects.toBeInstanceOf(

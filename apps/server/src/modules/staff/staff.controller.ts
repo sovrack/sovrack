@@ -25,6 +25,7 @@ import { GetStaff } from './staff.decorators';
 import { Public } from '../../shared/decorators/public.decorator';
 import {
   StaffJwtAuthGuard,
+  StaffMfaEnrollmentAllowed,
   StaffPublic,
   StaffRoles,
   StaffRolesGuard,
@@ -34,6 +35,8 @@ import { StaffPasswordRecoveryService } from './staff-password-recovery.service'
 import { StaffAuditService } from './staff-audit.service';
 import {
   AcceptStaffInvitationDto,
+  CreateStaffImpersonationDto,
+  ExchangeStaffImpersonationDto,
   RequestStaffActivationCodeDto,
   CreateStaffDto,
   StaffForgotPasswordDto,
@@ -96,7 +99,10 @@ export class StaffController {
       result.access_token,
       buildStaffAuthCookieOptions(this.configService),
     );
-    return { staff: result.staff };
+    return {
+      staff: result.staff,
+      mfaEnrollmentRequired: result.mfaEnrollmentRequired,
+    };
   }
 
   @Post('forgot-password')
@@ -144,6 +150,7 @@ export class StaffController {
   }
 
   @Post('logout')
+  @StaffMfaEnrollmentAllowed()
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout back-office (audit)' })
@@ -160,6 +167,7 @@ export class StaffController {
   }
 
   @Get('me')
+  @StaffMfaEnrollmentAllowed()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Profil du staff connecté' })
   me(@GetStaff() staff: StaffJwtPayload) {
@@ -366,7 +374,7 @@ export class StaffController {
   @UseGuards(StaffRolesGuard)
   @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Bloquer/débloquer ou changer le rôle d’un client' })
+  @ApiOperation({ summary: 'Bloquer ou débloquer une identité cliente' })
   updateUser(
     @Param('id') id: string,
     @Body() dto: StaffUpdateUserDto,
@@ -394,27 +402,46 @@ export class StaffController {
   @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({
-    summary:
-      'Se connecter « en tant que » un client — émet un JWT client, journalisé',
+    summary: 'Créer une autorisation client éphémère et journalisée',
   })
   async impersonate(
     @Param('id') id: string,
+    @Body() dto: CreateStaffImpersonationDto,
     @GetStaff() staff: StaffJwtPayload,
+    @Req() req: Request,
+  ) {
+    return this.staffService.impersonateUser(
+      id,
+      staff.id,
+      dto.reason,
+      clientIp(req),
+    );
+  }
+
+  @Post('impersonation/exchange')
+  @StaffPublic()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  @ApiOperation({
+    summary: "Échanger une autorisation d'assistance à usage unique",
+  })
+  async exchangeImpersonation(
+    @Body() dto: ExchangeStaffImpersonationDto,
     @Req() req: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.staffService.impersonateUser(
-      id,
-      staff.id,
+    const result = await this.staffService.exchangeImpersonationGrant(
+      dto.token,
       clientIp(req),
     );
-    // Le token est un JWT CLIENT : on pose le cookie de session client pour que
-    // le frontend bascule immédiatement sur le compte cible.
     response.cookie(
       resolveClientAuthCookieName(this.configService),
       result.access_token,
       buildClientAuthCookieOptions(this.configService),
     );
-    return { user: result.user, expiresInSeconds: 900 };
+    return {
+      user: result.user,
+      expiresInSeconds: result.expiresInSeconds,
+    };
   }
 }

@@ -13,7 +13,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { EmailVerificationService } from './email-verification.service';
-import { Role, User } from '@prisma/client';
+import { Role, User, WorkspaceType } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { TeamsService } from '../teams/teams.service';
@@ -68,7 +68,11 @@ export class AuthService {
       email,
       password: dto.password,
       fullName: dto.fullName,
-      workspaceName: dto.teamName,
+      workspaceName:
+        dto.workspaceType === WorkspaceType.ORGANIZATION
+          ? dto.workspaceName!.trim()
+          : `${dto.fullName.trim().split(/\s+/)[0]} — Personnel`,
+      workspaceType: dto.workspaceType,
       role: Role.MEMBER,
     });
 
@@ -88,7 +92,10 @@ export class AuthService {
       registrationId: dto.registrationId,
       onActivate: async (pendingUser, database) => {
         const team = await this.teamsService.create(
-          { name: pendingUser.workspaceName },
+          {
+            name: pendingUser.workspaceName,
+            type: pendingUser.workspaceType,
+          },
           pendingUser.id,
           database,
         );
@@ -155,6 +162,10 @@ export class AuthService {
       normalizeEmailAddress(dto.email),
     );
     if (!user) {
+      throw new UnauthorizedException('Email ou mot de passe incorrect');
+    }
+
+    if (user.legacyStaffRetiredAt) {
       throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
 
@@ -500,7 +511,7 @@ export class AuthService {
    */
   async generateTokenForUserId(userId: string): Promise<AuthResponse> {
     const user = await this.usersService.findById(userId);
-    if (!user) {
+    if (!user || !user.isActive || user.legacyStaffRetiredAt) {
       throw new UnauthorizedException('Utilisateur non trouvé');
     }
     const access_token = this.generateTokenForId(

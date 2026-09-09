@@ -26,6 +26,8 @@ const {
   PrismaClient,
   Role,
   WorkspaceRole,
+  WorkspaceType,
+  WorkspaceStatus,
   MembershipStatus,
   ProjectRole,
   PlatformRole,
@@ -45,8 +47,11 @@ const IDS = {
   viewer: '10000000-0000-4000-8000-000000000005',
   outsider: '10000000-0000-4000-8000-000000000006',
   suspended: '10000000-0000-4000-8000-000000000007',
+  billing: '10000000-0000-4000-8000-000000000008',
+  personal: '10000000-0000-4000-8000-000000000009',
   workspace: '20000000-0000-4000-8000-000000000001',
   outsiderWorkspace: '20000000-0000-4000-8000-000000000002',
+  personalWorkspace: '20000000-0000-4000-8000-000000000003',
   project: '30000000-0000-4000-8000-000000000001',
   staffRoot: '40000000-0000-4000-8000-000000000001',
   staffAdmin: '40000000-0000-4000-8000-000000000002',
@@ -97,6 +102,7 @@ async function upsertUser(id, email, fullName, passwordHash) {
     emailVerificationExpiresAt: null,
     emailVerificationAttemptId: null,
     pendingWorkspaceName: null,
+    pendingWorkspaceType: null,
   };
   return prisma.user.upsert({
     where: { id },
@@ -137,6 +143,8 @@ async function main() {
     [IDS.viewer, 'viewer@sovrack.test', 'Local Project Viewer'],
     [IDS.outsider, 'outsider@sovrack.test', 'Local Other Workspace Owner'],
     [IDS.suspended, 'suspended@sovrack.test', 'Local Suspended Member'],
+    [IDS.billing, 'billing@sovrack.test', 'Local Billing Member'],
+    [IDS.personal, 'personal@sovrack.test', 'Local Personal Owner'],
   ];
   for (const [id, email, fullName] of users) {
     await upsertUser(id, email, fullName, clientHash);
@@ -149,11 +157,15 @@ async function main() {
       name: 'Sovrack Local Workspace',
       slug: 'sovrack-local-workspace',
       description: 'Local-only RBAC acceptance workspace',
+      type: WorkspaceType.ORGANIZATION,
+      status: WorkspaceStatus.ACTIVE,
     },
     update: {
       name: 'Sovrack Local Workspace',
       slug: 'sovrack-local-workspace',
       description: 'Local-only RBAC acceptance workspace',
+      type: WorkspaceType.ORGANIZATION,
+      status: WorkspaceStatus.ACTIVE,
     },
   });
   await prisma.team.upsert({
@@ -162,8 +174,33 @@ async function main() {
       id: IDS.outsiderWorkspace,
       name: 'Other Local Workspace',
       slug: 'other-local-workspace',
+      type: WorkspaceType.ORGANIZATION,
+      status: WorkspaceStatus.ACTIVE,
     },
-    update: { name: 'Other Local Workspace', slug: 'other-local-workspace' },
+    update: {
+      name: 'Other Local Workspace',
+      slug: 'other-local-workspace',
+      type: WorkspaceType.ORGANIZATION,
+      status: WorkspaceStatus.ACTIVE,
+    },
+  });
+  await prisma.team.upsert({
+    where: { id: IDS.personalWorkspace },
+    create: {
+      id: IDS.personalWorkspace,
+      name: 'Personal Local Workspace',
+      slug: 'personal-local-workspace',
+      type: WorkspaceType.PERSONAL,
+      status: WorkspaceStatus.ACTIVE,
+      personalOwnerId: IDS.personal,
+    },
+    update: {
+      name: 'Personal Local Workspace',
+      slug: 'personal-local-workspace',
+      type: WorkspaceType.PERSONAL,
+      status: WorkspaceStatus.ACTIVE,
+      personalOwnerId: IDS.personal,
+    },
   });
 
   const memberships = [
@@ -173,6 +210,7 @@ async function main() {
     [IDS.developer, WorkspaceRole.MEMBER, MembershipStatus.ACTIVE],
     [IDS.viewer, WorkspaceRole.MEMBER, MembershipStatus.ACTIVE],
     [IDS.suspended, WorkspaceRole.MEMBER, MembershipStatus.SUSPENDED],
+    [IDS.billing, WorkspaceRole.BILLING, MembershipStatus.ACTIVE],
   ];
   for (const [userId, role, status] of memberships) {
     await prisma.teamMember.upsert({
@@ -188,6 +226,18 @@ async function main() {
     create: {
       teamId: IDS.outsiderWorkspace,
       userId: IDS.outsider,
+      role: WorkspaceRole.OWNER,
+      status: MembershipStatus.ACTIVE,
+    },
+    update: { role: WorkspaceRole.OWNER, status: MembershipStatus.ACTIVE },
+  });
+  await prisma.teamMember.upsert({
+    where: {
+      teamId_userId: { teamId: IDS.personalWorkspace, userId: IDS.personal },
+    },
+    create: {
+      teamId: IDS.personalWorkspace,
+      userId: IDS.personal,
       role: WorkspaceRole.OWNER,
       status: MembershipStatus.ACTIVE,
     },
@@ -221,7 +271,11 @@ async function main() {
     });
   }
 
-  for (const teamId of [IDS.workspace, IDS.outsiderWorkspace]) {
+  for (const teamId of [
+    IDS.workspace,
+    IDS.outsiderWorkspace,
+    IDS.personalWorkspace,
+  ]) {
     await prisma.subscription.upsert({
       where: { teamId },
       create: { teamId, plan: Plan.PRO, status: BillingStatus.ACTIVE },

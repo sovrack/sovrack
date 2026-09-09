@@ -9,6 +9,8 @@ import {
   InvitationStatus,
   MembershipStatus,
   WorkspaceRole,
+  WorkspaceStatus,
+  WorkspaceType,
 } from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../../shared/database/prisma.service';
@@ -35,6 +37,7 @@ export class WorkspaceInvitationsService {
       actorUserId,
       WorkspaceActions.MANAGE_MEMBERS,
     );
+    await this.assertOrganization(workspaceId);
     await this.expireStale(workspaceId);
     return this.prisma.workspaceInvitation.findMany({
       where: { teamId: workspaceId },
@@ -63,6 +66,7 @@ export class WorkspaceInvitationsService {
       actorUserId,
       WorkspaceActions.INVITE_MEMBER,
     );
+    await this.assertOrganization(workspaceId);
     const role = dto.role ?? WorkspaceRole.MEMBER;
     if (
       actor.workspaceRole !== WorkspaceRole.OWNER &&
@@ -140,6 +144,7 @@ export class WorkspaceInvitationsService {
       actorUserId,
       WorkspaceActions.MANAGE_MEMBERS,
     );
+    await this.assertOrganization(workspaceId);
     const invitation = await this.prisma.workspaceInvitation.findFirst({
       where: { id: invitationId, teamId: workspaceId },
       select: { id: true, status: true },
@@ -163,7 +168,9 @@ export class WorkspaceInvitationsService {
       }),
       this.prisma.workspaceInvitation.findUnique({
         where: { tokenHash },
-        include: { team: { select: { id: true, name: true, slug: true } } },
+        include: {
+          team: { select: { id: true, name: true, slug: true, type: true } },
+        },
       }),
     ]);
     if (!user?.isActive)
@@ -183,31 +190,44 @@ export class WorkspaceInvitationsService {
         'Cette invitation est destinée à une autre adresse email',
       );
     }
+    if (invitation.team.type !== WorkspaceType.ORGANIZATION) {
+      throw new ConflictException(
+        "Les invitations sont réservées aux espaces d'organisation",
+      );
+    }
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.teamMember.upsert({
-        where: {
-          teamId_userId: { teamId: invitation.teamId, userId: user.id },
-        },
-        create: {
-          teamId: invitation.teamId,
-          userId: user.id,
-          role: invitation.role,
-          status: MembershipStatus.ACTIVE,
-        },
-        update: {
-          role: invitation.role,
-          status: MembershipStatus.ACTIVE,
-        },
-      });
-      const updated = await tx.workspaceInvitation.updateMany({
-        where: { id: invitation.id, status: InvitationStatus.PENDING },
-        data: { status: InvitationStatus.ACCEPTED, acceptedAt: new Date() },
-      });
-      if (updated.count !== 1) {
-        throw new ConflictException('Invitation déjà utilisée');
-      }
-    });
+    await this.prisma.$transaction(
+      async (tx) => {
+        await this.usageGuard.guardForTeam(
+          invitation.teamId,
+          'ADD_TEAM_MEMBER',
+          tx,
+        );
+        await tx.teamMember.upsert({
+          where: {
+            teamId_userId: { teamId: invitation.teamId, userId: user.id },
+          },
+          create: {
+            teamId: invitation.teamId,
+            userId: user.id,
+            role: invitation.role,
+            status: MembershipStatus.ACTIVE,
+          },
+          update: {
+            role: invitation.role,
+            status: MembershipStatus.ACTIVE,
+          },
+        });
+        const updated = await tx.workspaceInvitation.updateMany({
+          where: { id: invitation.id, status: InvitationStatus.PENDING },
+          data: { status: InvitationStatus.ACCEPTED, acceptedAt: new Date() },
+        });
+        if (updated.count !== 1) {
+          throw new ConflictException('Invitation déjà utilisée');
+        }
+      },
+      { isolationLevel: 'Serializable' },
+    );
 
     return invitation.team;
   }
@@ -221,6 +241,23 @@ export class WorkspaceInvitationsService {
       },
       data: { status: InvitationStatus.EXPIRED },
     });
+  }
+
+  private async assertOrganization(workspaceId: string): Promise<void> {
+    const workspace = await this.prisma.team.findUnique({
+      where: { id: workspaceId },
+      select: { type: true, status: true },
+    });
+    if (!workspace || workspace.status !== WorkspaceStatus.ACTIVE) {
+      throw new NotFoundException('Workspace introuvable');
+    }
+    if (workspace.type !== WorkspaceType.ORGANIZATION) {
+      throw new ConflictException({
+        code: 'PERSONAL_WORKSPACE_SINGLE_USER',
+        message:
+          "Convertissez d'abord cet espace personnel en organisation pour inviter des membres",
+      });
+    }
   }
 
   private hashToken(token: string): string {

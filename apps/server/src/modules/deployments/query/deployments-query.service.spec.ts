@@ -61,11 +61,7 @@ describe('DeploymentsQueryService', () => {
         service: { env: null, secretsEnv: null, projectId: 'proj-1' },
         environment: { env: null, secretsEnv: null, projectId: 'proj-1' },
       });
-      const preview = await service.previewEnv(
-        'se1',
-        'user-1',
-        Role.SUPER_ADMIN,
-      );
+      const preview = await service.previewEnv('se1', 'user-1', Role.OWNER);
       const token = preview.variables.find((v) => v.key === 'TOKEN');
       const pub = preview.variables.find((v) => v.key === 'PUBLIC');
       expect(token?.isSecret).toBe(true);
@@ -76,7 +72,7 @@ describe('DeploymentsQueryService', () => {
     it('404s for an unknown service-environment', async () => {
       prisma.serviceEnvironment.findUnique.mockResolvedValue(null);
       await expect(
-        service.previewEnv('nope', 'user-1', Role.SUPER_ADMIN),
+        service.previewEnv('nope', 'user-1', Role.OWNER),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
@@ -117,7 +113,7 @@ describe('DeploymentsQueryService', () => {
         userId: 'admin',
         workspaceRole: WorkspaceRole.ADMIN,
       });
-      await service.findAll('admin', Role.SUPER_ADMIN);
+      await service.findAll('admin', Role.OWNER);
       expect(prisma.deployment.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { project: { teamId: 'workspace-1' } },
@@ -140,7 +136,7 @@ describe('DeploymentsQueryService', () => {
     });
 
     it('paginates when page+limit are provided', async () => {
-      const res = await service.findAll('admin', Role.SUPER_ADMIN, {
+      const res = await service.findAll('admin', Role.OWNER, {
         page: 1,
         limit: 10,
       } as never);
@@ -153,7 +149,7 @@ describe('DeploymentsQueryService', () => {
     it('404s and enforces project access', async () => {
       prisma.deployment.findUnique.mockResolvedValue(null);
       await expect(
-        service.findOne('nope', 'u1', Role.SUPER_ADMIN),
+        service.findOne('nope', 'u1', Role.OWNER),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
@@ -164,11 +160,11 @@ describe('DeploymentsQueryService', () => {
         service: { port: 3000 },
         serviceEnv: { domains: [{ name: 'x.com' }] },
       });
-      const res = await service.findOne('d1', 'u1', Role.SUPER_ADMIN);
+      const res = await service.findOne('d1', 'u1', Role.OWNER);
       expect(auth.assertCanAccessProject).toHaveBeenCalledWith(
         'p1',
         'u1',
-        Role.SUPER_ADMIN,
+        Role.OWNER,
       );
       expect(res.publicUrl).toBe('https://x.com');
     });

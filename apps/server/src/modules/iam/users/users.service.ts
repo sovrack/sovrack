@@ -103,7 +103,7 @@ export class UsersService {
   /**
    * Retourne tous les utilisateurs sans mot de passe.
    * Scoping multi-tenant : un OWNER/MEMBER ne voit que les membres de ses
-   * propres équipes (son organisation). Seul un SUPER_ADMIN voit tout.
+   * propres équipes (son organisation). Le Staff utilise une identité séparée.
    */
   async findAll(
     pagination?: PaginationDto,
@@ -164,8 +164,8 @@ export class UsersService {
 
   /**
    * Retourne un utilisateur par id, ou lève une exception si absent.
-   * Multi-tenant : hors SUPER_ADMIN, on ne peut consulter que les membres
-   * de sa propre organisation.
+   * Multi-tenant : on ne peut consulter que les membres de sa propre
+   * organisation.
    */
   async findByIdOrFail(
     id: string,
@@ -336,7 +336,7 @@ export class UsersService {
 
   /**
    * Supprime un utilisateur.
-   * Multi-tenant : hors SUPER_ADMIN, uniquement les membres de sa propre org.
+   * Multi-tenant : uniquement les membres de sa propre organisation.
    */
   async delete(
     id: string,
@@ -354,7 +354,7 @@ export class UsersService {
 
   /**
    * Active ou désactive un utilisateur.
-   * Multi-tenant : hors SUPER_ADMIN, uniquement les membres de sa propre org.
+   * Multi-tenant : uniquement les membres de sa propre organisation.
    */
   async toggleActive(
     id: string,

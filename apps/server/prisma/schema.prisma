@@ -8,7 +8,6 @@ datasource db {
 }
 
 enum Role {
-  SUPER_ADMIN
   OWNER
   MEMBER
 }
@@ -16,7 +15,20 @@ enum Role {
 enum WorkspaceRole {
   OWNER
   ADMIN
+  BILLING
   MEMBER
+}
+
+enum WorkspaceType {
+  PERSONAL
+  ORGANIZATION
+}
+
+enum WorkspaceStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+  DELETION_PENDING
 }
 
 enum MembershipStatus {
@@ -246,23 +258,24 @@ enum CircuitState {
 }
 
 model User {
-  id                         String                @id @default(uuid())
-  email                      String                @unique
+  id                         String                    @id @default(uuid())
+  email                      String                    @unique
   // Hash du mot de passe (argon2id/bcrypt). NULL pour les comptes OAuth (Google)
   // qui n'ont pas de mot de passe (authentification par le fournisseur externe).
   password                   String?
   // Source d'authentification du compte : "email" (mot de passe + code) ou "google".
-  provider                   String                @default("email")
+  provider                   String                    @default("email")
   // ID du compte Google (appairage OAuth). NULL pour les comptes email/mot de passe.
-  googleId                   String?               @unique
+  googleId                   String?                   @unique
   fullName                   String
   // Legacy compatibility only. Customer authorization is resolved from
   // TeamMember/ProjectMember; this field will be removed after the cutover.
-  role                       Role                  @default(MEMBER)
+  role                       Role                      @default(MEMBER)
   // Preserved between registration and email verification so onboarding uses
   // the organization name that the customer actually submitted.
   pendingWorkspaceName       String?
-  isActive                   Boolean               @default(true)
+  pendingWorkspaceType       WorkspaceType?
+  isActive                   Boolean                   @default(true)
   // Validation email : code à 6 chiffres + expiration + date de vérification.
   // Un compte non vérifié (emailVerifiedAt = NULL) est inactif et ne peut pas
   // se connecter ni être rattaché à une organisation tant que l'email n'est pas
@@ -281,20 +294,26 @@ model User {
   passwordResetCode          String?
   passwordResetExpiresAt     DateTime?
   passwordResetRequestedAt   DateTime?
-  passwordResetAttempts      Int                   @default(0)
+  passwordResetAttempts      Int                       @default(0)
   // Every customer JWT carries this value. Incrementing it revokes all tokens
   // issued before a password change, reset, explicit logout or staff block.
-  sessionVersion             Int                   @default(0)
+  sessionVersion             Int                       @default(0)
+  // Audit marker for accounts that represented platform administrators before
+  // the dedicated Staff identity plane existed. Such identities are retained
+  // for referential integrity but can never authenticate as customers.
+  legacyStaffRetiredAt       DateTime?
   projects                   ProjectMember[]
   teams                      TeamMember[]
   deployments                Deployment[]
   builds                     Build[]
   auditLogs                  AuditLog[]
   sshKeys                    SshKey[]
-  workspaceInvitationsSent   WorkspaceInvitation[] @relation("WorkspaceInvitationInviter")
-  serverRunsRequested        ServerRun[]           @relation("ServerRunRequestedBy")
-  createdAt                  DateTime              @default(now())
-  updatedAt                  DateTime              @updatedAt
+  workspaceInvitationsSent   WorkspaceInvitation[]     @relation("WorkspaceInvitationInviter")
+  personalWorkspacesOwned    Team[]                    @relation("PersonalWorkspaceOwner")
+  staffImpersonationGrants   StaffImpersonationGrant[]
+  serverRunsRequested        ServerRun[]               @relation("ServerRunRequestedBy")
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
 }
 
 model Project {
@@ -799,25 +818,51 @@ model ProxyRule {
 }
 
 model Team {
-  id                 String                @id @default(uuid())
-  name               String
-  slug               String                @unique
-  description        String?
-  members            TeamMember[]
-  projectMembers     ProjectMember[]
-  projects           Project[]
-  servers            Server[]
-  sshKeys            SshKey[]
-  gitProviderConfigs GitProviderConfig[]
-  registryConfigs    RegistryConfig[]
-  dnsProviders       DnsProvider[]
-  auditLogs          AuditLog[]
-  invitations        WorkspaceInvitation[]
-  serverRuns         ServerRun[]
-  subscription       Subscription?
-  invoices           Invoice[]
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
+  id                  String                @id @default(uuid())
+  name                String
+  slug                String                @unique
+  description         String?
+  type                WorkspaceType         @default(ORGANIZATION)
+  status              WorkspaceStatus       @default(ACTIVE)
+  // Set only for PERSONAL workspaces. This unique ownership link guarantees
+  // that a customer can own at most one personal workspace.
+  personalOwnerId     String?               @unique
+  personalOwner       User?                 @relation("PersonalWorkspaceOwner", fields: [personalOwnerId], references: [id], onDelete: Restrict)
+  organizationProfile OrganizationProfile?
+  members             TeamMember[]
+  projectMembers      ProjectMember[]
+  projects            Project[]
+  servers             Server[]
+  sshKeys             SshKey[]
+  gitProviderConfigs  GitProviderConfig[]
+  registryConfigs     RegistryConfig[]
+  dnsProviders        DnsProvider[]
+  auditLogs           AuditLog[]
+  invitations         WorkspaceInvitation[]
+  serverRuns          ServerRun[]
+  subscription        Subscription?
+  invoices            Invoice[]
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([type, status])
+}
+
+model OrganizationProfile {
+  id                 String   @id @default(uuid())
+  teamId             String   @unique
+  team               Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  legalName          String?
+  billingEmail       String?
+  registrationNumber String?
+  taxId              String?
+  addressLine1       String?
+  addressLine2       String?
+  city               String?
+  postalCode         String?
+  countryCode        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model TeamMember {
@@ -1638,28 +1683,45 @@ enum StaffStatus {
 }
 
 model Staff {
-  id             String               @id @default(uuid())
-  email          String               @unique
-  password       String
-  fullName       String
-  role           PlatformRole         @default(OPERATOR)
-  status         StaffStatus          @default(ACTIVE)
+  id                  String                    @id @default(uuid())
+  email               String                    @unique
+  password            String
+  fullName            String
+  role                PlatformRole              @default(OPERATOR)
+  status              StaffStatus               @default(ACTIVE)
   // MFA TOTP (niveau 2, optionnel).
-  mfaSecret      String?
-  mfaEnabled     Boolean              @default(false)
-  lastLoginAt    DateTime?
+  mfaSecret           String?
+  mfaEnabled          Boolean                   @default(false)
+  // Empêche la réutilisation d'un même code TOTP pendant sa fenêtre de 30 s.
+  mfaLastUsedStep     BigInt?
+  lastLoginAt         DateTime?
   // Soft delete : on ne supprime jamais physiquement un compte staff (audit).
-  deletedAt      DateTime?
-  createdBy      String?
-  sessions       StaffSession[]
-  invitation     StaffInvitation?
-  passwordResets StaffPasswordReset[]
-  auditLogs      StaffAuditLog[]
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  deletedAt           DateTime?
+  createdBy           String?
+  sessions            StaffSession[]
+  invitation          StaffInvitation?
+  passwordResets      StaffPasswordReset[]
+  auditLogs           StaffAuditLog[]
+  impersonationGrants StaffImpersonationGrant[]
+  mfaRecoveryCodes    StaffMfaRecoveryCode[]
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
 
   @@index([role])
   @@index([status])
+}
+
+// Codes de secours MFA : seuls des HMAC sont persistés. Chaque code est
+// affiché une seule fois à l'activation puis consommé de façon atomique.
+model StaffMfaRecoveryCode {
+  id        String    @id @default(uuid())
+  staffId   String
+  staff     Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  codeHash  String    @unique
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([staffId, usedAt])
 }
 
 model StaffInvitation {
@@ -1709,6 +1771,30 @@ model StaffPasswordReset {
 
   @@index([staffId, createdAt])
   @@index([expiresAt])
+}
+
+// Autorisation éphémère et à usage unique permettant au back-office, hébergé
+// sur un domaine isolé, d'ouvrir une session client host-only sur le domaine
+// applicatif. Seul le hash d'un jeton aléatoire est persisté.
+model StaffImpersonationGrant {
+  id               String    @id @default(uuid())
+  tokenHash        String    @unique
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  staffId          String
+  staff            Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  reason           String
+  requestedIp      String?
+  expiresAt        DateTime
+  consumedAt       DateTime?
+  sessionExpiresAt DateTime?
+  endedAt          DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@index([expiresAt])
+  @@index([sessionExpiresAt, endedAt])
+  @@index([staffId, createdAt])
+  @@index([userId, createdAt])
 }
 
 // Audit du back-office : append-only (le service n'expose que des inserts).

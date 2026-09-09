@@ -1,5 +1,10 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { MembershipStatus, WorkspaceRole } from '@prisma/client';
+import {
+  MembershipStatus,
+  WorkspaceRole,
+  WorkspaceStatus,
+  WorkspaceType,
+} from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { UsageGuardService } from '../../billing/usage-guard.service';
 import { WorkspaceAccessService } from '../authorization/workspace-access.service';
@@ -10,6 +15,7 @@ describe('TeamsService', () => {
   let prisma: {
     team: {
       findMany: jest.Mock;
+      findFirst: jest.Mock;
       findUnique: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
@@ -32,7 +38,11 @@ describe('TeamsService', () => {
     prisma = {
       team: {
         findMany: jest.fn().mockResolvedValue([]),
-        findUnique: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue(null),
+        findUnique: jest.fn().mockResolvedValue({
+          type: WorkspaceType.ORGANIZATION,
+          status: WorkspaceStatus.ACTIVE,
+        }),
         create: jest
           .fn()
           .mockImplementation(({ data }) =>
@@ -68,6 +78,7 @@ describe('TeamsService', () => {
   });
 
   it('scopes findOne through workspace authorization and 404s if absent', async () => {
+    prisma.team.findUnique.mockResolvedValueOnce(null);
     await expect(service.findOne('nope', { id: 'u1' })).rejects.toBeInstanceOf(
       NotFoundException,
     );
@@ -100,6 +111,26 @@ describe('TeamsService', () => {
         }),
       }),
     );
+  });
+
+  it('creates at most one personal workspace per owner', async () => {
+    await service.create(
+      { name: 'Habib — Personnel', type: WorkspaceType.PERSONAL },
+      'u1',
+    );
+    expect(prisma.team.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: WorkspaceType.PERSONAL,
+          personalOwnerId: 'u1',
+        }),
+      }),
+    );
+
+    prisma.team.findFirst.mockResolvedValueOnce({ id: 'personal-1' });
+    await expect(
+      service.create({ name: 'Second', type: WorkspaceType.PERSONAL }, 'u1'),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('authorizes workspace updates before writing', async () => {

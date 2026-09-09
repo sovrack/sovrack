@@ -76,6 +76,9 @@ test:unit:
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
     POSTGRES_DB: deploy_automation_test
+    # Active les assertions d'intégration qui inspectent le stockage brut des
+    # secrets. Sans ce drapeau Jest les marque explicitement comme ignorées.
+    RUN_DB_TESTS: "1"
   script:
     - npm ci
     - npx prisma migrate deploy

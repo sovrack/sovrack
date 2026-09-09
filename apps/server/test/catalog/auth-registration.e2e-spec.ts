@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { Role, WorkspaceRole } from '@prisma/client';
+import { Role, WorkspaceRole, WorkspaceType } from '@prisma/client';
 import { bootstrapE2E, E2EContext } from '../setup-e2e';
 import { CryptoService } from '../../src/shared/crypto/crypto.service';
 
@@ -29,7 +29,8 @@ describe('Email verification registration (e2e)', () => {
     email,
     password: 'StrongPass123!',
     fullName: 'Jane Visitor',
-    teamName: 'Visitor GmbH',
+    workspaceType: WorkspaceType.ORGANIZATION,
+    workspaceName: 'Visitor GmbH',
   };
 
   it('register creates a pending account, without team or billing', async () => {
@@ -64,7 +65,7 @@ describe('Email verification registration (e2e)', () => {
       .expect(401);
   });
 
-  it('rejects a wrong verification code', async () => {
+  it('rejects a wrong code, then creates the requested organization with the valid code', async () => {
     const registration = await request(ctx.app.getHttpServer())
       .post('/auth/register')
       .send(registerPayload)
@@ -79,15 +80,6 @@ describe('Email verification registration (e2e)', () => {
       .expect(400);
     const pending = await ctx.prisma.user.findUnique({ where: { email } });
     expect(pending!.emailVerifiedAt).toBeNull();
-  });
-
-  it('verifies the code, creates an owned workspace and returns a JWT cookie', async () => {
-    const registration = await request(ctx.app.getHttpServer())
-      .post('/auth/register')
-      .send(registerPayload)
-      .expect(201);
-
-    const pending = await ctx.prisma.user.findUnique({ where: { email } });
     const crypto = ctx.app.get(CryptoService);
     const code = (
       JSON.parse(crypto.decrypt(pending!.emailVerificationCode!)) as {
@@ -114,14 +106,60 @@ describe('Email verification registration (e2e)', () => {
     expect(activated!.emailVerifiedAt).not.toBeNull();
 
     const team = await ctx.prisma.team.findFirst({
-      where: { name: registerPayload.teamName },
+      where: { name: registerPayload.workspaceName },
+      include: { organizationProfile: true },
     });
     expect(team).not.toBeNull();
+    expect(team!.type).toBe(WorkspaceType.ORGANIZATION);
+    expect(team!.personalOwnerId).toBeNull();
+    expect(team!.organizationProfile).not.toBeNull();
     const membership = await ctx.prisma.teamMember.findUnique({
       where: { teamId_userId: { teamId: team!.id, userId: activated!.id } },
     });
     expect(membership?.role).toBe(WorkspaceRole.OWNER);
     expect(await ctx.prisma.subscription.count()).toBe(0);
+  });
+
+  it('creates one single-user personal workspace when that identity is chosen', async () => {
+    const personalEmail = 'personal@visitor.test';
+    const registration = await request(ctx.app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: personalEmail,
+        password: registerPayload.password,
+        fullName: 'Solo Builder',
+        workspaceType: WorkspaceType.PERSONAL,
+      })
+      .expect(201);
+
+    const pending = await ctx.prisma.user.findUniqueOrThrow({
+      where: { email: personalEmail },
+    });
+    const crypto = ctx.app.get(CryptoService);
+    const code = (
+      JSON.parse(crypto.decrypt(pending.emailVerificationCode!)) as {
+        code: string;
+      }
+    ).code;
+
+    await request(ctx.app.getHttpServer())
+      .post('/auth/verify-email')
+      .send({
+        email: personalEmail,
+        code,
+        registrationId: registration.body.registrationId,
+      })
+      .expect(200);
+
+    const workspace = await ctx.prisma.team.findUnique({
+      where: { personalOwnerId: pending.id },
+      include: { members: true, organizationProfile: true },
+    });
+    expect(workspace).not.toBeNull();
+    expect(workspace!.type).toBe(WorkspaceType.PERSONAL);
+    expect(workspace!.members).toHaveLength(1);
+    expect(workspace!.members[0].role).toBe(WorkspaceRole.OWNER);
+    expect(workspace!.organizationProfile).toBeNull();
   });
 
   it('resend-code issues a fresh code', async () => {

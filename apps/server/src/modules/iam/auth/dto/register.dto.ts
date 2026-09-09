@@ -1,5 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { WorkspaceType } from '@prisma/client';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  ValidateIf,
+} from 'class-validator';
 import {
   SOVRACK_PASSWORD_OPENAPI,
   IsSovrackPassword,
@@ -29,8 +37,19 @@ export class RegisterDto {
   @IsNotEmpty({ message: 'Nom complet requis' })
   fullName: string;
 
-  @ApiProperty({ example: 'Ma première équipe' })
+  @ApiProperty({ enum: WorkspaceType, example: WorkspaceType.PERSONAL })
+  @IsEnum(WorkspaceType, { message: "Type d'espace invalide" })
+  workspaceType: WorkspaceType;
+
+  @ApiPropertyOptional({
+    example: 'Acme Engineering',
+    description: 'Obligatoire uniquement pour un espace organisation',
+  })
+  @ValidateIf(
+    (dto: RegisterDto) => dto.workspaceType === WorkspaceType.ORGANIZATION,
+  )
   @IsString({ message: 'Le nom doit être une chaîne de caractères' })
-  @IsNotEmpty({ message: "Nom de l'équipe requis" })
-  teamName: string;
+  @IsNotEmpty({ message: "Nom de l'organisation requis" })
+  @MaxLength(120)
+  workspaceName?: string;
 }

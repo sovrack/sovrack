@@ -177,7 +177,7 @@ describe('ProjectsService', () => {
   });
 
   it('filters projects by membership for a workspace MEMBER', async () => {
-    await service.findAll('admin', Role.SUPER_ADMIN);
+    await service.findAll('admin', Role.OWNER);
     expect(prisma.project.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {

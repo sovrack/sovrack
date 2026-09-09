@@ -2,10 +2,12 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
+import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { AccountDeletionService } from '../iam/authorization/account-deletion.service';
 import { StaffAuditService } from './staff-audit.service';
@@ -23,9 +25,16 @@ export class StaffOperationsService {
   ) {}
 
   async getOverview() {
+    const clientFilter = { legacyStaffRetiredAt: null } as const;
     const [userAgg, activeUsers, teamsTotal, subs] = await Promise.all([
-      this.prisma.user.groupBy({ by: ['role'], _count: { id: true } }),
-      this.prisma.user.count({ where: { isActive: true } }),
+      this.prisma.user.groupBy({
+        by: ['role'],
+        where: clientFilter,
+        _count: { id: true },
+      }),
+      this.prisma.user.count({
+        where: { ...clientFilter, isActive: true },
+      }),
       this.prisma.team.count(),
       this.prisma.subscription.groupBy({
         by: ['status'],
@@ -39,6 +48,7 @@ export class StaffOperationsService {
       subs.map((subscription) => [subscription.status, subscription._count.id]),
     );
     const recentUsers = await this.prisma.user.findMany({
+      where: clientFilter,
       orderBy: { createdAt: 'desc' },
       take: 10,
       select: {
@@ -75,8 +85,11 @@ export class StaffOperationsService {
     const page = Math.max(1, Number(pagination?.page) || 1);
     const take = Math.min(100, Math.max(1, Number(pagination?.limit) || 50));
     const [total, items] = await Promise.all([
-      this.prisma.user.count(),
+      this.prisma.user.count({
+        where: { legacyStaffRetiredAt: null },
+      }),
       this.prisma.user.findMany({
+        where: { legacyStaffRetiredAt: null },
         skip: (page - 1) * take,
         take,
         orderBy: { createdAt: 'desc' },
@@ -88,6 +101,13 @@ export class StaffOperationsService {
           isActive: true,
           createdAt: true,
           updatedAt: true,
+          teams: {
+            where: { status: 'ACTIVE' },
+            select: {
+              role: true,
+              team: { select: { id: true, name: true, type: true } },
+            },
+          },
         },
       }),
     ]);
@@ -107,6 +127,8 @@ export class StaffOperationsService {
           id: true,
           name: true,
           description: true,
+          type: true,
+          status: true,
           createdAt: true,
           _count: { select: { members: true, projects: true, servers: true } },
         },
@@ -137,8 +159,7 @@ export class StaffOperationsService {
     actorId: string,
     ip?: string | null,
   ) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('Utilisateur introuvable');
+    const user = await this.findClientUser(userId);
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -174,8 +195,7 @@ export class StaffOperationsService {
     actorId: string,
     ip?: string | null,
   ) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('Utilisateur introuvable');
+    const user = await this.findClientUser(userId);
     if (!Object.values(Role).includes(role)) {
       throw new BadRequestException('Rôle invalide');
     }
@@ -204,7 +224,7 @@ export class StaffOperationsService {
 
   async updateUser(
     userId: string,
-    dto: { role?: Role; isActive?: boolean },
+    dto: { isActive?: boolean },
     actorId: string,
     ip?: string | null,
   ) {
@@ -212,21 +232,17 @@ export class StaffOperationsService {
     if (dto.isActive !== undefined) {
       results.push(this.setUserActive(userId, dto.isActive, actorId, ip));
     }
-    if (dto.role !== undefined) {
-      results.push(this.setUserRole(userId, dto.role, actorId, ip));
-    }
     if (results.length === 0) {
       return {
-        message: 'Aucune modification fournie (role ou isActive attendu)',
+        message: 'Aucune modification fournie (isActive attendu)',
       };
     }
-    const [activeResult, roleResult] = await Promise.all(results);
-    return { active: activeResult, role: roleResult };
+    const [activeResult] = await Promise.all(results);
+    return { active: activeResult };
   }
 
   async deleteUser(userId: string, actorId: string, ip?: string | null) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('Utilisateur introuvable');
+    const user = await this.findClientUser(userId);
     await this.accountDeletion.deleteIdentity(userId);
     await this.audit.record({
       staffId: actorId,
@@ -239,40 +255,156 @@ export class StaffOperationsService {
     return { message: `Le compte ${user.email} a été supprimé définitivement` };
   }
 
-  async impersonateUser(
+  async createImpersonationGrant(
     userId: string,
     actorStaffId: string,
+    reason: string,
     ip?: string | null,
-  ): Promise<{ access_token: string; user: SafeUser }> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('Utilisateur introuvable');
+  ): Promise<{
+    redirectUrl: string;
+    expiresInSeconds: number;
+    user: SafeUser;
+  }> {
+    const user = await this.findClientUser(userId);
     if (!user.isActive) {
       throw new BadRequestException('Le compte cible est désactivé');
     }
-    const payload = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      sub: user.id,
-      authType: 'staff-impersonation' as const,
-      impersonatedByStaffId: actorStaffId,
-      sessionVersion: user.sessionVersion,
-    };
-    const customerSecret = this.config.get<string>('JWT_SECRET');
-    if (!customerSecret) throw new Error('JWT_SECRET non configuré');
-    const token = this.jwtService.sign(payload, {
-      secret: customerSecret,
-      expiresIn: '15m',
+    const normalizedReason = reason.trim();
+    if (normalizedReason.length < 10 || normalizedReason.length > 500) {
+      throw new BadRequestException(
+        "Le motif d'assistance doit contenir entre 10 et 500 caractères",
+      );
+    }
+    const token = randomBytes(32).toString('base64url');
+    const tokenHash = this.hashImpersonationToken(token);
+    const expiresInSeconds = 60;
+    await this.prisma.staffImpersonationGrant.create({
+      data: {
+        tokenHash,
+        userId,
+        staffId: actorStaffId,
+        reason: normalizedReason,
+        requestedIp: ip,
+        expiresAt: new Date(Date.now() + expiresInSeconds * 1000),
+      },
     });
     await this.audit.record({
       staffId: actorStaffId,
       action: 'user.impersonate',
       resource: 'user',
       resourceId: userId,
-      after: { email: user.email },
+      after: { email: user.email, reason: normalizedReason },
       ip,
     });
-    return { access_token: token, user: toSafeUser(user) };
+    const customerAppUrl = this.config
+      .get<string>(
+        'CUSTOMER_APP_URL',
+        this.config.get<string>('FRONTEND_URL', 'http://localhost:3000'),
+      )
+      .replace(/\/+$/, '');
+    return {
+      redirectUrl: `${customerAppUrl}/staff-session-exchange#token=${encodeURIComponent(token)}`,
+      expiresInSeconds,
+      user: toSafeUser(user),
+    };
+  }
+
+  async exchangeImpersonationGrant(
+    token: string,
+    ip?: string | null,
+  ): Promise<{
+    access_token: string;
+    user: SafeUser;
+    expiresInSeconds: number;
+  }> {
+    const tokenHash = this.hashImpersonationToken(token);
+    const customerSecret = this.config.get<string>('JWT_SECRET');
+    if (!customerSecret) throw new Error('JWT_SECRET non configuré');
+    const expiresInSeconds = 15 * 60;
+    const sessionExpiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+    const exchanged = await this.prisma.$transaction(async (tx) => {
+      const grant = await tx.staffImpersonationGrant.findUnique({
+        where: { tokenHash },
+        include: { user: true },
+      });
+      if (
+        !grant ||
+        grant.consumedAt ||
+        grant.expiresAt.getTime() <= Date.now() ||
+        !grant.user.isActive ||
+        grant.user.legacyStaffRetiredAt
+      ) {
+        throw new UnauthorizedException(
+          "L'autorisation d'assistance est invalide ou expirée",
+        );
+      }
+      const consumed = await tx.staffImpersonationGrant.updateMany({
+        where: {
+          id: grant.id,
+          consumedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        data: { consumedAt: new Date(), sessionExpiresAt },
+      });
+      if (consumed.count !== 1) {
+        throw new UnauthorizedException(
+          "L'autorisation d'assistance a déjà été utilisée",
+        );
+      }
+      await tx.staffAuditLog.create({
+        data: {
+          staffId: grant.staffId,
+          action: 'user.impersonation.exchange',
+          resource: 'user',
+          resourceId: grant.user.id,
+          afterJson: {
+            grantId: grant.id,
+            reason: grant.reason,
+            expiresInSeconds,
+          },
+          ip: ip ?? null,
+        },
+      });
+      return {
+        grantId: grant.id,
+        staffId: grant.staffId,
+        reason: grant.reason,
+        user: grant.user,
+      };
+    });
+
+    const accessToken = this.jwtService.sign(
+      {
+        id: exchanged.user.id,
+        email: exchanged.user.email,
+        role: exchanged.user.role,
+        sub: exchanged.user.id,
+        authType: 'staff-impersonation' as const,
+        impersonatedByStaffId: exchanged.staffId,
+        impersonationGrantId: exchanged.grantId,
+        sessionVersion: exchanged.user.sessionVersion,
+      },
+      { secret: customerSecret, expiresIn: '15m' },
+    );
+    return {
+      access_token: accessToken,
+      user: toSafeUser(exchanged.user),
+      expiresInSeconds,
+    };
+  }
+
+  private hashImpersonationToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private async findClientUser(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    // Retired pre-Staff identities remain only for referential integrity. Treat
+    // them as absent on every customer operation, even with a historical ID.
+    if (!user || user.legacyStaffRetiredAt) {
+      throw new NotFoundException('Utilisateur introuvable');
+    }
+    return user;
   }
 
   async listAudit(pagination?: { page?: number; limit?: number }) {

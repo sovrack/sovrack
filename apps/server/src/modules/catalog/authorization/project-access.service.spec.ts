@@ -40,10 +40,10 @@ describe('ProjectAccessService', () => {
   });
 
   describe('assertCanAccessProject', () => {
-    it('forbids a platform SUPER_ADMIN who is not a member', async () => {
+    it('forbids a legacy platform administrator who is not a member', async () => {
       const { svc, workspaceAccess } = make();
       await expect(
-        svc.assertCanAccessProject('p1', 'u1', Role.SUPER_ADMIN),
+        svc.assertCanAccessProject('p1', 'u1', Role.OWNER),
       ).rejects.toThrow(NotFoundException);
       expect(workspaceAccess.assertProjectAction).toHaveBeenCalled();
     });

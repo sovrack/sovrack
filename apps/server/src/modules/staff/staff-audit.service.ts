@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 
 export type StaffAuditAction =
   | 'staff.login'
+  | 'staff.login.mfa_failed'
   | 'staff.logout'
   | 'staff.create'
   | 'staff.invite'
@@ -14,6 +15,9 @@ export type StaffAuditAction =
   | 'staff.password.reset.delivery_failed'
   | 'staff.password.reset.completed'
   | 'staff.password.recovery.executed'
+  | 'staff.mfa.setup_started'
+  | 'staff.mfa.enabled'
+  | 'staff.mfa.reset'
   | 'staff.update'
   | 'staff.block'
   | 'platform.email.settings.update'
@@ -22,7 +26,9 @@ export type StaffAuditAction =
   | 'user.unblock'
   | 'user.role.change'
   | 'user.delete'
-  | 'user.impersonate';
+  | 'user.impersonate'
+  | 'user.impersonation.exchange'
+  | 'user.impersonation.logout';
 
 /**
  * Journal d'audit du back-office — APPEND-ONLY.

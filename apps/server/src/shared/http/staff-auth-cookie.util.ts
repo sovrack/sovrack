@@ -56,7 +56,10 @@ export function buildStaffAuthCookieOptions(
     configService.get<string>('STAFF_AUTH_COOKIE_MAX_AGE_MS'),
     STAFF_AUTH_COOKIE_MAX_AGE_MS_DEFAULT,
   );
-  const domain = configService.get<string>('AUTH_COOKIE_DOMAIN')?.trim();
+  // Host-only by default. Never inherit the customer cookie domain: sharing a
+  // staff session with the public site or customer console breaks plane
+  // isolation.
+  const domain = configService.get<string>('STAFF_AUTH_COOKIE_DOMAIN')?.trim();
 
   return {
     httpOnly: true,

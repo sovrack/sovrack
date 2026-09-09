@@ -11,7 +11,9 @@ function buildStrategy(
     emailVerifiedAt: new Date(),
     provider: 'email',
     sessionVersion: 0,
+    legacyStaffRetiredAt: null,
   },
+  grant: unknown = null,
 ): JwtStrategy {
   const config = {
     get: (key: string) =>
@@ -19,6 +21,9 @@ function buildStrategy(
   } as unknown as ConfigService;
   const prisma = {
     user: { findUnique: jest.fn().mockResolvedValue(user) },
+    staffImpersonationGrant: {
+      findUnique: jest.fn().mockResolvedValue(grant),
+    },
   } as unknown as PrismaService;
   return new JwtStrategy(config, prisma);
 }
@@ -87,6 +92,67 @@ describe('JwtStrategy', () => {
           id: 'u1',
           email: 'a@b.com',
           sessionVersion: 1,
+        } as JwtPayloadDto),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it("rejette le JWT d'une identité Staff historique retirée", async () => {
+      const strategy = buildStrategy({
+        email: 'a@b.com',
+        isActive: true,
+        emailVerifiedAt: new Date(),
+        provider: 'email',
+        sessionVersion: 0,
+        legacyStaffRetiredAt: new Date('2026-09-08'),
+      });
+      await expect(
+        strategy.validate({
+          id: 'u1',
+          email: 'a@b.com',
+          sessionVersion: 0,
+        } as JwtPayloadDto),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it("accepte une session d'assistance consommée et encore active", async () => {
+      const strategy = buildStrategy(undefined, {
+        userId: 'u1',
+        staffId: 'staff-1',
+        consumedAt: new Date(),
+        sessionExpiresAt: new Date(Date.now() + 60_000),
+        endedAt: null,
+      });
+      const payload = {
+        id: 'u1',
+        email: 'a@b.com',
+        role: 'OWNER',
+        sessionVersion: 0,
+        authType: 'staff-impersonation',
+        impersonatedByStaffId: 'staff-1',
+        impersonationGrantId: 'grant-1',
+      } as JwtPayloadDto;
+
+      await expect(strategy.validate(payload)).resolves.toBe(payload);
+    });
+
+    it("refuse immédiatement une session d'assistance terminée", async () => {
+      const strategy = buildStrategy(undefined, {
+        userId: 'u1',
+        staffId: 'staff-1',
+        consumedAt: new Date(),
+        sessionExpiresAt: new Date(Date.now() + 60_000),
+        endedAt: new Date(),
+      });
+
+      await expect(
+        strategy.validate({
+          id: 'u1',
+          email: 'a@b.com',
+          role: 'OWNER',
+          sessionVersion: 0,
+          authType: 'staff-impersonation',
+          impersonatedByStaffId: 'staff-1',
+          impersonationGrantId: 'grant-1',
         } as JwtPayloadDto),
       ).rejects.toThrow(UnauthorizedException);
     });

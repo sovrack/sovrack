@@ -15,6 +15,7 @@ const staff: Staff = {
   status: StaffStatus.ACTIVE,
   mfaSecret: null,
   mfaEnabled: false,
+  mfaLastUsedStep: null,
   lastLoginAt: null,
   deletedAt: null,
   createdBy: null,
