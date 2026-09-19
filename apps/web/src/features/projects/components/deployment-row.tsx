@@ -13,10 +13,7 @@ import {
   Square,
   Trash2,
 } from "lucide-react";
-import type {
-  Deployment,
-  DeploymentStatus,
-} from "@/features/deployments/types";
+import type { Deployment } from "@/features/deployments/types";
 import {
   timeAgo,
   dur,
@@ -26,14 +23,8 @@ import {
   STATUS_DOT,
   STATUS_BORDER,
 } from "@/features/deployments/utils";
-
-const STATUS_LABEL: Record<DeploymentStatus, string> = {
-  RUNNING: "Running",
-  SUCCESS: "Success",
-  FAILED: "Failed",
-  PENDING: "Pending",
-  CANCELED: "Canceled",
-};
+import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
+import { deploymentStatusLabel } from "@/shared/i18n/product-labels";
 
 type DeploymentRowProps = {
   dep: Deployment;
@@ -82,7 +73,9 @@ export function DeploymentRow({
     dep.finishedAt ?? (dep.status === "RUNNING" ? undefined : dep.startedAt),
   );
   const isLive = dep.status === "RUNNING" || dep.status === "PENDING";
-  const canRollback = dep.status === "SUCCESS" || dep.status === "FAILED";
+  const canRedeploy = dep.status === "SUCCESS" || dep.status === "FAILED";
+  const canRollback =
+    isCapabilityEnabled("deploymentStrategiesAndRollback") && canRedeploy;
   const isServing = (dep.containers?.length ?? 0) > 0;
   const isSuperseded = dep.status === "SUCCESS" && !isServing;
 
@@ -108,7 +101,7 @@ export function DeploymentRow({
           <span
             className={`text-xs font-semibold ${STATUS_COLOR[dep.status] ?? "text-zinc-400"}`}
           >
-            {STATUS_LABEL[dep.status]}
+            {deploymentStatusLabel(dep.status)}
           </span>
           {!projectId && dep.project && (
             <Link
@@ -151,7 +144,7 @@ export function DeploymentRow({
               )}
             </span>
           )}
-          <span>{dep.user?.fullName ?? "Auto-deploy"}</span>
+          <span>{dep.user?.fullName ?? "Déploiement automatique"}</span>
           {dep.environment?.server && (
             <span className="hidden sm:inline">
               {dep.environment.server.name}
@@ -177,12 +170,12 @@ export function DeploymentRow({
       <div className="flex shrink-0 items-center gap-1.5">
         {isServing && (
           <span className="hidden sm:flex items-center gap-1 text-[10px] font-semibold text-green-400">
-            <CheckCircle2 size={11} /> Live
+            <CheckCircle2 size={11} /> En service
           </span>
         )}
         {isSuperseded && (
           <span className="hidden sm:flex items-center gap-1 text-[10px] font-semibold text-[var(--text-muted)]">
-            Superseded
+            Remplacé
           </span>
         )}
 
@@ -190,9 +183,9 @@ export function DeploymentRow({
           type="button"
           onClick={() => onOpenDetails(dep)}
           className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
-          title="View deployment details"
+          title="Voir les détails du déploiement"
         >
-          Details <ChevronRight size={11} />
+          Détails <ChevronRight size={11} />
         </button>
 
         {canMutate && isLive && (
@@ -201,97 +194,98 @@ export function DeploymentRow({
             onClick={() => onCancel(dep.id)}
             disabled={cancellingId === dep.id}
             className="flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
-            title="Cancel"
+            title="Annuler"
           >
             {cancellingId === dep.id ? (
               <Loader2 size={11} className="animate-spin" />
             ) : (
               <Square size={11} />
             )}
-            <span className="hidden sm:inline">Cancel</span>
+            <span className="hidden sm:inline">Annuler</span>
           </button>
         )}
 
-        {canMutate && isSuperseded && (
+        {canMutate && canRollback && isSuperseded && (
           <button
             type="button"
             onClick={() => onRestore(dep.id)}
             disabled={rollingBackId === dep.id}
             className="flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50"
-            title="Restore this version"
+            title="Restaurer cette version"
           >
             {rollingBackId === dep.id ? (
               <Loader2 size={11} className="animate-spin" />
             ) : (
               <RotateCcw size={11} />
             )}
-            <span className="hidden sm:inline">Restore</span>
+            <span className="hidden sm:inline">Restaurer</span>
           </button>
         )}
 
-        {canMutate && dep.status === "FAILED" && (
+        {canMutate && canRollback && dep.status === "FAILED" && (
           <button
             type="button"
             onClick={() => onRollback(dep.id)}
             disabled={rollingBackId === dep.id}
             className="flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-xs font-medium text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-50"
-            title="Rollback to last successful deployment"
+            title="Revenir au dernier déploiement réussi"
           >
             {rollingBackId === dep.id ? (
               <Loader2 size={11} className="animate-spin" />
             ) : (
               <RotateCcw size={11} />
             )}
-            <span className="hidden sm:inline">Rollback</span>
+            <span className="hidden sm:inline">Restaurer</span>
           </button>
         )}
 
-        {canMutate && canRollback && (
+        {canMutate && canRedeploy && (
           <button
             type="button"
             onClick={() => onRedeploy(dep)}
             className="flex items-center gap-1 rounded-lg bg-[var(--text-primary)] px-2.5 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90"
-            title="Redeploy"
+            title="Redéployer"
           >
             <Rocket size={11} />
-            <span className="hidden sm:inline">Redeploy</span>
+            <span className="hidden sm:inline">Redéployer</span>
           </button>
         )}
 
-        {canMutate && (confirmDeleteId === dep.id ? (
-          <div className="flex items-center gap-1">
+        {canMutate &&
+          (confirmDeleteId === dep.id ? (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onDelete(dep.id)}
+                disabled={deletingId === dep.id}
+                className="flex items-center gap-1 rounded-lg border border-red-500/50 bg-red-500/20 px-2 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/30 disabled:opacity-50"
+              >
+                {deletingId === dep.id ? (
+                  <Loader2 size={11} className="animate-spin" />
+                ) : (
+                  <Trash2 size={11} />
+                )}
+                Confirmer
+              </button>
+              <button
+                type="button"
+                onClick={onCancelDelete}
+                className="rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+              >
+                Annuler
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
-              onClick={() => onDelete(dep.id)}
-              disabled={deletingId === dep.id}
-              className="flex items-center gap-1 rounded-lg border border-red-500/50 bg-red-500/20 px-2 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/30 disabled:opacity-50"
+              onClick={() => onConfirmDelete(dep.id)}
+              className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-red-400"
+              title="Supprimer"
             >
-              {deletingId === dep.id ? (
-                <Loader2 size={11} className="animate-spin" />
-              ) : (
-                <Trash2 size={11} />
-              )}
-              Confirm
+              <Trash2 size={11} />
+              <span className="hidden sm:inline">Supprimer</span>
             </button>
-            <button
-              type="button"
-              onClick={onCancelDelete}
-              className="rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onConfirmDelete(dep.id)}
-            className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-red-400"
-            title="Delete"
-          >
-            <Trash2 size={11} />
-            <span className="hidden sm:inline">Delete</span>
-          </button>
-        ))}
+          ))}
       </div>
     </div>
   );

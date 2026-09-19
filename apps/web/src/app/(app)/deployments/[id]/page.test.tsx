@@ -94,12 +94,12 @@ describe("DeploymentDetailPage — onglets (P2.4)", () => {
 
     // Onglet Général par défaut : les logs ne sont pas encore affichés.
     await waitFor(() =>
-      expect(screen.getByText("Details")).toBeInTheDocument(),
+      expect(screen.getByText("Détails")).toBeInTheDocument(),
     );
     expect(screen.queryByText("Starting build")).not.toBeInTheDocument();
 
     // Bascule sur l'onglet Logs.
-    fireEvent.click(screen.getByText("Logs"));
+    fireEvent.click(screen.getByText("Journaux"));
 
     await waitFor(() =>
       expect(screen.getByText("Starting build")).toBeInTheDocument(),

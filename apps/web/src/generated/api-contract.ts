@@ -201,7 +201,7 @@ export interface paths {
         get: operations["AuthController_getMe"];
         put?: never;
         post?: never;
-        /** Delete the current account after email confirmation */
+        /** Schedule account deletion after email confirmation */
         delete: operations["AuthController_deleteAccount"];
         options?: never;
         head?: never;
@@ -327,6 +327,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/settings/security/mfa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** État de la MFA facultative du client connecté */
+        get: operations["UserMfaController_getStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/settings/security/mfa/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Démarrer l'enrôlement TOTP facultatif */
+        post: operations["UserMfaController_beginSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/settings/security/mfa/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activer la MFA facultative après vérification */
+        post: operations["UserMfaController_enable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/settings/security/mfa/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Désactiver la MFA facultative */
+        post: operations["UserMfaController_disable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{workspaceId}/audit-logs": {
         parameters: {
             query?: never;
@@ -391,7 +459,7 @@ export interface paths {
         /** Edit a team */
         put: operations["TeamsController_update"];
         post?: never;
-        /** Delete a team */
+        /** Archive a workspace without deleting resources */
         delete: operations["TeamsController_remove"];
         options?: never;
         head?: never;
@@ -449,6 +517,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{id}/membership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Leave an organization as the current user */
+        delete: operations["TeamsController_leaveWorkspace"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{id}/members/{userId}/role": {
         parameters: {
             query?: never;
@@ -464,6 +549,23 @@ export interface paths {
         head?: never;
         /** Update a workspace member role */
         patch: operations["TeamsController_updateMemberRole"];
+        trace?: never;
+    };
+    "/workspaces/{id}/members/{userId}/billing-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Grant or revoke the independent billing permission */
+        patch: operations["TeamsController_updateMemberBillingAccess"];
         trace?: never;
     };
     "/workspaces/{id}/members/{userId}/status": {
@@ -513,6 +615,23 @@ export interface paths {
         post?: never;
         /** Revoke a pending workspace invitation */
         delete: operations["WorkspaceInvitationsController_revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{workspaceId}/invitations/{invitationId}/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace and resend a pending invitation */
+        post: operations["WorkspaceInvitationsController_resend"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -6061,126 +6180,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/staff/overview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Vue globale de la plateforme */
-        get: operations["StaffController_getOverview"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/staff/audit-logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Journal d’audit du back-office (append-only) */
-        get: operations["StaffController_getAuditLogs"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/staff/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Liste des utilisateurs clients */
-        get: operations["StaffController_listUsers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/staff/teams": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Liste des équipes plateforme */
-        get: operations["StaffController_listTeams"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/staff/subscriptions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Liste des abonnements plateforme */
-        get: operations["StaffController_listSubscriptions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/staff/users/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Supprimer définitivement un compte client (ROOT) */
-        delete: operations["StaffController_deleteUser"];
-        options?: never;
-        head?: never;
-        /** Bloquer ou débloquer une identité cliente */
-        patch: operations["StaffController_updateUser"];
-        trace?: never;
-    };
-    "/staff/users/{id}/impersonate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Créer une autorisation client éphémère et journalisée */
-        post: operations["StaffController_impersonate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/staff/impersonation/exchange": {
         parameters: {
             query?: never;
@@ -6266,6 +6265,195 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vue globale de la plateforme */
+        get: operations["StaffPlatformController_getOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Journal d’audit du back-office (append-only) */
+        get: operations["StaffPlatformController_getAuditLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liste des identités clientes */
+        get: operations["StaffPlatformController_listUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Détail d'une identité cliente */
+        get: operations["StaffPlatformController_getUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Bloquer ou débloquer une identité cliente */
+        patch: operations["StaffPlatformController_updateUser"];
+        trace?: never;
+    };
+    "/staff/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liste des workspaces de la plateforme */
+        get: operations["StaffPlatformController_listTeams"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/teams/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Détail d'un workspace et de ses membres */
+        get: operations["StaffPlatformController_getTeam"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/teams/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Suspendre, archiver ou réactiver un workspace */
+        patch: operations["StaffPlatformController_updateTeamStatus"];
+        trace?: never;
+    };
+    "/staff/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liste des abonnements plateforme */
+        get: operations["StaffPlatformController_listSubscriptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/users/{id}/deletion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Programmer une suppression avec délai de grâce */
+        post: operations["StaffPlatformController_scheduleUserDeletion"];
+        /** Annuler une suppression programmée */
+        delete: operations["StaffPlatformController_cancelUserDeletion"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/users/{id}/revoke-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Révoquer toutes les sessions d'une identité */
+        post: operations["StaffPlatformController_revokeUserSessions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/users/{id}/impersonate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Créer une assistance éphémère et journalisée */
+        post: operations["StaffPlatformController_impersonate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -6281,7 +6469,7 @@ export interface components {
         RegisterDto: {
             /**
              * Format: email
-             * @example dev@sovrack.tech
+             * @example utilisateur@example.com
              */
             email: string;
             /** @example StrongPassword123! */
@@ -6302,7 +6490,7 @@ export interface components {
         VerifyEmailDto: {
             /**
              * Format: email
-             * @example dev@sovrack.tech
+             * @example utilisateur@example.com
              */
             email: string;
             /**
@@ -6316,7 +6504,7 @@ export interface components {
         ResendVerificationCodeDto: {
             /**
              * Format: email
-             * @example dev@sovrack.tech
+             * @example utilisateur@example.com
              */
             email: string;
             /**
@@ -6326,6 +6514,11 @@ export interface components {
             registrationId: string;
         };
         LoginDto: {
+            /**
+             * @description Uniquement si le client a activé volontairement la MFA : TOTP ou code de secours
+             * @example 123456
+             */
+            mfaCode?: string;
             /** Format: email */
             email: string;
             password: string;
@@ -6355,6 +6548,19 @@ export interface components {
              */
             code: string;
         };
+        EnableUserMfaDto: {
+            /** @example 123456 */
+            code: string;
+        };
+        DisableUserMfaDto: {
+            /** @example Votre mot de passe */
+            password: string;
+            /**
+             * @description Code TOTP ou code de secours à usage unique
+             * @example 123456
+             */
+            code: string;
+        };
         CreateTeamDto: {
             name: string;
             description?: string;
@@ -6370,11 +6576,14 @@ export interface components {
             /** Format: uuid */
             userId: string;
             /** @enum {string} */
-            role?: "ADMIN" | "OWNER" | "MEMBER" | "BILLING";
+            role?: "ADMIN" | "MEMBER";
         };
         UpdateWorkspaceMemberRoleDto: {
             /** @enum {string} */
-            role: "ADMIN" | "OWNER" | "MEMBER" | "BILLING";
+            role: "OWNER" | "ADMIN" | "MEMBER";
+        };
+        UpdateWorkspaceMemberBillingAccessDto: {
+            canManageBilling: boolean;
         };
         UpdateWorkspaceMemberStatusDto: {
             /** @enum {string} */
@@ -6384,7 +6593,7 @@ export interface components {
             /** Format: email */
             email: string;
             /** @enum {string} */
-            role?: "ADMIN" | "OWNER" | "MEMBER" | "BILLING";
+            role?: "ADMIN" | "MEMBER";
         };
         AcceptWorkspaceInvitationDto: {
             token: string;
@@ -6426,13 +6635,27 @@ export interface components {
             adminToken?: string;
             isDefault?: boolean;
         };
+        CreateGithubProviderDto: {
+            name: string;
+            providerUrl: string;
+            internalUrl?: string;
+            adminToken: string;
+            isDefault?: boolean;
+        };
+        UpdateGithubProviderDto: {
+            name?: string;
+            providerUrl?: string;
+            internalUrl?: string;
+            adminToken?: string;
+            isDefault?: boolean;
+        };
         ConnectSourceDto: {
             /**
              * @description Type de provider Git (GITLAB ou GITHUB)
              * @example GITLAB
              * @enum {string}
              */
-            provider: "GITLAB" | "GITHUB" | "GITEA";
+            provider: "GITLAB" | "GITHUB";
             /**
              * @description Repository path "owner/repo" (provider-agnostic)
              * @example group/project
@@ -6504,7 +6727,7 @@ export interface components {
             /** @example frontend */
             serviceName?: string;
             /** @enum {string} */
-            serviceType?: "APPLICATION" | "DATABASE" | "MANAGED" | "WORKER" | "CRON";
+            serviceType?: "APPLICATION" | "DATABASE";
         };
         ImportGitlabGroupDto: {
             /** @example my-app */
@@ -7352,7 +7575,7 @@ export interface components {
         };
         SourceConnectionDto: {
             /** @enum {string} */
-            provider: "GITLAB" | "GITHUB" | "GITEA";
+            provider: "GITLAB" | "GITHUB";
             /** @example group/project */
             repoPath: string;
             /** @example <git-access-token> */
@@ -7367,7 +7590,7 @@ export interface components {
              * @example APPLICATION
              * @enum {string}
              */
-            type?: "APPLICATION" | "DATABASE" | "MANAGED" | "WORKER" | "CRON";
+            type?: "APPLICATION" | "DATABASE";
             /** @example Backend API NestJS */
             description?: string;
             /**
@@ -7471,7 +7694,7 @@ export interface components {
         };
         DiscoverGroupDto: {
             /** @enum {string} */
-            provider: "GITLAB" | "GITHUB" | "GITEA";
+            provider: "GITLAB" | "GITHUB";
             /** @example my-group */
             groupPath: string;
             /** @example <git-access-token> */
@@ -7490,7 +7713,7 @@ export interface components {
              * @example APPLICATION
              * @enum {string}
              */
-            type?: "APPLICATION" | "DATABASE" | "MANAGED" | "WORKER" | "CRON";
+            type?: "APPLICATION" | "DATABASE";
             /** @example Backend API NestJS */
             description?: string;
             /**
@@ -7616,7 +7839,7 @@ export interface components {
         StaffLoginDto: {
             /**
              * Format: email
-             * @example admin@sovrack.tech
+             * @example contact@sovrack.tech
              */
             email: string;
             /** @example S3cure-Password! */
@@ -7630,14 +7853,14 @@ export interface components {
         StaffForgotPasswordDto: {
             /**
              * Format: email
-             * @example admin@sovrack.tech
+             * @example contact@sovrack.tech
              */
             email: string;
         };
         StaffResetPasswordDto: {
             /**
              * Format: email
-             * @example admin@sovrack.tech
+             * @example contact@sovrack.tech
              */
             email: string;
             /** @example 12345678 */
@@ -7647,7 +7870,7 @@ export interface components {
         AcceptStaffInvitationDto: {
             /**
              * Format: email
-             * @example admin@sovrack.tech
+             * @example contact@sovrack.tech
              */
             email: string;
             /** @example 12345678 */
@@ -7657,7 +7880,7 @@ export interface components {
         RequestStaffActivationCodeDto: {
             /**
              * Format: email
-             * @example admin@sovrack.tech
+             * @example contact@sovrack.tech
              */
             email: string;
         };
@@ -7705,17 +7928,6 @@ export interface components {
             /** Format: email */
             recipient?: string;
         };
-        StaffUpdateUserDto: {
-            /** @description Désactiver (false) ou réactiver (true) */
-            isActive?: boolean;
-        };
-        CreateStaffImpersonationDto: {
-            /**
-             * @description Motif opérationnel obligatoire, conservé dans le journal d'audit
-             * @example Diagnostic du déploiement signalé par le client dans INC-142
-             */
-            reason: string;
-        };
         ExchangeStaffImpersonationDto: {
             /** @description Autorisation d'assistance éphémère reçue du back-office */
             token: string;
@@ -7732,6 +7944,25 @@ export interface components {
              * @example 123456
              */
             code: string;
+        };
+        StaffUpdateWorkspaceStatusDto: {
+            /** @enum {string} */
+            status: "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+        };
+        StaffUpdateUserDto: {
+            /** @description Désactiver (false) ou réactiver (true) */
+            isActive?: boolean;
+        };
+        StaffScheduleUserDeletionDto: {
+            /** @description Motif opérationnel conservé dans le journal append-only */
+            reason: string;
+        };
+        CreateStaffImpersonationDto: {
+            /**
+             * @description Motif opérationnel obligatoire, conservé dans le journal d'audit
+             * @example Diagnostic du déploiement signalé par le client dans INC-142
+             */
+            reason: string;
         };
     };
     responses: never;
@@ -8080,7 +8311,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Account deleted */
+            /** @description Account deletion scheduled */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -8257,6 +8488,82 @@ export interface operations {
             };
             /** @description Not authenticated */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UserMfaController_getStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UserMfaController_beginSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UserMfaController_enable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnableUserMfaDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UserMfaController_disable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisableUserMfaDto"];
+            };
+        };
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8450,7 +8757,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Team deleted */
+            /** @description Workspace archived */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -8555,6 +8862,33 @@ export interface operations {
             };
         };
     };
+    TeamsController_leaveWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Organization left */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The last owner cannot leave */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     TeamsController_updateMemberRole: {
         parameters: {
             query?: never;
@@ -8568,6 +8902,30 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UpdateWorkspaceMemberRoleDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TeamsController_updateMemberBillingAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWorkspaceMemberBillingAccessDto"];
             };
         };
         responses: {
@@ -8658,6 +9016,26 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    WorkspaceInvitationsController_resend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspaceId: string;
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9514,7 +9892,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateGithubProviderDto"];
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -9548,7 +9930,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateGithubProviderDto"];
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -9567,7 +9953,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGithubProviderDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -9605,7 +9995,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGithubProviderDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -18362,165 +18756,6 @@ export interface operations {
             };
         };
     };
-    StaffController_getOverview: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    StaffController_getAuditLogs: {
-        parameters: {
-            query: {
-                page: string;
-                limit: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    StaffController_listUsers: {
-        parameters: {
-            query: {
-                page: string;
-                limit: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    StaffController_listTeams: {
-        parameters: {
-            query: {
-                page: string;
-                limit: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    StaffController_listSubscriptions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    StaffController_deleteUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    StaffController_updateUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StaffUpdateUserDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    StaffController_impersonate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateStaffImpersonationDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     StaffController_exchangeImpersonation: {
         parameters: {
             query?: never;
@@ -18611,6 +18846,273 @@ export interface operations {
         };
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffPlatformController_getOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffPlatformController_getAuditLogs: {
+        parameters: {
+            query: {
+                page: string;
+                limit: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffPlatformController_listUsers: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                search?: string;
+                status?: "active" | "disabled" | "deletion-scheduled";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffPlatformController_getUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffPlatformController_updateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffUpdateUserDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffPlatformController_listTeams: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                search?: string;
+                type?: "PERSONAL" | "ORGANIZATION";
+                status?: "ACTIVE" | "SUSPENDED" | "ARCHIVED" | "DELETION_PENDING";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffPlatformController_getTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffPlatformController_updateTeamStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffUpdateWorkspaceStatusDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffPlatformController_listSubscriptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffPlatformController_scheduleUserDeletion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffScheduleUserDeletionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffPlatformController_cancelUserDeletion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffPlatformController_revokeUserSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StaffPlatformController_impersonate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStaffImpersonationDto"];
+            };
+        };
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

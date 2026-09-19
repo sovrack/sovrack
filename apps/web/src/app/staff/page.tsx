@@ -6,16 +6,32 @@ import { CreditCard, Rocket, Users } from "lucide-react";
 import { staffService } from "@/features/staff/api/staff.service";
 
 export default function StaffDashboardPage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["staff-overview"],
     queryFn: () => staffService.getOverview(),
     enabled: typeof window !== "undefined",
   });
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-32">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-sm text-red-300">
+        Impossible de charger la vue d&apos;ensemble. Vérifiez votre session ou
+        réessayez.
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className="ml-3 rounded-lg border border-red-400/30 px-3 py-1.5 font-semibold"
+        >
+          Réessayer
+        </button>
       </div>
     );
   }
@@ -24,13 +40,13 @@ export default function StaffDashboardPage() {
     {
       label: "Comptes clients",
       value: data.users.total,
-      sub: `${data.users.active} actifs · ${data.users.owners} owners · ${data.users.members} membres`,
+      sub: `${data.users.active} actifs · ${data.users.disabled} désactivés · ${data.users.deletionScheduled} suppressions programmées`,
       icon: Users,
     },
     {
-      label: "Équipes",
+      label: "Workspaces",
       value: data.teams.total,
-      sub: "sur toute la plateforme",
+      sub: `${data.teams.personal} personnels · ${data.teams.organizations} organisations`,
       icon: Rocket,
     },
     {
@@ -84,7 +100,8 @@ export default function StaffDashboardPage() {
               <tr>
                 <th className="px-4 py-3 font-medium">Nom</th>
                 <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Rôle</th>
+                <th className="px-4 py-3 font-medium">Workspaces actifs</th>
+                <th className="px-4 py-3 font-medium">État</th>
                 <th className="px-4 py-3 font-medium">Créé le</th>
               </tr>
             </thead>
@@ -93,10 +110,13 @@ export default function StaffDashboardPage() {
                 <tr key={u.id} className="hover:bg-white/5">
                   <td className="px-4 py-3 text-white">{u.fullName}</td>
                   <td className="px-4 py-3 text-zinc-400">{u.email}</td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-white">
-                      {u.role === "OWNER" ? "Propriétaire" : "Membre"}
-                    </span>
+                  <td className="px-4 py-3 text-zinc-400">{u._count.teams}</td>
+                  <td className="px-4 py-3 text-zinc-400">
+                    {u.deletionScheduledFor
+                      ? "Suppression programmée"
+                      : u.isActive
+                        ? "Actif"
+                        : "Désactivé"}
                   </td>
                   <td className="px-4 py-3 text-zinc-500">
                     {new Date(u.createdAt).toLocaleDateString("fr-FR")}
@@ -106,7 +126,7 @@ export default function StaffDashboardPage() {
               {data.recentUsers.length === 0 && (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-4 py-8 text-center text-zinc-500"
                   >
                     Aucun compte pour l&apos;instant.

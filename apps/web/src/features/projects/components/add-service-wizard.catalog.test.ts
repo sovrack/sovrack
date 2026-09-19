@@ -39,12 +39,15 @@ describe("add-service-wizard catalog", () => {
   });
 
   describe("catalog data", () => {
-    it("exposes the 4 service kinds and the 5 managed database engines", () => {
-      // P2.3 (D3) : "COMPOSE" retiré du catalogue de création (fonctionnalité
-      // morte tant que l'exécuteur ne déploie qu'un conteneur).
-      expect(KINDS).toHaveLength(4);
-      expect(KINDS.map((k) => k.kind)).toContain("TEMPLATE");
-      expect(KINDS.map((k) => k.kind)).not.toContain("COMPOSE");
+    it("exposes the application, database and Docker image kinds available in V1", () => {
+      expect(KINDS.map((kind) => kind.kind)).toEqual([
+        "APPLICATION",
+        "DATABASE",
+        "DOCKER",
+      ]);
+    });
+
+    it("publishes the five managed database definitions", () => {
       expect(DATABASES).toHaveLength(5);
       expect(DATABASES.map((d) => d.type)).toEqual([
         "POSTGRES",

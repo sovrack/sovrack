@@ -21,29 +21,29 @@ function Probe() {
 describe("LanguageProvider / useI18n", () => {
   beforeEach(() => localStorage.clear());
 
-  it("defaults to English and translates to French after toggle", () => {
+  it("defaults to French and can still switch internally", () => {
     render(
       <LanguageProvider>
         <Probe />
       </LanguageProvider>,
     );
-    expect(screen.getByTestId("lang")).toHaveTextContent("en");
-    expect(screen.getByTestId("translated")).toHaveTextContent("Deploy");
-
-    fireEvent.click(screen.getByText("toggle"));
     expect(screen.getByTestId("lang")).toHaveTextContent("fr");
     expect(screen.getByTestId("translated")).toHaveTextContent("Déployer");
+
+    fireEvent.click(screen.getByText("toggle"));
+    expect(screen.getByTestId("lang")).toHaveTextContent("en");
+    expect(screen.getByTestId("translated")).toHaveTextContent("Deploy");
     // Non traduit → reste en anglais (jamais de trou dans l'UI).
     expect(screen.getByTestId("unknown")).toHaveTextContent(
       "Untranslated string",
     );
     // Persistance du choix.
-    expect(localStorage.getItem("deploy-automation-lang")).toBe("fr");
+    expect(localStorage.getItem("deploy-automation-lang")).toBe("en");
   });
 
-  it("falls back to identity English outside a provider (tests, storybook…)", () => {
+  it("falls back to French outside a provider (tests, storybook…)", () => {
     render(<Probe />);
-    expect(screen.getByTestId("lang")).toHaveTextContent("en");
-    expect(screen.getByTestId("translated")).toHaveTextContent("Deploy");
+    expect(screen.getByTestId("lang")).toHaveTextContent("fr");
+    expect(screen.getByTestId("translated")).toHaveTextContent("Déployer");
   });
 });

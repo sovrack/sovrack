@@ -9,7 +9,6 @@ import {
   Rocket,
   Server,
   TerminalSquare,
-  Wrench,
   Users,
 } from "lucide-react";
 import type { ProductCapability } from "@/shared/config/product-capabilities";
@@ -62,8 +61,9 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
       {
         href: "/automation",
         label: "Automation",
-        icon: Wrench,
+        icon: Server,
         adminOnly: true,
+        capability: "serverAutomation",
       },
       { href: "/settings/ssh-keys", label: "SSH Keys", icon: KeyRound },
       {
@@ -107,7 +107,6 @@ export const APP_NAV_SECTIONS: AppNavSection[] = [
         href: "/admin/teams",
         label: "Workspaces",
         icon: Users,
-        adminOnly: true,
       },
     ],
   },

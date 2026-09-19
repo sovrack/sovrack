@@ -69,13 +69,12 @@ export default function BillingPage() {
         <PageHeader
           eyebrow="Settings"
           title="Facturation"
-          description="Parcours non ouvert pendant le développement privé"
+          description="L’accès actuel est gratuit et ne nécessite aucun moyen de paiement"
         />
-        <Alert tone="warning" title="Souscription désactivée">
-          Les plans, paiements et factures affichés auparavant étaient un
-          parcours de développement. Aucune offre n&apos;est actuellement ouverte
-          à la souscription et aucune mutation de facturation n&apos;est envoyée
-          depuis cette page.
+        <Alert tone="info" title="Accès gratuit actif">
+          Vous pouvez utiliser les capacités disponibles de Sovrack dans les
+          limites annoncées sur la page Tarification. Aucun abonnement payant
+          n&apos;est proposé et aucune carte bancaire n&apos;est demandée.
         </Alert>
       </div>
     );
@@ -86,9 +85,10 @@ export default function BillingPage() {
 
 function BillingWorkspace() {
   const queryClient = useQueryClient();
-  const [notice, setNotice] = useState<
-    { tone: "success" | "error"; message: string } | null
-  >(null);
+  const [notice, setNotice] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["billing"],
@@ -169,8 +169,8 @@ function BillingWorkspace() {
 
       {trialEnd && new Date(trialEnd) > new Date() && (
         <Alert tone="info">
-          Essai gratuit jusqu&apos;au {formatDate(trialEnd)}. Choisissez un
-          plan avant la fin de l&apos;essai pour ne pas être limité.
+          Essai gratuit jusqu&apos;au {formatDate(trialEnd)}. Choisissez un plan
+          avant la fin de l&apos;essai pour ne pas être limité.
         </Alert>
       )}
 

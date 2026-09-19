@@ -1,12 +1,19 @@
-# Deploy Automation Frontend
+# Sovrack Frontend
 
 Next.js + TypeScript UI for the Sovrack developer platform.
 
-## Main Areas
+## Surfaces principales
 
-- Operations: dashboard, projects, builds, pipelines, deployments
-- Infrastructure Ops: remote servers, terminal, automation, monitoring
-- Settings: platform settings, SSH keys, git providers, registry, audit logs
+- site public, documentation, statut et pages juridiques ;
+- console client : projets, environnements, services et déploiements ;
+- infrastructure client : serveurs distants, clés SSH et terminal ;
+- intégrations : GitHub, GitLab et registres privés ;
+- espaces personnels et organisations ;
+- back-office staff isolé sur son propre domaine.
+
+L’automatisation générale multi-serveurs est conservée dans le code mais n’est
+pas exposée dans la V1. Les bases proposées sont des conteneurs exécutés sur le
+serveur du client, pas un service de base de données managé.
 
 ## Stack
 
@@ -41,14 +48,15 @@ npm run dev
 ```bash
 npm run lint
 npm run type-check
+npm run test
+npm run test:browser
 npm run build
 ```
 
 ## Production build
 
-`build:image` (CI, Kaniko) builds the Docker image on every merge to `main`
-and pushes it to this project's GitLab Container Registry. `NEXT_PUBLIC_API_URL`
-and `NEXT_PUBLIC_WS_URL` are baked in at build time from the `PUBLIC_API_URL`
-CI/CD variable — changing them requires a new image, not just a container
-restart. This repo does not deploy itself: the actual production rollout
-(pulling the image, restarting containers) lives in `deploy-automation-infra`.
+`build:image` utilise BuildKit rootless et publie une image identifiée par le
+SHA complet du commit. Les URLs publiques sont intégrées à la construction :
+leur modification exige donc une nouvelle image. Ce dépôt ne se déploie jamais
+lui-même ; la qualification des images et la promotion immuable sont réalisées
+par `deploy-automation-infra`.

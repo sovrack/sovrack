@@ -287,7 +287,7 @@ export default function StaffEmailSettingsPage() {
               required={form.enabled}
               value={form.from}
               disabled={!canEdit}
-              placeholder="noreply@sovrack.tech"
+              placeholder="contact@sovrack.tech"
               onChange={(event) =>
                 setForm((current) => ({
                   ...current,
@@ -325,7 +325,7 @@ export default function StaffEmailSettingsPage() {
             type="email"
             value={form.to}
             disabled={!canEdit}
-            placeholder="ops@sovrack.tech"
+            placeholder="contact@sovrack.tech"
             onChange={(event) =>
               setForm((current) => ({ ...current, to: event.target.value }))
             }

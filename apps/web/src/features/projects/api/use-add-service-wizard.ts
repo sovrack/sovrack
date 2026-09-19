@@ -4,13 +4,16 @@ import { useCallback, useEffect, useMemo, useReducer } from "react";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { projectsService } from "@/features/projects/api/projects.service";
 import { servicesService } from "@/features/projects/api/services.service";
-import type { SourceProviderOption } from "@/features/projects/types/project";
 import type {
   CreateServicePayload,
-  DiscoveredRepo,
   ManagedServiceType,
-  ServiceTemplate,
 } from "@/features/projects/types/service";
+import {
+  initialWizardState,
+  type SetFieldAction,
+  type WizardState,
+  wizardReducer,
+} from "@/features/projects/api/use-add-service-wizard.state";
 import {
   repoToName,
   normalizeRepoPath,
@@ -27,149 +30,6 @@ export type UseAddServiceWizardParams = {
   onClose: () => void;
 };
 
-/* ─── State + reducer ──────────────────────────────────────────────────────
- * The 23 pieces of wizard state were previously 23 independent useState
- * calls. Consolidated into one WizardState + a reducer so every transition
- * (reset on open, pick-kind, pick-platform, discover, submit) updates
- * related fields atomically instead of via several sequential setState
- * calls. The hook's returned API (flat values + setters) is unchanged so
- * AddServiceWizard needs no changes. */
-
-type WizardState = {
-  step: Step;
-  kind: ServiceKind | null;
-  appMode: AppMode;
-  platform: "GITLAB" | "GITHUB" | null;
-  error: string | null;
-  submitting: boolean;
-  providers: SourceProviderOption[];
-  providerId: string;
-  name: string;
-  token: string;
-  repoPath: string;
-  branch: string;
-  port: string;
-  groupPath: string;
-  discovering: boolean;
-  discovered: DiscoveredRepo[];
-  selected: Set<string>;
-  databaseType: ManagedServiceType;
-  databaseVersion: string;
-  image: string;
-  composeContent: string;
-  templates: ServiceTemplate[];
-  templateId: string;
-};
-
-const initialState: WizardState = {
-  step: 1,
-  kind: null,
-  appMode: "repo",
-  platform: null,
-  error: null,
-  submitting: false,
-  providers: [],
-  providerId: "",
-  name: "",
-  token: "",
-  repoPath: "",
-  branch: "main",
-  port: "3000",
-  groupPath: "",
-  discovering: false,
-  discovered: [],
-  selected: new Set(),
-  databaseType: "POSTGRES",
-  databaseVersion: "16",
-  image: "",
-  composeContent: "",
-  templates: [],
-  templateId: "",
-};
-
-// Fields touched by reset() in the original hook — deliberately excludes
-// providers/providerId/discovering, which the original reset() also left
-// untouched (providers/providerId get overwritten by the unconditional
-// getSourceProviders() fetch that follows; discovering was simply never
-// part of reset()).
-const RESET_FIELDS = [
-  "step",
-  "kind",
-  "appMode",
-  "platform",
-  "error",
-  "submitting",
-  "name",
-  "token",
-  "repoPath",
-  "branch",
-  "port",
-  "groupPath",
-  "discovered",
-  "selected",
-  "databaseType",
-  "databaseVersion",
-  "image",
-  "composeContent",
-  "templates",
-  "templateId",
-] as const satisfies readonly (keyof WizardState)[];
-
-type SetFieldAction = {
-  [K in keyof WizardState]: {
-    type: "SET_FIELD";
-    field: K;
-    value: WizardState[K];
-  };
-}[keyof WizardState];
-
-type WizardAction =
-  | SetFieldAction
-  | { type: "RESET" }
-  | { type: "PICK_KIND"; kind: ServiceKind }
-  | { type: "PICK_PLATFORM"; platform: "GITLAB" | "GITHUB"; providerId: string }
-  | { type: "TOGGLE_REPO"; repoPath: string }
-  | { type: "DISCOVER_SUCCESS"; repos: DiscoveredRepo[] };
-
-function wizardReducer(state: WizardState, action: WizardAction): WizardState {
-  switch (action.type) {
-    case "SET_FIELD":
-      return { ...state, [action.field]: action.value };
-    case "RESET": {
-      const next = { ...state };
-      for (const field of RESET_FIELDS) {
-        (next as Record<string, unknown>)[field] = initialState[field];
-      }
-      return next;
-    }
-    case "PICK_KIND":
-      return {
-        ...state,
-        kind: action.kind,
-        platform: null,
-        error: null,
-        step: 2,
-      };
-    case "PICK_PLATFORM":
-      return { ...state, platform: action.platform, providerId: action.providerId };
-    case "TOGGLE_REPO": {
-      const next = new Set(state.selected);
-      if (next.has(action.repoPath)) next.delete(action.repoPath);
-      else next.add(action.repoPath);
-      return { ...state, selected: next };
-    }
-    case "DISCOVER_SUCCESS":
-      return {
-        ...state,
-        discovering: false,
-        discovered: action.repos,
-        selected: new Set(action.repos.map((r) => r.repoPath)),
-      };
-    default:
-      return state;
-  }
-}
-
 export function useAddServiceWizard({
   projectId,
   open,
@@ -177,7 +37,7 @@ export function useAddServiceWizard({
   onCreated,
   onClose,
 }: UseAddServiceWizardParams) {
-  const [state, dispatch] = useReducer(wizardReducer, initialState);
+  const [state, dispatch] = useReducer(wizardReducer, initialWizardState);
   const {
     step,
     kind,
@@ -212,18 +72,33 @@ export function useAddServiceWizard({
   );
 
   const setStep = useCallback((v: Step) => setField("step", v), [setField]);
-  const setAppMode = useCallback((v: AppMode) => setField("appMode", v), [setField]);
+  const setAppMode = useCallback(
+    (v: AppMode) => setField("appMode", v),
+    [setField],
+  );
   const setPlatform = useCallback(
     (v: "GITLAB" | "GITHUB" | null) => setField("platform", v),
     [setField],
   );
-  const setProviderId = useCallback((v: string) => setField("providerId", v), [setField]);
+  const setProviderId = useCallback(
+    (v: string) => setField("providerId", v),
+    [setField],
+  );
   const setName = useCallback((v: string) => setField("name", v), [setField]);
   const setToken = useCallback((v: string) => setField("token", v), [setField]);
-  const setRepoPath = useCallback((v: string) => setField("repoPath", v), [setField]);
-  const setBranch = useCallback((v: string) => setField("branch", v), [setField]);
+  const setRepoPath = useCallback(
+    (v: string) => setField("repoPath", v),
+    [setField],
+  );
+  const setBranch = useCallback(
+    (v: string) => setField("branch", v),
+    [setField],
+  );
   const setPort = useCallback((v: string) => setField("port", v), [setField]);
-  const setGroupPath = useCallback((v: string) => setField("groupPath", v), [setField]);
+  const setGroupPath = useCallback(
+    (v: string) => setField("groupPath", v),
+    [setField],
+  );
   const setSelected = useCallback(
     (v: Set<string> | ((prev: Set<string>) => Set<string>)) =>
       dispatch({
@@ -246,7 +121,10 @@ export function useAddServiceWizard({
     (v: string) => setField("composeContent", v),
     [setField],
   );
-  const setTemplateId = useCallback((v: string) => setField("templateId", v), [setField]);
+  const setTemplateId = useCallback(
+    (v: string) => setField("templateId", v),
+    [setField],
+  );
 
   const selectedTemplate = useMemo(
     () => templates.find((t) => t.id === templateId) ?? null,
@@ -270,9 +148,15 @@ export function useAddServiceWizard({
           .then((list) => {
             dispatch({ type: "SET_FIELD", field: "templates", value: list });
             if (list[0])
-              dispatch({ type: "SET_FIELD", field: "templateId", value: list[0].id });
+              dispatch({
+                type: "SET_FIELD",
+                field: "templateId",
+                value: list[0].id,
+              });
           })
-          .catch(() => dispatch({ type: "SET_FIELD", field: "templates", value: [] }));
+          .catch(() =>
+            dispatch({ type: "SET_FIELD", field: "templates", value: [] }),
+          );
       }
     }
     projectsService
@@ -280,9 +164,12 @@ export function useAddServiceWizard({
       .then((list) => {
         dispatch({ type: "SET_FIELD", field: "providers", value: list });
         const def = list.find((p) => p.isDefault) ?? list[0];
-        if (def) dispatch({ type: "SET_FIELD", field: "providerId", value: def.id });
+        if (def)
+          dispatch({ type: "SET_FIELD", field: "providerId", value: def.id });
       })
-      .catch(() => dispatch({ type: "SET_FIELD", field: "providers", value: [] }));
+      .catch(() =>
+        dispatch({ type: "SET_FIELD", field: "providers", value: [] }),
+      );
   }, [open, initialKind, projectId]);
 
   useEffect(() => {
@@ -302,10 +189,18 @@ export function useAddServiceWizard({
         .then((list) => {
           dispatch({ type: "SET_FIELD", field: "templates", value: list });
           if (list[0])
-            dispatch({ type: "SET_FIELD", field: "templateId", value: list[0].id });
+            dispatch({
+              type: "SET_FIELD",
+              field: "templateId",
+              value: list[0].id,
+            });
         })
         .catch((e: unknown) =>
-          dispatch({ type: "SET_FIELD", field: "error", value: getApiErrorMessage(e) }),
+          dispatch({
+            type: "SET_FIELD",
+            field: "error",
+            value: getApiErrorMessage(e),
+          }),
         );
     }
   };
@@ -344,25 +239,31 @@ export function useAddServiceWizard({
       });
       dispatch({ type: "DISCOVER_SUCCESS", repos });
     } catch (e) {
-      dispatch({ type: "SET_FIELD", field: "error", value: getApiErrorMessage(e) });
+      dispatch({
+        type: "SET_FIELD",
+        field: "error",
+        value: getApiErrorMessage(e),
+      });
       dispatch({ type: "SET_FIELD", field: "discovering", value: false });
     }
   };
 
-  const toggleRepo = (rp: string) => dispatch({ type: "TOGGLE_REPO", repoPath: rp });
+  const toggleRepo = (rp: string) =>
+    dispatch({ type: "TOGGLE_REPO", repoPath: rp });
 
   const canReview = (() => {
     if (kind === "APPLICATION") {
       if (appMode === "group") return selected.size > 0;
       return Boolean(
         selectedProvider &&
-          repoPath.trim() &&
-          (token.trim() || selectedProvider.status === "CONFIGURED"),
+        repoPath.trim() &&
+        (token.trim() || selectedProvider.status === "CONFIGURED"),
       );
     }
     if (kind === "DATABASE") return name.trim().length > 0;
     if (kind === "DOCKER") return Boolean(name.trim() && image.trim());
-    if (kind === "COMPOSE") return Boolean(name.trim() && composeContent.trim());
+    if (kind === "COMPOSE")
+      return Boolean(name.trim() && composeContent.trim());
     if (kind === "TEMPLATE") return Boolean(selectedTemplate && name.trim());
     return false;
   })();
@@ -394,7 +295,11 @@ export function useAddServiceWizard({
             : {}),
         };
         await servicesService.create(projectId, payload);
-      } else if (kind === "APPLICATION" && selectedProvider && appMode === "group") {
+      } else if (
+        kind === "APPLICATION" &&
+        selectedProvider &&
+        appMode === "group"
+      ) {
         const provider = selectedProvider.type as "GITLAB" | "GITHUB";
         const repos = discovered.filter((r) => selected.has(r.repoPath));
         for (const repo of repos) {
@@ -421,6 +326,7 @@ export function useAddServiceWizard({
         await servicesService.create(projectId, {
           name: name.trim(),
           type: "DATABASE",
+          sourceType: "NONE",
           databaseType,
           databaseVersion: databaseVersion.trim() || "latest",
         });
@@ -451,7 +357,11 @@ export function useAddServiceWizard({
       onCreated();
       onClose();
     } catch (e) {
-      dispatch({ type: "SET_FIELD", field: "error", value: getApiErrorMessage(e) });
+      dispatch({
+        type: "SET_FIELD",
+        field: "error",
+        value: getApiErrorMessage(e),
+      });
     } finally {
       dispatch({ type: "SET_FIELD", field: "submitting", value: false });
     }

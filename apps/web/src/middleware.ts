@@ -4,7 +4,21 @@ import type { NextRequest } from "next/server";
 const AUTH_COOKIE_NAME = "deploy_automation_token";
 const STAFF_COOKIE_NAME = "deploy_staff_token";
 
-const PUBLIC_MARKETING_PATHS = ["/", "/pricing", "/docs", "/legal"];
+const PUBLIC_MARKETING_PATHS = [
+  "/",
+  "/pricing",
+  "/docs",
+  "/status",
+  "/security",
+  "/legal",
+  "/privacy",
+  "/terms",
+  "/cookies",
+  "/acceptable-use",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/manifest.webmanifest",
+];
 
 const CLIENT_PUBLIC_PATHS = [
   ...PUBLIC_MARKETING_PATHS,
@@ -47,10 +61,7 @@ function configuredOrigin(
   serverValue: string | undefined,
   publicValue: string | undefined,
 ): string {
-  return (serverValue?.trim() || publicValue?.trim() || "").replace(
-    /\/+$/,
-    "",
-  );
+  return (serverValue?.trim() || publicValue?.trim() || "").replace(/\/+$/, "");
 }
 
 function hostname(origin: string): string | null {
@@ -67,7 +78,8 @@ function requestHostname(request: NextRequest): string {
     .get("x-forwarded-host")
     ?.split(",")[0]
     ?.trim();
-  const host = forwardedHost || request.headers.get("host") || request.nextUrl.host;
+  const host =
+    forwardedHost || request.headers.get("host") || request.nextUrl.host;
 
   try {
     return new URL(`http://${host}`).hostname.toLowerCase();

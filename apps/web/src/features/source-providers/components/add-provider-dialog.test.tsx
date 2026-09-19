@@ -16,7 +16,7 @@ const baseProps = {
 
 /** Advances from step 1 (provider type) to step 2 (instance config). */
 function goToStep2() {
-  fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+  fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
 }
 
 describe("AddProviderDialog — main flow", () => {
@@ -33,7 +33,7 @@ describe("AddProviderDialog — main flow", () => {
 
   it("opens on step 1 (provider type) with GitLab selected by default", () => {
     render(<AddProviderDialog {...baseProps} onSave={vi.fn()} />);
-    expect(screen.getByText("Select Provider")).toBeInTheDocument();
+    expect(screen.getByText("Sélection du fournisseur")).toBeInTheDocument();
     expect(screen.getByText("GitLab")).toBeInTheDocument();
     expect(screen.getByText("GitHub")).toBeInTheDocument();
   });
@@ -50,14 +50,14 @@ describe("AddProviderDialog — main flow", () => {
   it("blocks proceeding past step 2 until name + URL are filled", () => {
     render(<AddProviderDialog {...baseProps} onSave={vi.fn()} />);
     goToStep2(); // step 1 -> 2 (GitLab preselected, always valid)
-    expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /continuer/i })).toBeDisabled();
 
     fireEvent.change(
-      screen.getByPlaceholderText("e.g. GitLab Cloud, Company GitLab"),
+      screen.getByPlaceholderText("Ex. GitLab Cloud, GitLab de l’entreprise"),
       { target: { value: "Company GitLab" } },
     );
     expect(
-      screen.getByRole("button", { name: /continue/i }),
+      screen.getByRole("button", { name: /continuer/i }),
     ).not.toBeDisabled();
   });
 
@@ -70,24 +70,26 @@ describe("AddProviderDialog — main flow", () => {
 
     // Step 2: instance config
     fireEvent.change(
-      screen.getByPlaceholderText("e.g. GitLab Cloud, Company GitLab"),
+      screen.getByPlaceholderText("Ex. GitLab Cloud, GitLab de l’entreprise"),
       { target: { value: "Company GitLab" } },
     );
     fireEvent.change(screen.getByPlaceholderText("https://gitlab.com"), {
       target: { value: "https://gitlab.company.com" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
 
     // Step 3: auth method — default "both" is already valid, just continue
-    expect(screen.getByText("Authentication Method")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    expect(screen.getByText("Méthode d’authentification")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
 
     // Step 4: credentials — fill the PAT field then submit
-    expect(screen.getByText("Personal Access Token")).toBeInTheDocument();
+    expect(screen.getByText("Jeton d’accès personnel")).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText("<gitlab-access-token>"), {
       target: { value: "glpat-secret" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /add provider/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /ajouter le fournisseur/i }),
+    );
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     const [payload, providerType] = onSave.mock.calls[0] as [
@@ -140,7 +142,7 @@ describe("AddProviderDialog — main flow", () => {
         onSave={vi.fn()}
       />,
     );
-    expect(screen.getByText("Edit Git Provider")).toBeInTheDocument();
+    expect(screen.getByText("Modifier le fournisseur Git")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Existing GitLab")).toBeInTheDocument();
   });
 
@@ -149,49 +151,66 @@ describe("AddProviderDialog — main flow", () => {
     render(
       <AddProviderDialog {...baseProps} onClose={onClose} onSave={vi.fn()} />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /close/i }));
+    fireEvent.click(screen.getByRole("button", { name: /fermer/i }));
     expect(onClose).toHaveBeenCalled();
   });
 });
 
-// AUDIT_VERIFICATION_UI.md Point 2/Task 5: GitHub has no backend OAuth
-// callback route — offering "OAuth"/"Both" for it showed a redirect URI that
-// could never work. These lock in that the wizard now disables those choices
-// for GitHub instead of silently building a broken config.
-describe("AddProviderDialog — GitHub OAuth disabled (Task 5)", () => {
+describe("AddProviderDialog — complete GitHub PAT flow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("disables OAuth and Both, forcing PAT, once GitHub is selected on step 1", () => {
-    render(<AddProviderDialog {...baseProps} onSave={vi.fn()} />);
+  it("shows only PAT, validates the token and sends no GitLab OAuth fields", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<AddProviderDialog {...baseProps} onSave={onSave} />);
     fireEvent.click(screen.getByText("GitHub"));
     goToStep2();
     fireEvent.change(
-      screen.getByPlaceholderText("e.g. GitLab Cloud, Company GitLab"),
+      screen.getByPlaceholderText("Ex. GitLab Cloud, GitLab de l’entreprise"),
       { target: { value: "My GitHub" } },
     );
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
 
-    expect(screen.getByText("Authentication Method")).toBeInTheDocument();
-    // Query each card by its exact title text then walk up to its <button> —
-    // avoids ambiguous accessible-name matches across the 3 cards' descriptions.
-    const oauthCard = screen.getByText("OAuth").closest("button");
-    const bothCard = screen.getByText("Both").closest("button");
-    const patCard = screen.getByText("Personal Access Token").closest("button");
-    expect(oauthCard).toBeDisabled();
-    expect(bothCard).toBeDisabled();
+    expect(screen.getByText("Méthode d’authentification")).toBeInTheDocument();
+    const patCard = screen
+      .getByText("Jeton d’accès personnel")
+      .closest("button");
+    expect(screen.queryByText("OAuth")).not.toBeInTheDocument();
+    expect(screen.queryByText("Les deux")).not.toBeInTheDocument();
     expect(patCard).not.toBeDisabled();
 
     // Proceeding to step 4 must never show the (broken) OAuth redirect URI
     // field for GitHub — only the PAT field ("Personal Access Token" appears
     // twice for GitHub — section header + field label, both intentional — so
     // assert on the GitHub-specific placeholder instead of that text).
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
     expect(screen.queryByText("Redirect URI")).not.toBeInTheDocument();
     expect(
       screen.getByPlaceholderText("<github-access-token>"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /ajouter le fournisseur/i }),
+    ).toBeDisabled();
+
+    fireEvent.change(screen.getByPlaceholderText("<github-access-token>"), {
+      target: { value: "github_pat_secret" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /ajouter le fournisseur/i }),
+    );
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave).toHaveBeenCalledWith(
+      {
+        name: "My GitHub",
+        providerUrl: "https://github.com",
+        internalUrl: "",
+        adminToken: "github_pat_secret",
+        isDefault: false,
+      },
+      "GITHUB",
+    );
   });
 
   it("re-syncs selectedType and forces PAT when editing an existing GitHub provider with stale oauth/both config", () => {
@@ -230,11 +249,11 @@ describe("AddProviderDialog — GitHub OAuth disabled (Task 5)", () => {
       />,
     );
     // Edit mode starts on step 2 (instance) — advance to step 3 (auth method).
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
-    expect(screen.getByText("Authentication Method")).toBeInTheDocument();
-    expect(screen.getByText("OAuth").closest("button")).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
+    expect(screen.getByText("Méthode d’authentification")).toBeInTheDocument();
+    expect(screen.queryByText("OAuth")).not.toBeInTheDocument();
     // The PAT card must be the one actually selected, not oauth/both.
-    fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continuer/i }));
     expect(screen.queryByText("Redirect URI")).not.toBeInTheDocument();
   });
 });

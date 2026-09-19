@@ -16,7 +16,7 @@ import { usePagination } from "@/shared/hooks/use-pagination";
 import type { Deployment } from "@/features/deployments/types";
 
 const DELIVERY_TABS = [
-  { label: "Deployments", href: "/deployments" },
+  { label: "Déploiements", href: "/deployments" },
   { label: "Pipelines", href: "/pipelines" },
 ];
 
@@ -35,9 +35,9 @@ function deriveTrigger(d: Deployment): "manual" | "pipeline" | "auto" {
 }
 
 const TRIGGER_LABEL: Record<"manual" | "pipeline" | "auto", string> = {
-  manual: "Manual",
-  pipeline: "CI Pipeline",
-  auto: "Auto (webhook/heal)",
+  manual: "Manuel",
+  pipeline: "Pipeline CI",
+  auto: "Automatique (webhook/récupération)",
 };
 
 const STATUS_OPTIONS = [
@@ -167,9 +167,9 @@ export default function DeploymentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Delivery"
-        title="Deployments"
-        description="All deployments across every project — filter and inspect."
+        eyebrow="Livraison"
+        title="Déploiements"
+        description="Consultez et filtrez les déploiements de tous vos projets."
       />
 
       <SubNav tabs={DELIVERY_TABS} />
@@ -184,13 +184,13 @@ export default function DeploymentsPage() {
             color: "",
           },
           {
-            label: "Success",
+            label: "Réussis",
             value: success,
             icon: <CheckCircle2 size={14} />,
             color: "text-green-400",
           },
           {
-            label: "Running / Failed",
+            label: "En cours / Échoués",
             value: running + failed,
             icon: <Activity size={14} />,
             color:
@@ -219,9 +219,9 @@ export default function DeploymentsPage() {
           value={projectFilter}
           onChange={(e) => setProjectFilter(e.target.value)}
           className={SELECT_CLASS}
-          aria-label="Project"
+          aria-label="Projet"
         >
-          <option value="all">All projects</option>
+          <option value="all">Tous les projets</option>
           {projectOptions.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -232,9 +232,9 @@ export default function DeploymentsPage() {
           value={envFilter}
           onChange={(e) => setEnvFilter(e.target.value)}
           className={SELECT_CLASS}
-          aria-label="Environment"
+          aria-label="Environnement"
         >
-          <option value="all">All environments</option>
+          <option value="all">Tous les environnements</option>
           {envOptions.map((name) => (
             <option key={name} value={name}>
               {name}
@@ -245,9 +245,9 @@ export default function DeploymentsPage() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className={SELECT_CLASS}
-          aria-label="Status"
+          aria-label="État"
         >
-          <option value="all">All statuses</option>
+          <option value="all">Tous les états</option>
           {STATUS_OPTIONS.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -258,9 +258,9 @@ export default function DeploymentsPage() {
           value={triggerFilter}
           onChange={(e) => setTriggerFilter(e.target.value)}
           className={SELECT_CLASS}
-          aria-label="Trigger"
+          aria-label="Déclencheur"
         >
-          <option value="all">All triggers</option>
+          <option value="all">Tous les déclencheurs</option>
           {(["manual", "pipeline", "auto"] as const).map((t) => (
             <option key={t} value={t}>
               {TRIGGER_LABEL[t]}
@@ -270,21 +270,23 @@ export default function DeploymentsPage() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Branch, service, project…"
+          placeholder="Branche, service, projet…"
           className={SELECT_CLASS}
-          aria-label="Search"
+          aria-label="Rechercher"
         />
       </div>
 
       {hasActiveFilter && (
         <div className="flex items-center justify-between gap-3 text-xs text-[var(--text-secondary)]">
-          <span>{filtered.length} deployment(s) match the filters.</span>
+          <span>
+            {filtered.length} déploiement(s) correspondent aux filtres.
+          </span>
           <button
             type="button"
             onClick={resetFilters}
             className="rounded-lg border border-[var(--border)] px-2.5 py-1 font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
           >
-            Reset
+            Réinitialiser
           </button>
         </div>
       )}

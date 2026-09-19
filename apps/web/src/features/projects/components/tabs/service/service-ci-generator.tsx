@@ -89,10 +89,10 @@ export function ServiceCiGenerator({
             {t("Standardized CI/CD config")}
           </p>
           <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-            Generates the <code className="font-mono">Dockerfile</code>, the{" "}
-            <code className="font-mono">.dockerignore</code> and the CI file to{" "}
-            <span className="font-semibold">paste into your repo</span>. Preview
-            only — nothing is written to the repo (zero conflict risk).
+            Génère le <code className="font-mono">Dockerfile</code>, le{" "}
+            <code className="font-mono">.dockerignore</code> et le fichier CI à{" "}
+            <span className="font-semibold">coller dans votre dépôt</span>.
+            Aperçu uniquement : aucun fichier n’est écrit automatiquement.
           </p>
         </div>
         <button
@@ -139,8 +139,7 @@ export function ServiceCiGenerator({
                 <VarLine
                   name="DA_DEPLOY_HOOK"
                   value={
-                    webhookUrl ??
-                    t("(set up the webhook in the Webhooks tab)")
+                    webhookUrl ?? t("(set up the webhook in the Webhooks tab)")
                   }
                   copyable={Boolean(webhookUrl)}
                   copied={copied === "hook"}
@@ -180,11 +179,11 @@ export function ServiceCiGenerator({
                 >
                   {copied === f.name ? (
                     <>
-                      <Check size={12} /> Copied
+                      <Check size={12} /> Copié
                     </>
                   ) : (
                     <>
-                      <Copy size={12} /> Copy
+                      <Copy size={12} /> Copier
                     </>
                   )}
                 </button>

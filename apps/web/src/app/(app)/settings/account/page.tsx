@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   KeyRound,
-  Languages,
   Loader2,
   Moon,
   Palette,
@@ -27,6 +26,8 @@ import { Alert } from "@/shared/ui/alert";
 import { PasswordInput } from "@/shared/ui/password-input";
 import { useI18n } from "@/shared/i18n/language-context";
 import { useThemeContext } from "@/shared/contexts/theme-context";
+import { CustomerMfaSettings } from "@/features/auth/components/customer-mfa-settings";
+import { workspaceRoleLabel } from "@/shared/i18n/product-labels";
 
 /**
  * Réglages personnels, accessibles à tous les membres d'un workspace.
@@ -34,7 +35,7 @@ import { useThemeContext } from "@/shared/contexts/theme-context";
  * globale de la plateforme reste strictement séparée dans le back-office staff.
  */
 export default function MyAccountPage() {
-  const { t, lang, setLang } = useI18n();
+  const { t } = useI18n();
   const { theme, setTheme } = useThemeContext();
   const { user, workspaceRole } = useAuth();
   const router = useRouter();
@@ -165,11 +166,13 @@ export default function MyAccountPage() {
               {user?.fullName}
             </p>
             <p className="text-xs text-[var(--text-secondary)]">
-              {user?.email} · {workspaceRole ?? "MEMBER"}
+              {user?.email} · {workspaceRoleLabel(workspaceRole)}
             </p>
           </div>
         </div>
       </SectionCard>
+
+      <CustomerMfaSettings />
 
       <SectionCard
         title={t("Change password")}
@@ -234,16 +237,9 @@ export default function MyAccountPage() {
 
       <SectionCard
         title={t("Preferences")}
-        description={t("Language and appearance, saved on this browser.")}
+        description="Apparence enregistrée dans ce navigateur."
       >
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setLang(lang === "en" ? "fr" : "en")}
-            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
-          >
-            <Languages size={14} /> {lang === "en" ? "Français" : "English"}
-          </button>
           {[
             { id: "brand" as const, label: "Sovrack", icon: Palette },
             { id: "dark" as const, label: t("Dark theme"), icon: Moon },
@@ -269,14 +265,14 @@ export default function MyAccountPage() {
       <SectionCard
         title={t("Danger zone")}
         description={t(
-          "Delete your identity and leave your workspaces. Workspace resources are preserved. This cannot be undone.",
+          "Schedule deletion of your identity after a 30-day recovery period.",
         )}
       >
         {!codeSent ? (
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-[var(--text-secondary)]">
               {t(
-                "A confirmation code will be sent to your email before the deletion.",
+                "A confirmation code will be sent by email. Confirmation immediately signs you out and disables access. Organizations are preserved; your personal workspace is deleted after 30 days. Transfer ownership first if you are the last owner of an organization.",
               )}
             </p>
             <button
@@ -290,7 +286,7 @@ export default function MyAccountPage() {
               ) : (
                 <Trash2 size={14} />
               )}{" "}
-              {t("Delete my account")}
+              {t("Schedule account deletion")}
             </button>
           </div>
         ) : (
@@ -330,7 +326,7 @@ export default function MyAccountPage() {
               ) : (
                 <Trash2 size={14} />
               )}{" "}
-              {t("Confirm deletion")}
+              {t("Confirm and start 30-day grace period")}
             </button>
           </form>
         )}

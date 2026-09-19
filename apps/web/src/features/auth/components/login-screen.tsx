@@ -21,6 +21,8 @@ export function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
   const [error, setError] = useState(
     oauthError ? decodeURIComponent(oauthError) : "",
   );
@@ -31,13 +33,20 @@ export function LoginScreen() {
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
+      await login(email, password, mfaRequired ? mfaCode : undefined);
       const next = resolveSafeInternalPath(
         searchParams.get("next"),
         "/dashboard",
       );
       router.replace(next);
     } catch (err: unknown) {
+      const code = (err as { response?: { data?: { code?: string } } }).response
+        ?.data?.code;
+      if (code === "USER_MFA_REQUIRED") {
+        setMfaRequired(true);
+        setError("");
+        return;
+      }
       setError(
         getApiErrorMessage(err) ||
           "Email ou mot de passe incorrect. Veuillez réessayer.",
@@ -127,6 +136,32 @@ export function LoginScreen() {
                 </button>
               </div>
             </div>
+            {mfaRequired && (
+              <div>
+                <label
+                  htmlFor="mfa-code"
+                  className="block text-sm font-medium text-slate-300"
+                >
+                  Code de double authentification
+                </label>
+                <input
+                  id="mfa-code"
+                  type="text"
+                  inputMode="text"
+                  autoComplete="one-time-code"
+                  value={mfaCode}
+                  onChange={(event) => setMfaCode(event.target.value.trim())}
+                  placeholder="123456 ou code de secours"
+                  required
+                  autoFocus
+                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 font-mono text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                />
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  Ce champ apparaît uniquement parce que vous avez activé
+                  volontairement cette protection sur votre compte.
+                </p>
+              </div>
+            )}
             <div className="text-right">
               <Link
                 href="/forgot-password"

@@ -2,130 +2,146 @@
 
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
-import { PublicContentPlaceholder } from "@/components/marketing/public-content-placeholder";
-import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 
 const sections = [
   {
-    title: "Créer un compte",
+    id: "compte",
+    title: "1. Créer votre compte",
     steps: [
-      "Rendez-vous sur la page de connexion et créez votre compte.",
-      "Connectez-vous avec votre email et votre mot de passe.",
-      "Votre équipe (workspace) est créée automatiquement.",
-      "Vous démarrez sur le plan Free, sans carte bancaire.",
+      "Créez un compte avec votre nom, votre adresse email et un mot de passe robuste.",
+      "Choisissez un espace personnel pour travailler seul ou une organisation pour collaborer.",
+      "Saisissez le code reçu par email afin d'activer votre identité.",
+      "La connexion s'effectue ensuite avec votre email et votre mot de passe.",
+      "Vous pouvez activer volontairement une application TOTP dans Mon compte ; cette protection reste facultative.",
     ],
   },
   {
-    title: "Connecter un serveur",
+    id: "espaces",
+    title: "2. Comprendre les espaces de travail",
     steps: [
-      "Ouvrez la section Servers depuis le menu latéral.",
-      "Créez un serveur : nom, hôte et clé SSH (ou laissez la plateforme générer la paire de clés).",
-      "Installez la clé publique sur l'hôte via la commande fournie.",
-      "La plateforme vérifie la connexion et détecte Docker automatiquement.",
+      "Un espace personnel appartient à une seule personne et ne permet pas d'inviter des membres.",
+      "Une organisation permet d'inviter des membres et de leur attribuer des rôles.",
+      "Vous pouvez appartenir à plusieurs organisations tout en conservant votre espace personnel.",
+      "La conversion d'un espace personnel en organisation est explicite et irréversible.",
     ],
   },
   {
-    title: "Déployer une application",
+    id: "serveur",
+    title: "3. Connecter un serveur",
     steps: [
-      "Créez un projet depuis le dashboard.",
-      "Connectez votre dépôt Git (GitHub ou GitLab).",
-      "Choisissez votre type de service (statique, backend, base de données, Docker).",
-      "Chaque push Git déclenche un déploiement automatique, SSL inclus.",
+      "Utilisez un VPS Ubuntu joignable en SSH avec un utilisateur disposant des droits nécessaires.",
+      "Ouvrez Serveurs, puis indiquez le nom, l'hôte, le port et l'utilisateur SSH.",
+      "Installez la clé publique indiquée par Sovrack sur le serveur cible.",
+      "Lancez la validation SSH, la détection des capacités et la préparation guidée.",
     ],
   },
   {
-    title: "Gérer vos équipes et projets",
+    id: "git",
+    title: "4. Connecter GitHub ou GitLab",
     steps: [
-      "Ajoutez des membres à votre équipe depuis la section équipes.",
-      "Chaque membre voit les projets auxquels il est associé.",
-      "Les environnements (production, staging, preview) sont créés par projet.",
-      "Les rôles définissent ce que chaque membre peut faire sur un projet.",
+      "Pour GitHub, créez un Personal Access Token limité aux dépôts nécessaires.",
+      "Pour GitLab, utilisez un jeton d'accès avec les permissions minimales requises.",
+      "Ajoutez le fournisseur depuis Fournisseurs Git et vérifiez la connexion.",
+      "Les jetons sont chiffrés ; révoquez-les directement chez le fournisseur lorsqu'ils ne sont plus utilisés.",
     ],
   },
   {
-    title: "Sécurité et sauvegardes",
+    id: "service",
+    title: "5. Créer et déployer un service",
     steps: [
-      "Chaque serveur est isolé dans son propre réseau Docker.",
-      "Vos données sont sauvegardées selon votre plan (rétention jusqu'à 365 jours).",
-      "Les ports de base de données sont exposés uniquement en local sur le serveur.",
-      "Votre session utilise un cookie sécurisé (httpOnly), et votre mot de passe est stocké haché.",
+      "Créez un projet et au moins un environnement persistant.",
+      "Ajoutez une application construite depuis un Dockerfile ou une image Docker.",
+      "Vous pouvez aussi ajouter PostgreSQL, Redis, MySQL, MongoDB ou RabbitMQ ; Sovrack génère et chiffre leurs identifiants.",
+      "Ces bases sont des conteneurs exécutés sur votre propre serveur : vous restez responsable des sauvegardes, des restaurations, de la capacité disque et de la haute disponibilité.",
+      "Configurez la branche, le port, les variables et les secrets nécessaires.",
+      "Sélectionnez un serveur préparé, contrôlez le résumé puis lancez le déploiement.",
     ],
   },
   {
-    title: "Facturation",
+    id: "registre",
+    title: "6. Utiliser un registre privé",
     steps: [
-      "Depuis votre espace, ouvrez la section Facturation.",
-      "Choisissez le plan qui correspond à vos besoins (Free, Starter, Pro, Enterprise).",
-      "Les limites (projets, serveurs, membres) s'appliquent immédiatement.",
-      "Chaque changement de plan génère une facture, visible dans votre espace.",
+      "Ouvrez Registre depuis les intégrations de votre espace.",
+      "Ajoutez l'adresse du registre et des identifiants limités à la lecture lorsque cela suffit.",
+      "Référencez ensuite l'image complète dans la configuration du service.",
+      "Après rotation d'un secret côté fournisseur, mettez également à jour la connexion dans Sovrack.",
     ],
   },
   {
-    title: "Connexions SSH sécurisées",
+    id: "secrets",
+    title: "7. Variables et secrets",
     steps: [
-      "Chaque serveur utilise une paire de clés SSH dédiée, gérée par la plateforme.",
-      "À la première connexion, l'empreinte du serveur est enregistrée (TOFU) et vérifiée ensuite à chaque session.",
-      "En cas de changement d'empreinte, le déploiement est bloqué tant que vous n'avez pas confirmé le nouveau serveur.",
-      "Vous pouvez régénérer une paire de clés à tout moment depuis les paramètres du serveur.",
+      "Ajoutez les valeurs propres à chaque environnement dans l'onglet Variables.",
+      "Utilisez les champs secrets pour les mots de passe, clés et jetons.",
+      "Ne placez jamais un secret directement dans le dépôt Git ou dans le nom d'une variable.",
+      "Contrôlez l'aperçu avant chaque déploiement sans exposer la valeur des secrets.",
     ],
   },
   {
-    title: "Images Docker et Dockerfile",
+    id: "domaine",
+    title: "8. Domaine et HTTPS",
     steps: [
-      "Choisissez le type de service « Docker » pour déployer votre propre image.",
-      "Sovrack construit l'image à partir du Dockerfile présent dans votre dépôt.",
-      "Les images sont stockées dans le registre de la plateforme et réutilisées pour les déploiements suivants.",
-      "Définissez les variables d'environnement et les ports exposés lors de la configuration du service.",
+      "Ajoutez le nom de domaine dans la configuration du service.",
+      "Créez un enregistrement A vers l’IPv4 du serveur. Pour app.sovrack.tech, le champ sous-domaine est app ; pour staff.sovrack.tech, il est staff.",
+      "N’ajoutez un enregistrement AAAA que si ce même serveur possède une IPv6 publique fonctionnelle et que le proxy écoute réellement en IPv6. Une mauvaise valeur AAAA provoque des pannes intermittentes chez les visiteurs utilisant IPv6.",
+      "Attendez la propagation DNS puis relancez la vérification dans Sovrack.",
+      "L'émission HTTPS ne peut réussir que lorsque le domaine pointe vers le bon serveur et que les ports web sont accessibles.",
     ],
   },
   {
-    title: "Pipelines et déploiements",
+    id: "suivi",
+    title: "9. Suivre un déploiement",
     steps: [
-      "Chaque push sur la branche cible déclenche un déploiement automatique.",
-      "Les environnements production, staging et preview sont indépendants.",
-      "Vous pouvez suivre chaque étape du déploiement (checkout, build, test, release) depuis le dashboard.",
-      "En cas d'échec, la commande de relance est disponible et les logs sont consultables.",
+      "La page Déploiements présente l'état, le déclencheur, le projet et l'environnement.",
+      "Ouvrez un déploiement pour consulter ses étapes et ses journaux.",
+      "Les métriques disponibles dépendent de la configuration du serveur cible.",
+      "En cas d'échec, corrigez la configuration puis lancez un nouveau déploiement traçable.",
     ],
   },
   {
-    title: "Monitoring et logs",
+    id: "securite",
+    title: "10. Sécurité et assistance",
     steps: [
-      "Consultez les logs en temps réel de vos conteneurs depuis la section déploiement.",
-      "Les statistiques (CPU, mémoire) sont disponibles pour chaque conteneur.",
-      "Les allocations réseau et volumes sont gérées automatiquement à chaque release.",
-      "Une alerte est affichée lorsqu'un service est redémarré ou arrêté sur un serveur.",
+      "Utilisez un mot de passe unique et protégez l'accès à votre messagerie.",
+      "Révoquez immédiatement une clé SSH ou un jeton Git que vous pensez compromis.",
+      "Les rôles limitent les actions au niveau de l'espace de travail et du projet.",
+      "Pour toute question, contactez contact@sovrack.tech sans transmettre de mot de passe ni de secret.",
     ],
   },
   {
-    title: "Webhooks et intégrations",
+    id: "roles",
+    title: "11. Rôles d’une organisation",
     steps: [
-      "L'intégration GitLab et GitHub active le déclenchement des déploiements au push.",
-      "Vous pouvez configurer des webhooks sortants pour notifier vos outils de votre pipeline.",
-      "Chaque webhook est sécurisé par un secret vérifié côté Sovrack.",
-      "Les événements de déploiement peuvent être brancher à Slack, Discord ou tout endpoint HTTP.",
+      "Le propriétaire contrôle l’organisation, les membres, les rôles et la facturation. Il doit toujours rester au moins un propriétaire actif.",
+      "L’administrateur gère les membres et les ressources, sans pouvoir retirer les protections réservées au propriétaire.",
+      "Le membre utilise les projets et ressources auxquels son rôle lui donne accès ; il ne peut pas inviter d’autres personnes.",
+      "Un membre peut quitter une organisation. Quitter retire immédiatement ses droits sans supprimer les ressources de l’organisation.",
     ],
   },
   {
-    title: "API et automatisation",
+    id: "responsabilites",
+    title: "12. Responsabilités d’exploitation",
     steps: [
-      "Sovrack expose une API REST documentée (contrat OpenAPI).",
-      "Utilisez un jeton d'accès personnel pour appeler l'API depuis vos scripts.",
-      "Créez, mettez à jour et déclenchez des déploiements de façon programmatique.",
+      "Sovrack orchestre les déploiements ; le propriétaire du serveur reste responsable du fournisseur VPS, du système, du réseau et de la capacité disque.",
+      "Sauvegardez les volumes et bases de données selon vos objectifs de reprise, puis testez régulièrement une restauration.",
+      "Surveillez l’expiration du domaine, les quotas du fournisseur, les journaux, les erreurs et l’espace disque.",
+      "Avant une modification risquée, disposez d’une sauvegarde vérifiée et d’un chemin de retour documenté.",
+    ],
+  },
+  {
+    id: "depannage",
+    title: "13. Diagnostic rapide",
+    steps: [
+      "Échec SSH : vérifiez l’adresse, le port, l’utilisateur, la clé autorisée et les règles du pare-feu.",
+      "Domaine inaccessible : vérifiez A et AAAA séparément, la propagation DNS, les ports 80/443 et l’état du proxy.",
+      "Build en échec : ouvrez le déploiement, lisez les premières erreurs du journal et contrôlez le Dockerfile, la branche et les variables.",
+      "Image privée refusée : testez les identifiants du registre et vérifiez qu’ils autorisent la lecture du dépôt concerné.",
+      "Ne transmettez jamais de clé SSH, jeton Git, mot de passe ou secret dans une demande d’assistance.",
     ],
   },
 ];
 
 export default function DocsPage() {
-  if (!isCapabilityEnabled("publicDocumentation")) {
-    return (
-      <PublicContentPlaceholder
-        eyebrow="Documentation en révision"
-        title="La documentation publique est temporairement masquée"
-        description="Les guides sont en cours d'alignement avec les parcours réellement validés du produit."
-      />
-    );
-  }
-
   return (
     <div className="min-h-screen bg-brand">
       <MarketingNavbar />
@@ -136,10 +152,36 @@ export default function DocsPage() {
           Tout ce qu&apos;il faut savoir pour démarrer avec Sovrack.
         </p>
 
+        <div className="mt-8 rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.05] p-6 text-sm leading-6 text-slate-300">
+          <p className="font-semibold text-white">Prérequis recommandés</p>
+          <p className="mt-2">
+            Un VPS Ubuntu à jour, accessible en SSH, avec une IPv4 publique, des
+            ports 80/443 ouverts, un domaine sous votre contrôle et un dépôt Git
+            ou une image Docker. Conservez toujours un accès direct au
+            fournisseur VPS en cas d’erreur réseau.
+          </p>
+        </div>
+
+        <nav
+          aria-label="Sommaire de la documentation"
+          className="mt-8 grid gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:grid-cols-2"
+        >
+          {sections.map((section) => (
+            <a
+              key={section.id}
+              href={`#${section.id}`}
+              className="rounded-lg px-3 py-2 text-sm text-slate-300 transition hover:bg-white/5 hover:text-white"
+            >
+              {section.title}
+            </a>
+          ))}
+        </nav>
+
         <div className="mt-12 space-y-10">
           {sections.map((s) => (
             <div
               key={s.title}
+              id={s.id}
               className="rounded-2xl border border-white/10 bg-white/[0.03] p-8"
             >
               <h2 className="text-xl font-bold text-white">{s.title}</h2>
@@ -166,7 +208,7 @@ export default function DocsPage() {
             Notre équipe vous répond par email.
           </p>
           <a
-            href="mailto:support@sovrack.tech"
+            href="mailto:contact@sovrack.tech"
             className="mt-5 inline-block rounded-xl bg-white px-6 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
           >
             Contacter le support

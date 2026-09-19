@@ -10,11 +10,15 @@ export type StaffOverview = {
   users: {
     total: number;
     active: number;
-    owners: number;
-    members: number;
+    disabled: number;
+    deletionScheduled: number;
   };
   teams: {
     total: number;
+    personal: number;
+    organizations: number;
+    active: number;
+    suspended: number;
   };
   subscriptions: {
     total: number;
@@ -26,26 +30,36 @@ export type StaffOverview = {
     id: string;
     email: string;
     fullName: string;
-    role: UserRole;
     isActive: boolean;
+    deletionScheduledFor: string | null;
     createdAt: string;
+    _count: { teams: number };
   }>;
 };
+
+export type WorkspaceRole = "OWNER" | "ADMIN" | "MEMBER";
+export type WorkspaceType = "PERSONAL" | "ORGANIZATION";
+export type WorkspaceStatus =
+  "ACTIVE" | "SUSPENDED" | "ARCHIVED" | "DELETION_PENDING";
 
 export type StaffUserView = {
   id: string;
   email: string;
   fullName: string;
-  role: UserRole;
   isActive: boolean;
+  emailVerifiedAt: string | null;
+  deletionScheduledFor: string | null;
   createdAt: string;
   updatedAt: string;
   teams: Array<{
-    role: "OWNER" | "ADMIN" | "BILLING" | "MEMBER";
+    role: WorkspaceRole;
+    status: "INVITED" | "ACTIVE" | "SUSPENDED";
+    canManageBilling: boolean;
     team: {
       id: string;
       name: string;
-      type: "PERSONAL" | "ORGANIZATION";
+      type: WorkspaceType;
+      status: WorkspaceStatus;
     };
   }>;
 };
@@ -53,11 +67,73 @@ export type StaffUserView = {
 export type StaffTeam = {
   id: string;
   name: string;
+  slug: string;
   description: string | null;
   type: "PERSONAL" | "ORGANIZATION";
   status: "ACTIVE" | "SUSPENDED" | "ARCHIVED" | "DELETION_PENDING";
   createdAt: string;
   _count: { members: number; projects: number; servers: number };
+};
+
+export type StaffUserDetail = Omit<StaffUserView, "teams"> & {
+  provider: string;
+  deletionRequestedAt: string | null;
+  teams: Array<{
+    role: WorkspaceRole;
+    status: "INVITED" | "ACTIVE" | "SUSPENDED";
+    canManageBilling: boolean;
+    joinedAt: string;
+    team: StaffTeam;
+  }>;
+  _count: {
+    projects: number;
+    deployments: number;
+    builds: number;
+    sshKeys: number;
+  };
+};
+
+export type StaffTeamDetail = StaffTeam & {
+  organizationProfile: {
+    legalName: string | null;
+    billingEmail: string | null;
+    registrationNumber: string | null;
+    taxId: string | null;
+    countryCode: string | null;
+  } | null;
+  members: Array<{
+    role: WorkspaceRole;
+    status: "INVITED" | "ACTIVE" | "SUSPENDED";
+    canManageBilling: boolean;
+    joinedAt: string;
+    user: {
+      id: string;
+      email: string;
+      fullName: string;
+      isActive: boolean;
+      deletionScheduledFor: string | null;
+    };
+  }>;
+  invitations: Array<{
+    id: string;
+    email: string;
+    role: WorkspaceRole;
+    status: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED";
+    deliveryStatus: "PENDING" | "SENT" | "FAILED";
+    deliveryAttempts: number;
+    deliveredAt: string | null;
+    expiresAt: string;
+    invitedByName: string;
+    invitedByEmail: string;
+    createdAt: string;
+  }>;
+  subscription: {
+    id: string;
+    plan: string;
+    status: string;
+    currentPeriodEnd: string | null;
+    trialEndsAt: string | null;
+  } | null;
 };
 
 export type StaffSubscription = {
@@ -83,9 +159,22 @@ export const staffService = {
     const res = await api.get<StaffOverview>("/staff/overview");
     return res.data;
   },
-  getUsers: async (page = 1, limit = 50): Promise<Paginated<StaffUserView>> => {
+  getUsers: async (
+    page = 1,
+    limit = 50,
+    filters?: {
+      search?: string;
+      status?: "active" | "disabled" | "deletion-scheduled";
+    },
+  ): Promise<Paginated<StaffUserView>> => {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    if (filters?.search) params.set("search", filters.search);
+    if (filters?.status) params.set("status", filters.status);
     const res = await api.get<Paginated<StaffUserView>>(
-      `/staff/users?page=${page}&limit=${limit}`,
+      `/staff/users?${params.toString()}`,
     );
     return res.data;
   },
@@ -93,6 +182,14 @@ export const staffService = {
     const res = await api.get<Paginated<StaffTeam>>(
       `/staff/teams?page=${page}&limit=${limit}`,
     );
+    return res.data;
+  },
+  getUser: async (id: string): Promise<StaffUserDetail> => {
+    const res = await api.get<StaffUserDetail>(`/staff/users/${id}`);
+    return res.data;
+  },
+  getTeam: async (id: string): Promise<StaffTeamDetail> => {
+    const res = await api.get<StaffTeamDetail>(`/staff/teams/${id}`);
     return res.data;
   },
   getSubscriptions: async (): Promise<StaffSubscription[]> => {
@@ -105,8 +202,23 @@ export const staffService = {
     return res.data;
   },
 
-  deleteUser: async (id: string) => {
-    const res = await api.delete(`/staff/users/${id}`);
+  scheduleUserDeletion: async (id: string, reason: string) => {
+    const res = await api.post(`/staff/users/${id}/deletion`, { reason });
+    return res.data;
+  },
+
+  cancelUserDeletion: async (id: string) => {
+    const res = await api.delete(`/staff/users/${id}/deletion`);
+    return res.data;
+  },
+
+  revokeUserSessions: async (id: string) => {
+    const res = await api.post(`/staff/users/${id}/revoke-sessions`, {});
+    return res.data;
+  },
+
+  updateTeamStatus: async (id: string, status: WorkspaceStatus) => {
+    const res = await api.patch(`/staff/teams/${id}/status`, { status });
     return res.data;
   },
 

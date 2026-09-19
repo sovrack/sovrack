@@ -36,7 +36,7 @@ describe("ServiceCiGenerator", () => {
     });
 
     render(<ServiceCiGenerator projectId="p1" serviceId="s1" />);
-    fireEvent.click(screen.getByText("Generate"));
+    fireEvent.click(screen.getByText("Générer"));
 
     // The CI file must NOT be hardcoded to .gitlab-ci.yml for a GitHub repo.
     await waitFor(() =>
@@ -46,8 +46,10 @@ describe("ServiceCiGenerator", () => {
     );
     expect(screen.getAllByText("Dockerfile").length).toBeGreaterThan(0);
     // How-to + the webhook URL are surfaced for the user.
-    expect(screen.getByText(/Paste each file/)).toBeInTheDocument();
-    expect(screen.getByText("https://deployautomation/hook/abc")).toBeInTheDocument();
+    expect(screen.getByText(/Colle chaque fichier/)).toBeInTheDocument();
+    expect(
+      screen.getByText("https://deployautomation/hook/abc"),
+    ).toBeInTheDocument();
   });
 
   it("shows an error when generation fails", async () => {
@@ -55,7 +57,7 @@ describe("ServiceCiGenerator", () => {
       new Error("boom"),
     );
     render(<ServiceCiGenerator projectId="p1" serviceId="s1" />);
-    fireEvent.click(screen.getByText("Generate"));
+    fireEvent.click(screen.getByText("Générer"));
     await waitFor(() => expect(screen.getByText(/boom/)).toBeInTheDocument());
   });
 
@@ -84,7 +86,7 @@ describe("ServiceCiGenerator", () => {
       });
 
       render(<ServiceCiGenerator projectId="p1" serviceId="s1" />);
-      fireEvent.click(screen.getByText("Generate"));
+      fireEvent.click(screen.getByText("Générer"));
       await waitFor(() => screen.getByText(".dockerignore"));
 
       const findFileRow = (name: string) =>
@@ -95,7 +97,7 @@ describe("ServiceCiGenerator", () => {
 
       fireEvent.click(
         within(findFileRow("Dockerfile")).getByRole("button", {
-          name: /copy/i,
+          name: /copier/i,
         }),
       );
       await waitFor(() =>
@@ -106,7 +108,7 @@ describe("ServiceCiGenerator", () => {
 
       fireEvent.click(
         within(findFileRow(".dockerignore")).getByRole("button", {
-          name: /copy/i,
+          name: /copier/i,
         }),
       );
       await waitFor(() =>
@@ -125,7 +127,7 @@ describe("ServiceCiGenerator", () => {
       });
 
       render(<ServiceCiGenerator projectId="p1" serviceId="s1" />);
-      fireEvent.click(screen.getByText("Generate"));
+      fireEvent.click(screen.getByText("Générer"));
       await waitFor(() => screen.getByText(".dockerignore"));
 
       const findFileRow = (name: string) =>
@@ -136,14 +138,14 @@ describe("ServiceCiGenerator", () => {
 
       const dockerfileRow = findFileRow("Dockerfile");
       fireEvent.click(
-        within(dockerfileRow).getByRole("button", { name: /copy/i }),
+        within(dockerfileRow).getByRole("button", { name: /copier/i }),
       );
 
       await waitFor(() =>
-        expect(within(dockerfileRow).getByText("Copied")).toBeInTheDocument(),
+        expect(within(dockerfileRow).getByText("Copié")).toBeInTheDocument(),
       );
       const dockerignoreRow = findFileRow(".dockerignore");
-      expect(within(dockerignoreRow).getByText("Copy")).toBeInTheDocument();
+      expect(within(dockerignoreRow).getByText("Copier")).toBeInTheDocument();
     });
   });
 });

@@ -46,7 +46,7 @@ export const PROVIDER_META: Record<ProviderType, ProviderMeta> = {
     color: "text-zinc-300",
     bgColor: "bg-zinc-500/10",
     borderColor: "border-zinc-500/20",
-    capabilities: ["OAuth", "PAT", "Webhooks", "CICD", "SelfHosted"],
+    capabilities: ["PAT", "Webhooks", "CICD", "SelfHosted"],
     available: true,
   },
   BITBUCKET: {

@@ -22,23 +22,23 @@ type LanguageContextValue = {
 };
 
 const LANG_STORAGE_KEY = "deploy-automation-lang";
-const DEFAULT_LANG: Language = "en";
+const DEFAULT_LANG: Language = "fr";
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(
   undefined,
 );
-
-function isLanguage(value: string | null): value is Language {
-  return value === "en" || value === "fr";
-}
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Language>(DEFAULT_LANG);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(LANG_STORAGE_KEY);
-    if (isLanguage(saved)) setLangState(saved);
+    // La V1 publique est livrée en français. Le moteur reste prêt pour un
+    // futur catalogue anglais complet, mais aucun sélecteur incomplet n'est
+    // exposé aux clients.
+    setLangState(DEFAULT_LANG);
+    localStorage.setItem(LANG_STORAGE_KEY, DEFAULT_LANG);
+    document.documentElement.lang = DEFAULT_LANG;
     setMounted(true);
   }, []);
 
@@ -65,13 +65,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Fallback identité (anglais) quand aucun provider n'est monté — permet aux
+// Fallback français quand aucun provider n'est monté — permet aux
 // tests unitaires de rendre les composants sans wrapper, et l'adoption
 // incrémentale de t() sans risque de crash.
 const FALLBACK: LanguageContextValue = {
-  lang: "en",
+  lang: "fr",
   setLang: () => undefined,
-  t: (text) => text,
+  t: (text) => FR[text] ?? text,
   mounted: true,
 };
 

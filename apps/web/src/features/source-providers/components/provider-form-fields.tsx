@@ -63,6 +63,7 @@ export function TextInput({
   placeholder,
   type = "text",
   disabled,
+  readOnly,
   className,
 }: {
   value: string;
@@ -70,6 +71,7 @@ export function TextInput({
   placeholder?: string;
   type?: string;
   disabled?: boolean;
+  readOnly?: boolean;
   className?: string;
 }) {
   return (
@@ -79,6 +81,7 @@ export function TextInput({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
+      readOnly={readOnly}
       className={clsx(
         "w-full rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] transition focus:border-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--text-secondary)]/10 disabled:opacity-60",
         className,
@@ -210,12 +213,14 @@ export function AuthMethodCard({
   onSelect,
   disabled,
   disabledReason,
+  providerLabel = "GitLab",
 }: {
   choice: AuthChoice;
   selected: boolean;
   onSelect: () => void;
   disabled?: boolean;
   disabledReason?: string;
+  providerLabel?: "GitLab" | "GitHub";
 }) {
   const map: Record<
     AuthChoice,
@@ -224,12 +229,15 @@ export function AuthMethodCard({
     oauth: {
       icon: <Shield size={18} className="text-blue-400" />,
       title: "OAuth",
-      desc: "Authorize via OAuth app. Users log in with their GitLab account.",
+      desc: `Autorisez l’accès avec une application OAuth ${providerLabel}.`,
     },
     pat: {
       icon: <Key size={18} className="text-amber-400" />,
-      title: "Personal Access Token",
-      desc: "Use a GitLab PAT with api, read_repository, write_repository scopes.",
+      title: "Jeton d’accès personnel",
+      desc:
+        providerLabel === "GitHub"
+          ? "Utilisez un jeton GitHub limité aux dépôts et permissions nécessaires à Sovrack."
+          : "Utilisez un PAT GitLab avec les permissions api, read_repository et write_repository.",
     },
     both: {
       icon: (
@@ -238,8 +246,8 @@ export function AuthMethodCard({
           <Key size={15} className="text-amber-400" />
         </span>
       ),
-      title: "Both",
-      desc: "Configure OAuth for user login and PAT for automated operations.",
+      title: "Les deux",
+      desc: "Configurez OAuth et un PAT pour les opérations automatisées.",
     },
   };
   const item = map[choice];
@@ -264,7 +272,7 @@ export function AuthMethodCard({
           {item.title}
           {disabled && (
             <span className="ml-2 rounded bg-[var(--hover)] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
-              Coming soon
+              Bientôt
             </span>
           )}
         </p>

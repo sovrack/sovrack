@@ -40,7 +40,7 @@ describe("LoginScreen (auth critical path)", () => {
     fillAndSubmit("a@b.com", "pw");
 
     await waitFor(() =>
-      expect(loginMock).toHaveBeenCalledWith("a@b.com", "pw"),
+      expect(loginMock).toHaveBeenCalledWith("a@b.com", "pw", undefined),
     );
     await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/dashboard"));
   });

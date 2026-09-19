@@ -17,7 +17,7 @@ export function ActivityChart({ data }: Props) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
       <p className="mb-4 text-sm font-semibold text-[var(--text-primary)]">
-        Activity — last 7 days
+        Activité — 7 derniers jours
       </p>
       <div className="flex h-32 items-end gap-2">
         {data.map((day) => {
@@ -37,10 +37,10 @@ export function ActivityChart({ data }: Props) {
                 <p className="font-semibold text-[var(--text-primary)]">
                   {fmt(day.date)}
                 </p>
-                <p className="text-emerald-400">{day.success} success</p>
-                <p className="text-red-400">{day.failed} failures</p>
+                <p className="text-emerald-400">{day.success} réussis</p>
+                <p className="text-red-400">{day.failed} échoués</p>
                 <p className="text-[var(--text-secondary)]">
-                  {day.total} total
+                  {day.total} au total
                 </p>
               </div>
 
@@ -80,11 +80,11 @@ export function ActivityChart({ data }: Props) {
       <div className="mt-3 flex items-center gap-4 text-xs text-[var(--text-secondary)]">
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-emerald-500/70" />
-          Success
+          Réussis
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-red-500/70" />
-          Failures
+          Échecs
         </span>
       </div>
     </div>

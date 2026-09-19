@@ -11,12 +11,14 @@ import {
   LogOut,
   Mail,
   LockKeyhole,
+  Menu,
   Rocket,
   ShieldCheck,
   Users,
+  X,
 } from "lucide-react";
 import { useStaffAuth } from "@/features/staff/api/use-staff-auth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { PlatformRole } from "@/features/staff/types/staff";
@@ -98,6 +100,7 @@ export default function StaffLayout({
   ].includes(pathname);
   const router = useRouter();
   const { staff, loading, initialized, logout, fetchMe } = useStaffAuth();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (!isPublicStaffPath) {
@@ -123,6 +126,10 @@ export default function StaffLayout({
     }
   }, [isPublicStaffPath, pathname, router, staff]);
 
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
+
   if (isPublicStaffPath) {
     return <>{children}</>;
   }
@@ -134,17 +141,49 @@ export default function StaffLayout({
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-200">
       <div className="flex">
-        <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-white/10 bg-zinc-950">
+        {mobileNavOpen && (
+          <button
+            type="button"
+            aria-label="Fermer la navigation du back-office"
+            onClick={() => setMobileNavOpen(false)}
+            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
+          />
+        )}
+        <aside
+          aria-label="Navigation du back-office"
+          className={clsx(
+            "fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r border-white/10 bg-zinc-950 transition-transform lg:sticky lg:top-0 lg:z-auto lg:translate-x-0",
+            mobileNavOpen ? "translate-x-0" : "-translate-x-full",
+          )}
+        >
           <div className="flex items-center gap-2 px-5 py-5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30">
-              <ShieldCheck size={18} className="text-white" />
-            </span>
-            <div>
-              <p className="text-sm font-bold text-white">Sovrack</p>
-              <p className="text-[11px] uppercase tracking-wider text-zinc-500">
-                Back-office
-              </p>
-            </div>
+            <Link
+              href="/staff"
+              onClick={() => setMobileNavOpen(false)}
+              aria-label="Accueil du back-office Sovrack"
+              className="flex min-w-0 flex-1 items-center gap-2"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30">
+                <ShieldCheck size={18} className="text-white" />
+              </span>
+              <div>
+                <p className="text-sm font-bold text-white">Sovrack</p>
+                <p className="text-[11px] uppercase tracking-wider text-zinc-500">
+                  Back-office
+                </p>
+              </div>
+            </Link>
+            <button
+              type="button"
+              aria-label="Fermer la navigation"
+              onClick={(event) => {
+                event.preventDefault();
+                setMobileNavOpen(false);
+              }}
+              className="ml-auto flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/5 hover:text-white lg:hidden"
+            >
+              <X size={18} />
+            </button>
           </div>
 
           <nav className="flex-1 space-y-0.5 px-3 py-4">
@@ -158,6 +197,7 @@ export default function StaffLayout({
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={() => setMobileNavOpen(false)}
                     className={clsx(
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
                       active
@@ -200,6 +240,8 @@ export default function StaffLayout({
             </button>
             <Link
               href={publicSitePath("/")}
+              target="_blank"
+              rel="noopener noreferrer"
               className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-500 transition hover:bg-white/5 hover:text-white"
             >
               <Activity size={16} />
@@ -208,7 +250,23 @@ export default function StaffLayout({
           </div>
         </aside>
 
-        <main className="min-h-screen flex-1 bg-zinc-950 px-8 py-8">
+        <main className="min-h-screen min-w-0 flex-1 bg-zinc-950 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+          <div className="mb-5 flex items-center gap-3 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Ouvrir la navigation du back-office"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white"
+            >
+              <Menu size={19} />
+            </button>
+            <div>
+              <p className="text-sm font-bold text-white">Sovrack</p>
+              <p className="text-[10px] uppercase tracking-wider text-zinc-500">
+                Back-office
+              </p>
+            </div>
+          </div>
           {children}
         </main>
       </div>

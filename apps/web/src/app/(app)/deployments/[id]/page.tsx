@@ -37,6 +37,7 @@ import {
   timeAgo,
   dur,
 } from "@/features/deployments/utils";
+import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 
 /**
  * Page de détail d'un déploiement : TOUT ce qui le concerne sur une seule page —
@@ -119,10 +120,10 @@ export default function DeploymentDetailPage({
   if (qErr || !dep)
     return (
       <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-center text-sm text-red-300">
-        {qErr ? getApiErrorMessage(qErr) : "Deployment not found."}
+        {qErr ? getApiErrorMessage(qErr) : "Déploiement introuvable."}
         <div className="mt-3">
           <Link href="/deployments" className="text-xs underline">
-            ← Deployments
+            ← Déploiements
           </Link>
         </div>
       </div>
@@ -130,7 +131,9 @@ export default function DeploymentDetailPage({
 
   const url = resolveDeploymentUrl(dep);
   const isLive = dep.status === "RUNNING" || dep.status === "PENDING";
-  const canRollback = dep.status === "SUCCESS" || dep.status === "FAILED";
+  const canRedeploy = dep.status === "SUCCESS" || dep.status === "FAILED";
+  const canRollback =
+    isCapabilityEnabled("deploymentStrategiesAndRollback") && canRedeploy;
   const duration = dur(
     dep.startedAt,
     dep.finishedAt ?? (dep.status === "RUNNING" ? undefined : dep.startedAt),
@@ -139,7 +142,7 @@ export default function DeploymentDetailPage({
 
   const meta: { label: string; value: React.ReactNode }[] = [
     {
-      label: "Project",
+      label: "Projet",
       value: dep.project ? (
         <Link
           href={`/projects/${dep.project.id}`}
@@ -151,11 +154,14 @@ export default function DeploymentDetailPage({
         "—"
       ),
     },
-    { label: "Environment", value: dep.environment?.name ?? "—" },
+    { label: "Environnement", value: dep.environment?.name ?? "—" },
     { label: "Service", value: dep.service?.name ?? "—" },
-    { label: "Branch", value: <span className="font-mono">{dep.branch}</span> },
     {
-      label: "Server",
+      label: "Branche",
+      value: <span className="font-mono">{dep.branch}</span>,
+    },
+    {
+      label: "Serveur",
       value: dep.environment?.server ? (
         <span className="inline-flex items-center gap-1">
           <Server size={12} /> {dep.environment.server.name}{" "}
@@ -168,19 +174,19 @@ export default function DeploymentDetailPage({
       ),
     },
     {
-      label: "Trigger",
+      label: "Déclencheur",
       value: (
         <span className="inline-flex items-center gap-1">
-          <User size={12} /> {dep.user?.fullName ?? "Auto-deploy"}
+          <User size={12} /> {dep.user?.fullName ?? "Déploiement automatique"}
         </span>
       ),
     },
     {
-      label: "Created",
+      label: "Créé",
       value: `${timeAgo(dep.createdAt)} · ${new Date(dep.createdAt).toLocaleString()}`,
     },
-    { label: "Duration", value: duration || "—" },
-    { label: "Strategy", value: (spec.strategy as string) ?? "STANDARD" },
+    { label: "Durée", value: duration || "—" },
+    { label: "Stratégie", value: (spec.strategy as string) ?? "STANDARD" },
     {
       label: "Pipeline CI",
       value: dep.externalPipelineId ? (
@@ -222,12 +228,12 @@ export default function DeploymentDetailPage({
             href="/deployments"
             className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
           >
-            <ArrowLeft size={15} /> Deployments
+            <ArrowLeft size={15} /> Déploiements
           </Link>
           <div className="flex items-center gap-3">
             <DeploymentStatusBadge status={dep.status} />
             <h1 className="text-xl font-semibold text-[var(--text-primary)]">
-              {dep.service?.name ?? "Deployment"}
+              {dep.service?.name ?? "Déploiement"}
             </h1>
           </div>
           <p className="font-mono text-xs text-[var(--text-muted)]">{dep.id}</p>
@@ -254,7 +260,7 @@ export default function DeploymentDetailPage({
               ) : (
                 <Square size={12} />
               )}{" "}
-              Cancel
+              Annuler
             </button>
           )}
           {canRollback && (
@@ -275,16 +281,16 @@ export default function DeploymentDetailPage({
               ) : (
                 <RotateCcw size={12} />
               )}{" "}
-              Rollback
+              Restaurer
             </button>
           )}
-          {canRollback && (
+          {canRedeploy && (
             <button
               type="button"
               onClick={() => setRedeployOpen(true)}
               className="flex items-center gap-1 rounded-lg bg-[var(--text-primary)] px-2.5 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90"
             >
-              <Rocket size={12} /> Redeploy
+              <Rocket size={12} /> Redéployer
             </button>
           )}
           {confirmDelete ? (
@@ -306,7 +312,7 @@ export default function DeploymentDetailPage({
                 ) : (
                   <Trash2 size={12} />
                 )}{" "}
-                Confirm
+                Confirmer
               </button>
               <button
                 type="button"
@@ -322,7 +328,7 @@ export default function DeploymentDetailPage({
               onClick={() => setConfirmDelete(true)}
               className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-red-400"
             >
-              <Trash2 size={12} /> Delete
+              <Trash2 size={12} /> Supprimer
             </button>
           )}
         </div>
@@ -339,10 +345,10 @@ export default function DeploymentDetailPage({
         <nav className="-mb-px flex gap-1 overflow-x-auto">
           {(
             [
-              { id: "general", label: "General", icon: Settings2 },
-              { id: "logs", label: "Logs", icon: ScrollText },
+              { id: "general", label: "Général", icon: Settings2 },
+              { id: "logs", label: "Journaux", icon: ScrollText },
               ...(dep.status === "SUCCESS"
-                ? [{ id: "container" as const, label: "Container", icon: Box }]
+                ? [{ id: "container" as const, label: "Conteneur", icon: Box }]
                 : []),
             ] as { id: typeof tab; label: string; icon: React.ElementType }[]
           ).map(({ id, label, icon: Icon }) => (
@@ -384,12 +390,14 @@ export default function DeploymentDetailPage({
 
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
             <p className="mb-3 text-sm font-semibold text-[var(--text-primary)]">
-              Details
+              Détails
             </p>
             <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
               {meta.map((m) => (
                 <div key={m.label}>
-                  <dt className="text-xs text-[var(--text-muted)]">{m.label}</dt>
+                  <dt className="text-xs text-[var(--text-muted)]">
+                    {m.label}
+                  </dt>
                   <dd className="mt-0.5 text-sm text-[var(--text-primary)]">
                     {m.value}
                   </dd>
@@ -401,7 +409,7 @@ export default function DeploymentDetailPage({
           {specRows.length > 0 && (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
               <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-                <Clock size={13} /> Frozen configuration (Immutable Release)
+                <Clock size={13} /> Configuration figée (version immuable)
               </p>
               <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
                 {specRows.map(([k, v]) => (

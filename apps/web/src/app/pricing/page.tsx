@@ -1,192 +1,93 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/features/auth/api/use-auth";
+import { CheckCircle2 } from "lucide-react";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
-import { PublicContentPlaceholder } from "@/components/marketing/public-content-placeholder";
-import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
+import { customerAppPath } from "@/shared/config/product-urls";
 
-const plans = [
-  {
-    name: "Free",
-    price: "0 DT",
-    desc: "Pour découvrir la plateforme",
-    features: [
-      "1 projet",
-      "1 serveur",
-      "3 membres d'équipe",
-      "Monitoring 24/7",
-      "SSL automatique",
-      "Support par email",
-    ],
-    cta: "Démarrer gratuitement",
-    featured: false,
-  },
-  {
-    name: "Starter",
-    price: "99 DT",
-    desc: "Pour les équipes en croissance",
-    features: [
-      "Tout le plan Free",
-      "3 projets",
-      "2 serveurs",
-      "10 membres d'équipe",
-      "Déploiements Git automatiques",
-      "Support prioritaire",
-    ],
-    cta: "Choisir Starter",
-    featured: true,
-  },
-  {
-    name: "Pro",
-    price: "299 DT",
-    desc: "Pour les entreprises",
-    features: [
-      "Tout le plan Starter",
-      "10 projets",
-      "5 serveurs",
-      "25 membres d'équipe",
-      "Infrastructure managée",
-      "Support dédié",
-    ],
-    cta: "Choisir Pro",
-    featured: false,
-  },
-  {
-    name: "Enterprise",
-    price: "990 DT",
-    desc: "Pour les grandes organisations",
-    features: [
-      "Tout le plan Pro",
-      "100 projets",
-      "100 serveurs",
-      "500 membres d'équipe",
-      "SLA personnalisé",
-      "Support dédié 24/7",
-    ],
-    cta: "Nous contacter",
-    featured: false,
-  },
+const included = [
+  "1 projet",
+  "1 serveur",
+  "Espace personnel ou organisation",
+  "Jusqu'à 3 membres dans une organisation",
+  "GitHub et GitLab",
+  "Déploiements Docker",
+  "Domaines HTTPS",
+  "Logs et suivi opérationnel",
 ];
 
 export default function PricingPage() {
-  const router = useRouter();
-  const { isAuthenticated, loading } = useAuth();
-  const publicPricingEnabled = isCapabilityEnabled("publicPricing");
-
-  useEffect(() => {
-    if (!publicPricingEnabled || loading) return;
-    if (isAuthenticated) {
-      router.replace("/settings/billing");
-    }
-  }, [isAuthenticated, loading, publicPricingEnabled, router]);
-
-  if (!publicPricingEnabled) {
-    return (
-      <PublicContentPlaceholder
-        eyebrow="Offres en préparation"
-        title="Sovrack n'est pas encore commercialisé"
-        description="Les plans, tarifs, limites et modalités de paiement sont en cours de définition et ne sont pas ouverts à la souscription."
-      />
-    );
-  }
-
-  const targetHref = isAuthenticated ? "/settings/billing" : "/register";
-
   return (
-    <div className="min-h-screen bg-brand">
+    <div className="min-h-screen bg-brand text-white">
       <MarketingNavbar />
 
-      <section className="pb-20 pt-24">
-        <div className="mx-auto max-w-7xl px-6">
-          <h1 className="text-center text-4xl font-bold text-white">
-            Des tarifs simples et transparents
-          </h1>
-          <p className="mx-auto mt-4 max-w-xl text-center text-slate-400">
-            Commencez gratuitement. Évoluez à votre rythme. Pas de frais cachés.
+      <main className="mx-auto max-w-6xl px-6 py-20 sm:py-24">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-cyan-300">
+            Tarification
           </p>
-
-          <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-4">
-            {plans.map((p) => (
-              <div
-                key={p.name}
-                className={`relative rounded-2xl border p-8 ${
-                  p.featured
-                    ? "border-sky-400/40 bg-brand-light shadow-xl shadow-sky-500/10 ring-2 ring-sky-400/60"
-                    : "border-white/10 bg-white/[0.03]"
-                }`}
-              >
-                {p.featured && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-sky-500 to-cyan-500 px-4 py-1 text-xs font-semibold text-white shadow-sm">
-                    Recommandé
-                  </span>
-                )}
-                <h2 className="text-xl font-bold text-white">{p.name}</h2>
-                <div className="mt-3">
-                  <span className="text-4xl font-bold text-white">
-                    {p.price}
-                  </span>
-                  <span className="text-slate-400">/mois</span>
-                </div>
-                <p className="mt-1 text-sm text-slate-400">{p.desc}</p>
-                <ul className="mt-8 space-y-3">
-                  {p.features.map((f) => (
-                    <li
-                      key={f}
-                      className="flex items-center gap-2 text-sm text-slate-300"
-                    >
-                      <svg
-                        className="h-4 w-4 shrink-0 text-emerald-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                {p.name === "Enterprise" ? (
-                  <a
-                    href="mailto:support@sovrack.tech?subject=Demande%20Enterprise"
-                    className={`mt-8 flex w-full items-center justify-center rounded-xl py-3 text-sm font-semibold transition ${
-                      p.featured
-                        ? "bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg shadow-sky-500/25 hover:brightness-110"
-                        : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                    }`}
-                  >
-                    {p.cta}
-                  </a>
-                ) : (
-                  <Link
-                    href={targetHref}
-                    className={`mt-8 flex w-full items-center justify-center rounded-xl py-3 text-sm font-semibold transition ${
-                      p.featured
-                        ? "bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg shadow-sky-500/25 hover:brightness-110"
-                        : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                    }`}
-                  >
-                    {p.cta}
-                  </Link>
-                )}
-                <p className="mt-3 text-center text-xs text-slate-500">
-                  Abonnement mensuel, sans engagement. Paiement en ligne
-                  disponible depuis votre espace.
-                </p>
-              </div>
-            ))}
-          </div>
+          <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-6xl">
+            Commencez gratuitement.
+          </h1>
+          <p className="mt-5 text-lg leading-8 text-slate-300">
+            L’accès actuel ne demande ni carte bancaire ni abonnement payant.
+            Les limites sont affichées clairement avant la création de vos
+            ressources.
+          </p>
         </div>
-      </section>
+
+        <section className="mx-auto mt-14 max-w-3xl rounded-3xl border border-cyan-300/25 bg-white/[0.03] p-8 sm:p-10">
+          <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Accès gratuit</h2>
+              <p className="mt-2 text-slate-400">
+                Pour déployer un premier projet sur votre propre serveur.
+              </p>
+            </div>
+            <div className="text-left sm:text-right">
+              <span className="text-5xl font-bold">0 DT</span>
+              <p className="mt-1 text-sm text-slate-400">sans carte bancaire</p>
+            </div>
+          </div>
+
+          <ul className="mt-8 grid gap-3 sm:grid-cols-2">
+            {included.map((feature) => (
+              <li
+                key={feature}
+                className="flex items-start gap-3 text-slate-200"
+              >
+                <CheckCircle2
+                  className="mt-0.5 shrink-0 text-cyan-300"
+                  size={18}
+                />
+                <span>{feature}</span>
+              </li>
+            ))}
+          </ul>
+
+          <Link
+            href={customerAppPath("/register")}
+            className="mt-9 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 px-6 py-3.5 font-semibold text-white transition hover:brightness-110"
+          >
+            Créer un compte
+          </Link>
+        </section>
+
+        <section className="mx-auto mt-8 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center">
+          <h2 className="text-lg font-semibold">Un besoin particulier ?</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            Pour discuter de limites supplémentaires ou d’un accompagnement,
+            écrivez-nous. Aucun plan payant n’est activé automatiquement.
+          </p>
+          <a
+            href="mailto:contact@sovrack.tech?subject=Demande%20Sovrack"
+            className="mt-4 inline-flex font-semibold text-cyan-300 hover:text-cyan-200"
+          >
+            contact@sovrack.tech
+          </a>
+        </section>
+      </main>
 
       <MarketingFooter />
     </div>

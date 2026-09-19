@@ -79,7 +79,7 @@ export function AddProviderDialog({
   const [step, setStep] = useState(isEdit ? 2 : 1);
   const [selectedType, setSelectedType] =
     useState<ProviderType>(initialProviderType);
-  const [authChoice, setAuthChoice] = useState<AuthChoice>("both");
+  const [authChoice, setAuthChoice] = useState<AuthChoice>("pat");
 
   const [form, setForm] = useState<ProviderFormData>({
     name: "",
@@ -168,7 +168,13 @@ export function AddProviderDialog({
       setSelectedType(initialProviderType);
       setForm((prev) => ({ ...prev, redirectUri: fallbackRedirectUri }));
     }
-  }, [isEdit, existingProvider, initialProviderType, fallbackRedirectUri, open]);
+  }, [
+    isEdit,
+    existingProvider,
+    initialProviderType,
+    fallbackRedirectUri,
+    open,
+  ]);
 
   // Reset on close
   useEffect(() => {
@@ -198,34 +204,55 @@ export function AddProviderDialog({
 
   const showOAuth = authChoice === "oauth" || authChoice === "both";
   const showPAT = authChoice === "pat" || authChoice === "both";
+  const hasOAuthCredentials =
+    form.applicationId.trim().length > 0 &&
+    (form.applicationSecret.trim().length > 0 ||
+      (isEdit && form.applicationSecretConfigured));
+  const hasPatCredentials =
+    form.adminToken.trim().length > 0 || (isEdit && form.adminTokenConfigured);
+  const canSubmit =
+    (!showOAuth || hasOAuthCredentials) && (!showPAT || hasPatCredentials);
 
   const handleSubmit = async () => {
     if (isEdit && existingProvider) {
-      const payload: UpdateGitlabProviderPayload = {
+      const commonPayload: UpdateGitlabProviderPayload = {
         name: form.name.trim(),
         providerUrl: form.providerUrl.trim(),
         internalUrl: form.internalUrl.trim(),
-        redirectUri: effectiveRedirectUri,
-        applicationId: form.applicationId.trim(),
-        groupNames: form.groupNames.trim(),
         isDefault: form.isDefault,
       };
-      if (form.applicationSecret.trim())
+      const payload: UpdateGitlabProviderPayload =
+        selectedType === "GITHUB"
+          ? commonPayload
+          : {
+              ...commonPayload,
+              applicationId: form.applicationId.trim(),
+              groupNames: form.groupNames.trim(),
+            };
+      if (selectedType !== "GITHUB" && form.applicationSecret.trim()) {
         payload.applicationSecret = form.applicationSecret.trim();
-      if (form.adminToken.trim()) payload.adminToken = form.adminToken.trim();
+      }
+      if (form.adminToken.trim()) {
+        payload.adminToken = form.adminToken.trim();
+      }
       await onSave(payload);
     } else {
-      const payload: CreateGitlabProviderPayload = {
+      const commonPayload: CreateGitlabProviderPayload = {
         name: form.name.trim(),
         providerUrl: form.providerUrl.trim(),
         internalUrl: form.internalUrl.trim(),
-        redirectUri: effectiveRedirectUri,
-        applicationId: form.applicationId.trim(),
-        applicationSecret: form.applicationSecret.trim(),
-        groupNames: form.groupNames.trim(),
         adminToken: form.adminToken.trim(),
         isDefault: form.isDefault,
       };
+      const payload: CreateGitlabProviderPayload =
+        selectedType === "GITHUB"
+          ? commonPayload
+          : {
+              ...commonPayload,
+              applicationId: form.applicationId.trim(),
+              applicationSecret: form.applicationSecret.trim(),
+              groupNames: form.groupNames.trim(),
+            };
       await onSave(payload, selectedType === "GITHUB" ? "GITHUB" : "GITLAB");
     }
   };
@@ -258,12 +285,14 @@ export function AddProviderDialog({
         <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
           <div>
             <h2 className="text-base font-semibold text-[var(--text-primary)]">
-              {isEdit ? "Edit Git Provider" : "Connect Git Provider"}
+              {isEdit
+                ? "Modifier le fournisseur Git"
+                : "Connecter un fournisseur Git"}
             </h2>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
               {isEdit
-                ? "Update provider configuration and credentials"
-                : "Add a global reusable Git integration for your projects"}
+                ? "Modifiez la configuration et les identifiants du fournisseur"
+                : "Ajoutez une intégration Git réutilisable par vos projets"}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -271,7 +300,7 @@ export function AddProviderDialog({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label="Fermer"
               className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
             >
               <X size={13} />
@@ -359,14 +388,14 @@ export function AddProviderDialog({
                   onClick={() => setStep((s) => s - 1)}
                   icon={<ArrowLeft size={13} />}
                 >
-                  Back
+                  Retour
                 </Button>
               )}
             </div>
 
             <div className="flex items-center gap-2">
               <Button variant="secondary" size="sm" onClick={onClose}>
-                Cancel
+                Annuler
               </Button>
 
               {step < (isEdit ? 4 : 4) ? (
@@ -376,17 +405,17 @@ export function AddProviderDialog({
                   disabled={!canProceed}
                   icon={<ArrowRight size={13} />}
                 >
-                  Continue
+                  Continuer
                 </Button>
               ) : (
                 <Button
                   size="sm"
                   onClick={() => void handleSubmit()}
                   loading={saving}
-                  disabled={saving}
+                  disabled={saving || !canSubmit}
                   icon={saving ? undefined : <Check size={13} />}
                 >
-                  {isEdit ? "Save Changes" : "Add Provider"}
+                  {isEdit ? "Enregistrer" : "Ajouter le fournisseur"}
                 </Button>
               )}
             </div>

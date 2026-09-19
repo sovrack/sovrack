@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { CheckCircle, XCircle, Clock, Ban, Loader2 } from "lucide-react";
 import type { DeploymentStatus } from "@/features/deployments/types";
+import { deploymentStatusLabel } from "@/shared/i18n/product-labels";
 
 // `fill` = badge coloré (listes) · `text` = couleur du texte/icône réutilisée par
 // la variante « plain » (fond neutre comme les boutons, juste le texte coloré).
@@ -9,31 +10,31 @@ const config: Record<
   { label: string; icon: React.ElementType; fill: string; text: string }
 > = {
   SUCCESS: {
-    label: "Success",
+    label: "SUCCESS",
     icon: CheckCircle,
     fill: "bg-green-500/15",
     text: "text-green-300",
   },
   FAILED: {
-    label: "Failed",
+    label: "FAILED",
     icon: XCircle,
     fill: "bg-red-500/15",
     text: "text-red-300",
   },
   RUNNING: {
-    label: "Running",
+    label: "RUNNING",
     icon: Loader2,
     fill: "bg-blue-500/15",
     text: "text-[var(--text-secondary)]",
   },
   PENDING: {
-    label: "Pending",
+    label: "PENDING",
     icon: Clock,
     fill: "bg-yellow-500/15",
     text: "text-yellow-300",
   },
   CANCELED: {
-    label: "Canceled",
+    label: "CANCELED",
     icon: Ban,
     fill: "bg-zinc-500/15",
     text: "text-[var(--text-secondary)]",
@@ -75,7 +76,7 @@ export function DeploymentStatusBadge({
         size={size === "sm" ? 11 : 13}
         className={status === "RUNNING" ? "animate-spin" : ""}
       />
-      {label}
+      {deploymentStatusLabel(label)}
     </span>
   );
 }

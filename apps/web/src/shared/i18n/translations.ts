@@ -21,6 +21,7 @@ export const FR: Record<string, string> = {
   Terminal: "Terminal",
   "Platform Settings": "Réglages plateforme",
   "Git Providers": "Fournisseurs Git",
+  Workspaces: "Espaces de travail",
   "Users & Teams": "Utilisateurs & équipes",
   "System Status": "État du système",
   "Audit Logs": "Journaux d'audit",
@@ -141,6 +142,22 @@ export const FR: Record<string, string> = {
     "Langue et apparence, enregistrées sur ce navigateur.",
   "Light theme": "Thème clair",
   "Dark theme": "Thème sombre",
+  "Danger zone": "Zone sensible",
+  "Schedule deletion of your identity after a 30-day recovery period.":
+    "Programmez la suppression de votre identité après un délai de récupération de 30 jours.",
+  "A confirmation code will be sent by email. Confirmation immediately signs you out and disables access. Organizations are preserved; your personal workspace is deleted after 30 days. Transfer ownership first if you are the last owner of an organization.":
+    "Un code de confirmation sera envoyé par email. La confirmation vous déconnecte immédiatement et désactive l’accès. Les organisations sont conservées ; votre espace personnel est supprimé après 30 jours. Transférez d’abord la propriété si vous êtes le dernier propriétaire d’une organisation.",
+  "Schedule account deletion": "Programmer la suppression du compte",
+  "Confirm and start 30-day grace period":
+    "Confirmer et démarrer le délai de grâce de 30 jours",
+  "A confirmation code has been sent to your email. Enter it below.":
+    "Un code de confirmation a été envoyé à votre adresse email. Saisissez-le ci-dessous.",
+  "Enter the 6-digit confirmation code.":
+    "Saisissez le code de confirmation à 6 chiffres.",
+  "Confirmation code": "Code de confirmation",
+  "Unable to request deletion.":
+    "Impossible de demander la suppression.",
+  "Invalid or expired code.": "Code invalide ou expiré.",
 
   // ── Divers ────────────────────────────────────────────────────────────
   Deployment: "Déploiement",

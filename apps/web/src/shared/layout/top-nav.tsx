@@ -27,6 +27,10 @@ import clsx from "clsx";
 import type { Deployment } from "@/features/deployments/types";
 import { timeAgoCompact } from "@/shared/lib/format-date";
 import { WorkspaceSwitcher } from "@/features/teams/components/workspace-switcher";
+import {
+  deploymentStatusLabel,
+  workspaceRoleLabel,
+} from "@/shared/i18n/product-labels";
 
 /* ─── Notification bell ─────────────────────────────────────────────────── */
 
@@ -158,7 +162,8 @@ function NotificationBell() {
                         )}
                       </p>
                       <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
-                        {dep.environment.name} · {dep.branch} · {dep.status}
+                        {dep.environment.name} · {dep.branch} ·{" "}
+                        {deploymentStatusLabel(dep.status)}
                       </p>
                     </div>
                     <span className="shrink-0 text-[10px] text-[var(--text-muted)]">
@@ -186,31 +191,13 @@ function NotificationBell() {
   );
 }
 
-/* ─── Language toggle (D1) ──────────────────────────────────────────────── */
-
-function LanguageToggle() {
-  const { lang, setLang, mounted } = useI18n();
-  if (!mounted) return null;
-  return (
-    <button
-      type="button"
-      onClick={() => setLang(lang === "en" ? "fr" : "en")}
-      title={lang === "en" ? "Passer en français" : "Switch to English"}
-      aria-label="Toggle language"
-      className="flex h-9 items-center justify-center rounded-xl px-2.5 text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
-    >
-      {lang === "en" ? "FR" : "EN"}
-    </button>
-  );
-}
-
 /* ─── Top nav ───────────────────────────────────────────────────────────── */
 
 export function TopNav() {
   const { t } = useI18n();
   const router = useRouter();
   const { user, logout, workspaceRole } = useAuth();
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, toggleMobileSidebar } = useSidebar();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -247,15 +234,24 @@ export function TopNav() {
       <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
         <button
           type="button"
+          onClick={toggleMobileSidebar}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] lg:hidden"
+          title="Ouvrir la navigation"
+          aria-label="Ouvrir la navigation"
+        >
+          <Menu size={18} strokeWidth={2} />
+        </button>
+        <button
+          type="button"
           onClick={toggleSidebar}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
-          title="Toggle sidebar"
-          aria-label="Toggle sidebar"
+          className="hidden h-9 w-9 items-center justify-center rounded-lg text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] lg:flex"
+          title="Réduire ou agrandir la navigation"
+          aria-label="Réduire ou agrandir la navigation"
         >
           <Menu size={18} strokeWidth={2} />
         </button>
 
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex min-w-0 items-center gap-1.5">
           <WorkspaceSwitcher />
           <Link
             href={publicSitePath("/")}
@@ -263,13 +259,14 @@ export function TopNav() {
             rel="noopener noreferrer"
             title="Ouvrir le site public"
             aria-label="Ouvrir le site public dans un nouvel onglet"
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+            className="hidden h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] min-[400px]:flex"
           >
             <Globe2 size={17} />
           </Link>
-          <LanguageToggle />
           <ThemeToggle />
-          <NotificationBell />
+          <div className="hidden sm:block">
+            <NotificationBell />
+          </div>
 
           <div ref={dropdownRef} className="relative">
             <button
@@ -282,10 +279,10 @@ export function TopNav() {
               </div>
               <div className="hidden text-left md:block">
                 <p className="max-w-[140px] truncate text-sm font-semibold text-[var(--text-primary)]">
-                  {user?.fullName ?? "User"}
+                  {user?.fullName ?? "Utilisateur"}
                 </p>
                 <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                  {workspaceRole ?? "MEMBER"}
+                  {workspaceRoleLabel(workspaceRole)}
                 </p>
               </div>
               <ChevronDown
@@ -306,6 +303,16 @@ export function TopNav() {
                 </div>
 
                 <div className="mt-1.5 space-y-0.5">
+                  <Link
+                    href={publicSitePath("/")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                  >
+                    <Globe2 size={14} className="text-[var(--text-muted)]" />
+                    Site public
+                  </Link>
                   <button
                     type="button"
                     onClick={() => {

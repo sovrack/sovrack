@@ -39,6 +39,24 @@ describe("web-plane middleware", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
+  it.each([
+    "/pricing",
+    "/docs",
+    "/status",
+    "/security",
+    "/legal",
+    "/privacy",
+    "/terms",
+    "/cookies",
+    "/acceptable-use",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/manifest.webmanifest",
+  ])("keeps %s on the public host", (pathname) => {
+    const response = middleware(request(`https://sovrack.test${pathname}`));
+    expect(response.headers.get("location")).toBeNull();
+  });
+
   it("sends product routes from the public host to the customer app", () => {
     const response = middleware(
       request("https://sovrack.test/projects?tab=active"),

@@ -3,10 +3,44 @@ import { ErrorBoundary } from "@/shared/common/error-boundary";
 import { Providers } from "@/shared/providers";
 import "@/styles/globals.css";
 
+const publicSiteUrl =
+  process.env.NEXT_PUBLIC_PUBLIC_SITE_URL?.replace(/\/+$/, "") ||
+  "https://sovrack.tech";
+
 export const metadata: Metadata = {
-  title: "Sovrack",
+  metadataBase: new URL(publicSiteUrl),
+  title: {
+    default: "Sovrack — Déployez sur vos propres serveurs",
+    template: "%s | Sovrack",
+  },
   description:
     "Plateforme de déploiement et d'exploitation d'applications sur vos serveurs.",
+  applicationName: "Sovrack",
+  keywords: [
+    "déploiement Docker",
+    "VPS",
+    "GitHub",
+    "GitLab",
+    "self-hosted",
+    "CI/CD",
+  ],
+  authors: [{ name: "Sovrack", url: publicSiteUrl }],
+  creator: "Sovrack",
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    url: publicSiteUrl,
+    siteName: "Sovrack",
+    title: "Sovrack — Déployez sur vos propres serveurs",
+    description:
+      "Centralisez vos sources Git, VPS, déploiements Docker, domaines HTTPS et journaux opérationnels.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sovrack — Déployez sur vos propres serveurs",
+    description:
+      "Centralisez vos sources Git, VPS, déploiements Docker, domaines HTTPS et journaux opérationnels.",
+  },
 };
 
 export const viewport = {

@@ -1,41 +1,46 @@
-# Phase 1 — vérité produit et exposition des fonctionnalités
+# Contrat produit V1
 
 ## Objectif
 
-Tant que Sovrack est en développement privé, aucune surface publique ne doit
-transformer une fonctionnalité partielle, simulée ou seulement modélisée en
-promesse produit.
+Sovrack est présenté comme un produit public normal. Le site, la console et
+l'API doivent décrire uniquement des parcours disponibles, testés et maintenus.
+Il n'existe aucun badge « bêta » ou « produit final » dans l'interface.
 
 La source de vérité exécutable est
-`src/shared/config/product-capabilities.ts`. Une capacité `beta` peut être
-utilisée dans les tests privés. Une capacité `planned` ne doit pas ouvrir un
-parcours utilisateur ni être présentée comme disponible.
+`src/shared/config/product-capabilities.ts`. Une capacité `available` peut être
+présentée et utilisée. Une capacité `planned` reste masquée dans l'interface et
+refusée côté API lorsqu'une ancienne route existe encore.
 
-## Décisions de cette phase
+## Périmètre public
 
-- Le contenu marketing, la documentation publique et les tarifs historiques
-  restent dans le code pour leur réécriture ultérieure, mais ne sont plus
-  rendus.
-- La souscription en libre-service est masquée de la navigation et sa route est
-  neutralisée. Le frontend ne peut donc plus appeler les mutations de
-  souscription ou d'annulation depuis cette page.
-- L'authentification Google est masquée tant que son parcours complet n'est pas
-  configuré et testé.
-- Les affirmations relatives aux serveurs managés sont retirées du formulaire
-  d'inscription.
-- Les capacités non livrées (Compose, previews de merge request, DNS automatisé,
-  volumes, sauvegardes, webhooks sortants, Discord, jetons API personnels et
-  page de statut) sont explicitement marquées `planned`.
+- compte par email et mot de passe, vérification et récupération par email ;
+- MFA client non obligatoire : email et mot de passe suffisent toujours ;
+- espaces personnels et organisations ;
+- projets, environnements et serveurs fournis par le client ;
+- GitHub par Personal Access Token et GitLab par jeton d'accès ;
+- applications issues d'un dépôt, d'un Dockerfile ou d'une image Docker ;
+- PostgreSQL, Redis, MySQL, MongoDB et RabbitMQ avec volume persistant interne,
+  identifiants générés et connexion automatique aux applications du projet ;
+- registres privés, domaines avec DNS manuel, HTTPS, déploiements, logs,
+  métriques disponibles et terminal selon les permissions ;
+- site, documentation, sécurité, tarifs, statut et pages juridiques publics.
 
-## Limite volontaire
+## Capacités planifiées et masquées
 
-Ces drapeaux protègent l'exposition produit, pas la sécurité. Les permissions,
-les contrôles multi-tenant et la validation des entrées restent la
-responsabilité du backend et seront traités dans les phases correspondantes.
+- facturation en libre-service et plans payants ;
+- authentification Google, Gitea et GitHub OAuth ;
+- infrastructure achetée ou provisionnée par Sovrack ;
+- modèles, Docker Compose, workers et cron ;
+- automatisation serveur générale, automatisation DNS et previews de merge
+  request ;
+- volumes persistants vendus comme service et sauvegardes applicatives ;
+- rollback public tant que sa reprise durable n'est pas qualifiée ;
+- notifications client Slack/email, webhooks sortants, Discord et jetons API
+  personnels.
 
-## Condition de réactivation
+## Condition d'activation
 
-Une capacité ne passe de `planned` à `beta` ou `available` qu'après :
+Une capacité ne passe de `planned` à `available` qu'après :
 
 1. un parcours fonctionnel complet ;
 2. des tests automatisés et un test d'acceptation sur infrastructure jetable ;

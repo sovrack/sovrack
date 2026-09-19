@@ -2,15 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   getCapabilitiesByStatus,
   isCapabilityEnabled,
-  PRIVATE_BETA_CAPABILITIES,
+  V1_CAPABILITIES,
   PRODUCT_CAPABILITIES,
   PRODUCT_STAGE,
-  VALIDATION_GATED_PUBLIC_CAPABILITIES,
 } from "./product-capabilities";
 
 describe("product capabilities", () => {
-  it("keeps the product in private development until an explicit decision", () => {
-    expect(PRODUCT_STAGE).toBe("private-development");
+  it("publishes the V1 as generally available", () => {
+    expect(PRODUCT_STAGE).toBe("general-availability");
   });
 
   it("does not expose unfinished commercial and infrastructure paths", () => {
@@ -20,19 +19,12 @@ describe("product capabilities", () => {
     expect(isCapabilityEnabled("mergeRequestPreviews")).toBe(false);
   });
 
-  it("pins the exact scope of the first private beta", () => {
-    const configuredBeta = getCapabilitiesByStatus("beta")
+  it("pins the exact scope of the public V1", () => {
+    const configuredV1 = getCapabilitiesByStatus("available")
       .map(([name]) => name)
       .sort();
 
-    expect(configuredBeta).toEqual([...PRIVATE_BETA_CAPABILITIES].sort());
-  });
-
-  it("keeps documentation, legal content and pricing gated", () => {
-    for (const capability of VALIDATION_GATED_PUBLIC_CAPABILITIES) {
-      expect(PRODUCT_CAPABILITIES[capability].status).toBe("planned");
-      expect(isCapabilityEnabled(capability)).toBe(false);
-    }
+    expect(configuredV1).toEqual([...V1_CAPABILITIES].sort());
   });
 
   it("documents a decision for every capability", () => {
@@ -46,6 +38,8 @@ describe("product capabilities", () => {
     const planned = getCapabilitiesByStatus("planned");
 
     expect(planned.length).toBeGreaterThan(0);
-    expect(planned.every(([, definition]) => definition.status === "planned")).toBe(true);
+    expect(
+      planned.every(([, definition]) => definition.status === "planned"),
+    ).toBe(true);
   });
 });

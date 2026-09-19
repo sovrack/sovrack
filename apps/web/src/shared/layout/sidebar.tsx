@@ -11,6 +11,7 @@ import { SovrackLogo } from "@/components/marketing/sovrack-logo";
 import { APP_NAV_SECTIONS, isRouteActive } from "@/shared/config/navigation";
 import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import { customerAppPath } from "@/shared/config/product-urls";
+import { workspaceRoleLabel } from "@/shared/i18n/product-labels";
 
 type NavItemProps = {
   href: string;
@@ -18,6 +19,7 @@ type NavItemProps = {
   icon: React.ElementType;
   isActive: boolean;
   collapsed: boolean;
+  onNavigate: () => void;
 };
 
 function NavItem({
@@ -26,14 +28,16 @@ function NavItem({
   icon: Icon,
   isActive,
   collapsed,
+  onNavigate,
 }: NavItemProps) {
   return (
     <Link
       href={href}
+      onClick={onNavigate}
       title={collapsed ? label : undefined}
       className={clsx(
         "group flex items-center gap-3 rounded-md py-2 text-[15px] transition-colors duration-150",
-        collapsed ? "justify-center px-0" : "px-3",
+        collapsed ? "px-3 lg:justify-center lg:px-0" : "px-3",
         isActive
           ? "bg-[var(--sidebar-active-bg)] font-medium text-[var(--sidebar-text-active)]"
           : "font-normal text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-text-active)]",
@@ -47,14 +51,27 @@ function NavItem({
             : "text-[var(--sidebar-icon)] group-hover:text-[var(--sidebar-text-active)]",
         )}
       />
-      {!collapsed && <span className="truncate">{label}</span>}
+      <span className={clsx("truncate", collapsed && "lg:hidden")}>
+        {label}
+      </span>
     </Link>
   );
 }
 
-function SectionLabel({ label }: { label: string }) {
+function SectionLabel({
+  label,
+  collapsed,
+}: {
+  label: string;
+  collapsed: boolean;
+}) {
   return (
-    <p className="mb-1 mt-5 px-3 text-xs font-medium uppercase tracking-[0.12em] text-[var(--sidebar-text-muted)]">
+    <p
+      className={clsx(
+        "mb-1 mt-5 px-3 text-xs font-medium uppercase tracking-[0.12em] text-[var(--sidebar-text-muted)]",
+        collapsed && "lg:hidden",
+      )}
+    >
       {label}
     </p>
   );
@@ -64,7 +81,7 @@ export function Sidebar() {
   const { t } = useI18n();
   const pathname = usePathname();
   const { user, isAdmin, workspaceRole, logout } = useAuth();
-  const { collapsed } = useSidebar();
+  const { collapsed, isMobileOpen, closeMobileSidebar } = useSidebar();
 
   const initials = user?.fullName
     ? user.fullName
@@ -76,102 +93,125 @@ export function Sidebar() {
     : "U";
 
   return (
-    <aside
-      className={clsx(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-[var(--border)] bg-[var(--bg-sidebar)] transition-all duration-300 ease-in-out",
-        collapsed ? "w-20" : "w-64",
+    <>
+      {isMobileOpen && (
+        <button
+          type="button"
+          aria-label="Fermer la navigation"
+          onClick={closeMobileSidebar}
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+        />
       )}
-    >
-      {/* Logo */}
-      <div className={clsx("shrink-0 py-4", collapsed ? "px-2" : "px-3")}>
-        <Link
-          href={customerAppPath("/dashboard")}
-          className={clsx(
-            "flex w-full items-center gap-2",
-            collapsed && "justify-center",
-          )}
-        >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]">
-            <SovrackLogo size={34} className="-rotate-12" />
-          </div>
-          {!collapsed && (
-            <span className="truncate text-[17px] font-semibold text-[var(--text-primary)]">
-              Deploy<span className="text-sky-400">Arc</span>
-            </span>
-          )}
-        </Link>
-      </div>
-
-      {/* Nav */}
-      <div className="flex-1 overflow-y-auto px-2 pb-4 no-scrollbar">
-        {APP_NAV_SECTIONS.map((section) => {
-          const visibleItems = section.items.filter((item) => {
-            const allowedForRole = item.adminOnly ? isAdmin : true;
-            const capabilityEnabled = item.capability
-              ? isCapabilityEnabled(item.capability)
-              : true;
-            return allowedForRole && capabilityEnabled;
-          });
-          if (visibleItems.length === 0) return null;
-
-          return (
-            <div key={section.id}>
-              {!collapsed && <SectionLabel label={t(section.label)} />}
-              <nav className="space-y-0.5">
-                {visibleItems.map((item) => {
-                  return (
-                    <NavItem
-                      key={item.href}
-                      href={item.href}
-                      label={t(item.label)}
-                      icon={item.icon}
-                      isActive={isRouteActive(pathname, item.href)}
-                      collapsed={collapsed}
-                    />
-                  );
-                })}
-              </nav>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* User card — click to go to platform settings */}
-      <div className="shrink-0 border-t border-[var(--border)] p-3">
+      <aside
+        aria-label="Navigation principale"
+        className={clsx(
+          "fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-[var(--border)] bg-[var(--bg-sidebar)] transition-all duration-300 ease-in-out lg:z-40",
+          collapsed ? "lg:w-20" : "lg:w-64",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+        )}
+      >
+        {/* Logo */}
         <div
-          className={clsx(
-            "flex items-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] transition hover:bg-[var(--sidebar-hover-bg)]",
-            collapsed ? "justify-center py-2.5 px-0" : "gap-3 py-2.5 px-3",
-          )}
+          className={clsx("shrink-0 py-4", collapsed ? "px-3 lg:px-2" : "px-3")}
         >
           <Link
-            href="/settings/account"
-            title={collapsed ? "Platform Settings" : undefined}
+            href={customerAppPath("/dashboard")}
+            onClick={closeMobileSidebar}
             className={clsx(
-              "flex items-center gap-3 min-w-0 flex-1",
-              collapsed && "justify-center",
+              "flex w-full items-center gap-2",
+              collapsed && "lg:justify-center",
             )}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--text-primary)] text-[11px] font-bold text-[var(--bg-app)]">
-              {initials}
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]">
+              <SovrackLogo size={34} className="-rotate-12" />
             </div>
-            {!collapsed && (
-              <div className="min-w-0 flex-1">
+            <span
+              className={clsx(
+                "truncate text-[17px] font-semibold text-[var(--text-primary)]",
+                collapsed && "lg:hidden",
+              )}
+            >
+              Deploy<span className="text-sky-400">Arc</span>
+            </span>
+          </Link>
+        </div>
+
+        {/* Nav */}
+        <div className="flex-1 overflow-y-auto px-2 pb-4 no-scrollbar">
+          {APP_NAV_SECTIONS.map((section) => {
+            const visibleItems = section.items.filter((item) => {
+              const allowedForRole = item.adminOnly ? isAdmin : true;
+              const capabilityEnabled = item.capability
+                ? isCapabilityEnabled(item.capability)
+                : true;
+              return allowedForRole && capabilityEnabled;
+            });
+            if (visibleItems.length === 0) return null;
+
+            return (
+              <div key={section.id}>
+                <SectionLabel label={t(section.label)} collapsed={collapsed} />
+                <nav className="space-y-0.5">
+                  {visibleItems.map((item) => {
+                    return (
+                      <NavItem
+                        key={item.href}
+                        href={item.href}
+                        label={t(item.label)}
+                        icon={item.icon}
+                        isActive={isRouteActive(pathname, item.href)}
+                        collapsed={collapsed}
+                        onNavigate={closeMobileSidebar}
+                      />
+                    );
+                  })}
+                </nav>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* User card — click to go to platform settings */}
+        <div className="shrink-0 border-t border-[var(--border)] p-3">
+          <div
+            className={clsx(
+              "flex items-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] transition hover:bg-[var(--sidebar-hover-bg)]",
+              collapsed
+                ? "gap-3 px-3 py-2.5 lg:justify-center lg:gap-0 lg:px-0"
+                : "gap-3 px-3 py-2.5",
+            )}
+          >
+            <Link
+              href="/settings/account"
+              onClick={closeMobileSidebar}
+              title={collapsed ? "Réglages de la plateforme" : undefined}
+              className={clsx(
+                "flex items-center gap-3 min-w-0 flex-1",
+                collapsed && "lg:justify-center",
+              )}
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--text-primary)] text-[11px] font-bold text-[var(--bg-app)]">
+                {initials}
+              </div>
+              <div className={clsx("min-w-0 flex-1", collapsed && "lg:hidden")}>
                 <p className="truncate text-[15px] font-medium text-[var(--sidebar-text)]">
-                  {user?.fullName ?? "User"}
+                  {user?.fullName ?? "Utilisateur"}
                 </p>
                 <p className="truncate text-[12px] text-[var(--sidebar-text-muted)]">
-                  {workspaceRole ?? "MEMBER"}
+                  {workspaceRoleLabel(workspaceRole)}
                 </p>
               </div>
-            )}
-          </Link>
+            </Link>
 
-          {!collapsed && (
-            <div className="flex shrink-0 items-center gap-1">
+            <div
+              className={clsx(
+                "flex shrink-0 items-center gap-1",
+                collapsed && "lg:hidden",
+              )}
+            >
               <Link
                 href="/settings/account"
-                title="Platform settings"
+                title="Réglages de la plateforme"
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sidebar-text-muted)] transition hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-text-active)]"
               >
                 <Settings size={14} />
@@ -179,15 +219,15 @@ export function Sidebar() {
               <button
                 type="button"
                 onClick={logout}
-                title="Logout"
+                title="Se déconnecter"
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sidebar-text-muted)] transition hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-text-active)]"
               >
                 <LogOut size={14} />
               </button>
             </div>
-          )}
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

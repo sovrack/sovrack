@@ -298,7 +298,7 @@
         },
         "responses": {
           "200": {
-            "description": "Account deleted"
+            "description": "Account deletion scheduled"
           },
           "400": {
             "description": "Invalid or expired code"
@@ -312,7 +312,7 @@
             "bearer": []
           }
         ],
-        "summary": "Delete the current account after email confirmation",
+        "summary": "Schedule account deletion after email confirmation",
         "tags": [
           "Auth"
         ]
@@ -467,6 +467,106 @@
         "summary": "Send an account deletion confirmation code by email",
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/auth/settings/security/mfa": {
+      "get": {
+        "operationId": "UserMfaController_getStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "État de la MFA facultative du client connecté",
+        "tags": [
+          "Account MFA"
+        ]
+      }
+    },
+    "/auth/settings/security/mfa/setup": {
+      "post": {
+        "operationId": "UserMfaController_beginSetup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Démarrer l'enrôlement TOTP facultatif",
+        "tags": [
+          "Account MFA"
+        ]
+      }
+    },
+    "/auth/settings/security/mfa/enable": {
+      "post": {
+        "operationId": "UserMfaController_enable",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnableUserMfaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Activer la MFA facultative après vérification",
+        "tags": [
+          "Account MFA"
+        ]
+      }
+    },
+    "/auth/settings/security/mfa/disable": {
+      "post": {
+        "operationId": "UserMfaController_disable",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableUserMfaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Désactiver la MFA facultative",
+        "tags": [
+          "Account MFA"
         ]
       }
     },
@@ -702,7 +802,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Team deleted"
+            "description": "Workspace archived"
           },
           "404": {
             "description": "Team not found"
@@ -713,7 +813,7 @@
             "bearer": []
           }
         ],
-        "summary": "Delete a team",
+        "summary": "Archive a workspace without deleting resources",
         "tags": [
           "Teams"
         ]
@@ -843,6 +943,38 @@
         ]
       }
     },
+    "/workspaces/{id}/membership": {
+      "delete": {
+        "operationId": "TeamsController_leaveWorkspace",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Organization left"
+          },
+          "409": {
+            "description": "The last owner cannot leave"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Leave an organization as the current user",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
     "/workspaces/{id}/members/{userId}/role": {
       "patch": {
         "operationId": "TeamsController_updateMemberRole",
@@ -885,6 +1017,53 @@
           }
         ],
         "summary": "Update a workspace member role",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
+    "/workspaces/{id}/members/{userId}/billing-access": {
+      "patch": {
+        "operationId": "TeamsController_updateMemberBillingAccess",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceMemberBillingAccessDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Grant or revoke the independent billing permission",
         "tags": [
           "Teams"
         ]
@@ -1035,6 +1214,43 @@
           }
         ],
         "summary": "Revoke a pending workspace invitation",
+        "tags": [
+          "Workspace invitations"
+        ]
+      }
+    },
+    "/workspaces/{workspaceId}/invitations/{invitationId}/resend": {
+      "post": {
+        "operationId": "WorkspaceInvitationsController_resend",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace and resend a pending invitation",
         "tags": [
           "Workspace invitations"
         ]
@@ -2358,6 +2574,16 @@
       "post": {
         "operationId": "SourceProvidersController_createGithubProvider[0]",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGithubProviderDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -2396,6 +2622,16 @@
       "post": {
         "operationId": "SourceProvidersController_createGithubProvider[1]",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGithubProviderDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -2425,6 +2661,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGithubProviderDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -2481,6 +2727,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGithubProviderDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -15879,262 +16135,6 @@
         ]
       }
     },
-    "/staff/overview": {
-      "get": {
-        "operationId": "StaffController_getOverview",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Vue globale de la plateforme",
-        "tags": [
-          "Back-office (staff)"
-        ]
-      }
-    },
-    "/staff/audit-logs": {
-      "get": {
-        "operationId": "StaffController_getAuditLogs",
-        "parameters": [
-          {
-            "name": "page",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Journal d’audit du back-office (append-only)",
-        "tags": [
-          "Back-office (staff)"
-        ]
-      }
-    },
-    "/staff/users": {
-      "get": {
-        "operationId": "StaffController_listUsers",
-        "parameters": [
-          {
-            "name": "page",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Liste des utilisateurs clients",
-        "tags": [
-          "Back-office (staff)"
-        ]
-      }
-    },
-    "/staff/teams": {
-      "get": {
-        "operationId": "StaffController_listTeams",
-        "parameters": [
-          {
-            "name": "page",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Liste des équipes plateforme",
-        "tags": [
-          "Back-office (staff)"
-        ]
-      }
-    },
-    "/staff/subscriptions": {
-      "get": {
-        "operationId": "StaffController_listSubscriptions",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Liste des abonnements plateforme",
-        "tags": [
-          "Back-office (staff)"
-        ]
-      }
-    },
-    "/staff/users/{id}": {
-      "patch": {
-        "operationId": "StaffController_updateUser",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StaffUpdateUserDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Bloquer ou débloquer une identité cliente",
-        "tags": [
-          "Back-office (staff)"
-        ]
-      },
-      "delete": {
-        "operationId": "StaffController_deleteUser",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Supprimer définitivement un compte client (ROOT)",
-        "tags": [
-          "Back-office (staff)"
-        ]
-      }
-    },
-    "/staff/users/{id}/impersonate": {
-      "post": {
-        "operationId": "StaffController_impersonate",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateStaffImpersonationDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Créer une autorisation client éphémère et journalisée",
-        "tags": [
-          "Back-office (staff)"
-        ]
-      }
-    },
     "/staff/impersonation/exchange": {
       "post": {
         "operationId": "StaffController_exchangeImpersonation",
@@ -16259,6 +16259,492 @@
           "Back-office MFA"
         ]
       }
+    },
+    "/staff/overview": {
+      "get": {
+        "operationId": "StaffPlatformController_getOverview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Vue globale de la plateforme",
+        "tags": [
+          "Back-office — plateforme"
+        ]
+      }
+    },
+    "/staff/audit-logs": {
+      "get": {
+        "operationId": "StaffPlatformController_getAuditLogs",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Journal d’audit du back-office (append-only)",
+        "tags": [
+          "Back-office — plateforme"
+        ]
+      }
+    },
+    "/staff/users": {
+      "get": {
+        "operationId": "StaffPlatformController_listUsers",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "disabled",
+                "deletion-scheduled"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Liste des identités clientes",
+        "tags": [
+          "Back-office — plateforme"
+        ]
+      }
+    },
+    "/staff/users/{id}": {
+      "get": {
+        "operationId": "StaffPlatformController_getUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Détail d'une identité cliente",
+        "tags": [
+          "Back-office — plateforme"
+        ]
+      },
+      "patch": {
+        "operationId": "StaffPlatformController_updateUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffUpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bloquer ou débloquer une identité cliente",
+        "tags": [
+          "Back-office — plateforme"
+        ]
+      }
+    },
+    "/staff/teams": {
+      "get": {
+        "operationId": "StaffPlatformController_listTeams",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PERSONAL",
+                "ORGANIZATION"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "SUSPENDED",
+                "ARCHIVED",
+                "DELETION_PENDING"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Liste des workspaces de la plateforme",
+        "tags": [
+          "Back-office — plateforme"
+        ]
+      }
+    },
+    "/staff/teams/{id}": {
+      "get": {
+        "operationId": "StaffPlatformController_getTeam",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Détail d'un workspace et de ses membres",
+        "tags": [
+          "Back-office — plateforme"
+        ]
+      }
+    },
+    "/staff/teams/{id}/status": {
+      "patch": {
+        "operationId": "StaffPlatformController_updateTeamStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffUpdateWorkspaceStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Suspendre, archiver ou réactiver un workspace",
+        "tags": [
+          "Back-office — plateforme"
+        ]
+      }
+    },
+    "/staff/subscriptions": {
+      "get": {
+        "operationId": "StaffPlatformController_listSubscriptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Liste des abonnements plateforme",
+        "tags": [
+          "Back-office — plateforme"
+        ]
+      }
+    },
+    "/staff/users/{id}/deletion": {
+      "post": {
+        "operationId": "StaffPlatformController_scheduleUserDeletion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffScheduleUserDeletionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Programmer une suppression avec délai de grâce",
+        "tags": [
+          "Back-office — plateforme"
+        ]
+      },
+      "delete": {
+        "operationId": "StaffPlatformController_cancelUserDeletion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Annuler une suppression programmée",
+        "tags": [
+          "Back-office — plateforme"
+        ]
+      }
+    },
+    "/staff/users/{id}/revoke-sessions": {
+      "post": {
+        "operationId": "StaffPlatformController_revokeUserSessions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Révoquer toutes les sessions d'une identité",
+        "tags": [
+          "Back-office — plateforme"
+        ]
+      }
+    },
+    "/staff/users/{id}/impersonate": {
+      "post": {
+        "operationId": "StaffPlatformController_impersonate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStaffImpersonationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Créer une assistance éphémère et journalisée",
+        "tags": [
+          "Back-office — plateforme"
+        ]
+      }
     }
   },
   "info": {
@@ -16309,7 +16795,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "dev@sovrack.tech"
+            "example": "utilisateur@example.com"
           },
           "password": {
             "type": "string",
@@ -16350,7 +16836,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "dev@sovrack.tech"
+            "example": "utilisateur@example.com"
           },
           "registrationId": {
             "type": "string",
@@ -16375,7 +16861,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "dev@sovrack.tech"
+            "example": "utilisateur@example.com"
           },
           "registrationId": {
             "type": "string",
@@ -16391,6 +16877,12 @@
       "LoginDto": {
         "type": "object",
         "properties": {
+          "mfaCode": {
+            "type": "string",
+            "pattern": "^(?:\\d{6}|[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2})$",
+            "description": "Uniquement si le client a activé volontairement la MFA : TOTP ou code de secours",
+            "example": "123456"
+          },
           "email": {
             "type": "string",
             "format": "email"
@@ -16458,6 +16950,38 @@
           "code"
         ]
       },
+      "EnableUserMfaDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "DisableUserMfaDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "example": "Votre mot de passe"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^(?:\\d{6}|[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2})$",
+            "description": "Code TOTP ou code de secours à usage unique",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "password",
+          "code"
+        ]
+      },
       "CreateTeamDto": {
         "type": "object",
         "properties": {
@@ -16506,9 +17030,7 @@
             "type": "string",
             "enum": [
               "ADMIN",
-              "OWNER",
-              "MEMBER",
-              "BILLING"
+              "MEMBER"
             ]
           }
         },
@@ -16522,15 +17044,25 @@
           "role": {
             "type": "string",
             "enum": [
-              "ADMIN",
               "OWNER",
-              "MEMBER",
-              "BILLING"
+              "ADMIN",
+              "MEMBER"
             ]
           }
         },
         "required": [
           "role"
+        ]
+      },
+      "UpdateWorkspaceMemberBillingAccessDto": {
+        "type": "object",
+        "properties": {
+          "canManageBilling": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "canManageBilling"
         ]
       },
       "UpdateWorkspaceMemberStatusDto": {
@@ -16559,9 +17091,7 @@
             "type": "string",
             "enum": [
               "ADMIN",
-              "OWNER",
-              "MEMBER",
-              "BILLING"
+              "MEMBER"
             ]
           }
         },
@@ -16693,14 +17223,58 @@
           }
         }
       },
+      "CreateGithubProviderDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "providerUrl": {
+            "type": "string"
+          },
+          "internalUrl": {
+            "type": "string"
+          },
+          "adminToken": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "providerUrl",
+          "adminToken"
+        ]
+      },
+      "UpdateGithubProviderDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "providerUrl": {
+            "type": "string"
+          },
+          "internalUrl": {
+            "type": "string"
+          },
+          "adminToken": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        }
+      },
       "ConnectSourceDto": {
         "type": "object",
         "properties": {
           "provider": {
             "enum": [
               "GITLAB",
-              "GITHUB",
-              "GITEA"
+              "GITHUB"
             ],
             "type": "string",
             "example": "GITLAB",
@@ -16830,10 +17404,7 @@
           "serviceType": {
             "enum": [
               "APPLICATION",
-              "DATABASE",
-              "MANAGED",
-              "WORKER",
-              "CRON"
+              "DATABASE"
             ],
             "type": "string"
           }
@@ -19364,8 +19935,7 @@
           "provider": {
             "enum": [
               "GITLAB",
-              "GITHUB",
-              "GITEA"
+              "GITHUB"
             ],
             "type": "string"
           },
@@ -19398,10 +19968,7 @@
           "type": {
             "enum": [
               "APPLICATION",
-              "DATABASE",
-              "MANAGED",
-              "WORKER",
-              "CRON"
+              "DATABASE"
             ],
             "type": "string",
             "example": "APPLICATION"
@@ -19587,8 +20154,7 @@
           "provider": {
             "enum": [
               "GITLAB",
-              "GITHUB",
-              "GITEA"
+              "GITHUB"
             ],
             "type": "string"
           },
@@ -19632,10 +20198,7 @@
           "type": {
             "enum": [
               "APPLICATION",
-              "DATABASE",
-              "MANAGED",
-              "WORKER",
-              "CRON"
+              "DATABASE"
             ],
             "type": "string",
             "example": "APPLICATION"
@@ -19863,7 +20426,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "admin@sovrack.tech"
+            "example": "contact@sovrack.tech"
           },
           "password": {
             "type": "string",
@@ -19887,7 +20450,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "admin@sovrack.tech"
+            "example": "contact@sovrack.tech"
           }
         },
         "required": [
@@ -19900,7 +20463,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "admin@sovrack.tech"
+            "example": "contact@sovrack.tech"
           },
           "code": {
             "type": "string",
@@ -19928,7 +20491,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "admin@sovrack.tech"
+            "example": "contact@sovrack.tech"
           },
           "code": {
             "type": "string",
@@ -19956,7 +20519,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "admin@sovrack.tech"
+            "example": "contact@sovrack.tech"
           }
         },
         "required": [
@@ -20080,30 +20643,6 @@
           }
         }
       },
-      "StaffUpdateUserDto": {
-        "type": "object",
-        "properties": {
-          "isActive": {
-            "type": "boolean",
-            "description": "Désactiver (false) ou réactiver (true)"
-          }
-        }
-      },
-      "CreateStaffImpersonationDto": {
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "minLength": 10,
-            "maxLength": 500,
-            "description": "Motif opérationnel obligatoire, conservé dans le journal d'audit",
-            "example": "Diagnostic du déploiement signalé par le client dans INC-142"
-          }
-        },
-        "required": [
-          "reason"
-        ]
-      },
       "ExchangeStaffImpersonationDto": {
         "type": "object",
         "properties": {
@@ -20148,6 +20687,60 @@
         "required": [
           "password",
           "code"
+        ]
+      },
+      "StaffUpdateWorkspaceStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "enum": [
+              "ACTIVE",
+              "SUSPENDED",
+              "ARCHIVED"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "StaffUpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "isActive": {
+            "type": "boolean",
+            "description": "Désactiver (false) ou réactiver (true)"
+          }
+        }
+      },
+      "StaffScheduleUserDeletionDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500,
+            "description": "Motif opérationnel conservé dans le journal append-only"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "CreateStaffImpersonationDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 500,
+            "description": "Motif opérationnel obligatoire, conservé dans le journal d'audit",
+            "example": "Diagnostic du déploiement signalé par le client dans INC-142"
+          }
+        },
+        "required": [
+          "reason"
         ]
       }
     }

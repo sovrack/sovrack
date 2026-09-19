@@ -58,6 +58,17 @@ function handleStaffUnauthorized(): void {
   }
 }
 
+function handleStaffMfaEnrollmentRequired(): void {
+  if (typeof window === "undefined") return;
+  const target = "/staff/settings/security?reason=required";
+  if (
+    window.location.pathname !== "/staff/settings/security" &&
+    window.location.href !== target
+  ) {
+    window.location.href = target;
+  }
+}
+
 export function getApiErrorMessage(error: unknown): string {
   const axiosError = error as AxiosError<ApiErrorPayload>;
   const message = axiosError.response?.data?.message;
@@ -135,6 +146,14 @@ api.interceptors.response.use(
       const isStaffRequest = error.config?.url?.startsWith("/staff/") ?? false;
       if (isStaffRequest) handleStaffUnauthorized();
       else handleUnauthorized();
+    }
+
+    if (
+      error.response?.status === 403 &&
+      error.response.data?.code === "STAFF_MFA_ENROLLMENT_REQUIRED" &&
+      (error.config?.url?.startsWith("/staff/") ?? false)
+    ) {
+      handleStaffMfaEnrollmentRequired();
     }
 
     return Promise.reject(error);

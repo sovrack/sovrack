@@ -27,10 +27,10 @@ describe("ServerHealthCard", () => {
   it("shows totals, per-status counters and the servers link for admins", () => {
     render(<ServerHealthCard servers={servers} isAdmin />);
     expect(screen.getByText("Servers (4)")).toBeInTheDocument();
-    expect(screen.getByText("Ready")).toBeInTheDocument();
-    expect(screen.getByText("Provisioning")).toBeInTheDocument();
-    expect(screen.getByText("Errors")).toBeInTheDocument();
-    expect(screen.getByText("Offline")).toBeInTheDocument();
+    expect(screen.getByText("Prêt")).toBeInTheDocument();
+    expect(screen.getByText("Provisionnement")).toBeInTheDocument();
+    expect(screen.getByText("En erreur")).toBeInTheDocument();
+    expect(screen.getByText("Hors ligne")).toBeInTheDocument();
     expect(screen.getByRole("link")).toHaveAttribute("href", "/admin/servers");
   });
 });

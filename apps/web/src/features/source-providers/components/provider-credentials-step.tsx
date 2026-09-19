@@ -47,7 +47,9 @@ export function ProviderCredentialsStep({
   onAdminTokenChange,
 }: ProviderCredentialsStepProps) {
   const isGithub = providerType === "GITHUB";
-  const tokenLabel = isGithub ? "Personal Access Token" : "Admin Token";
+  const tokenLabel = isGithub
+    ? "Jeton d’accès personnel"
+    : "Jeton administrateur";
 
   return (
     <div className="space-y-5">
@@ -56,54 +58,56 @@ export function ProviderCredentialsStep({
           <div className="flex items-center gap-2">
             <Shield size={15} className="text-blue-400" />
             <p className="text-sm font-semibold text-[var(--text-primary)]">
-              OAuth App
+              Application OAuth
             </p>
           </div>
 
           <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-xs text-[var(--text-secondary)] space-y-1">
             <p className="font-semibold text-[var(--text-primary)]">
-              Setup instructions
+              Instructions de configuration
             </p>
             {isGithub ? (
               <>
                 <p>
-                  1. Open GitHub →{" "}
+                  1. Ouvrez GitHub →{" "}
                   <strong>
                     Settings → Developer settings → OAuth Apps → New OAuth App
                   </strong>
                 </p>
-                <p>2. Set homepage URL and set callback URL (below).</p>
                 <p>
-                  3. Copy the Client ID and Client Secret into the fields below.
+                  2. Renseignez l’URL d’accueil et l’URL de rappel ci-dessous.
                 </p>
+                <p>3. Copiez le Client ID et le Client Secret ci-dessous.</p>
               </>
             ) : (
               <>
                 <p>
-                  1. Open GitLab →{" "}
+                  1. Ouvrez GitLab →{" "}
                   <strong>Admin → Applications → New application</strong>
                 </p>
                 <p>
-                  2. Set name, set redirect URI (below), enable scopes:{" "}
+                  2. Renseignez le nom et l’URI de redirection, puis activez :{" "}
                   <code className="font-mono bg-[var(--hover)] px-1 rounded">
                     api read_user openid
                   </code>
                 </p>
                 <p>
-                  3. Copy the Application ID and Secret into the fields below.
+                  3. Copiez l’identifiant et le secret de l’application
+                  ci-dessous.
                 </p>
               </>
             )}
           </div>
 
           <FormField
-            label="Redirect URI"
-            hint="Copy this URL into your GitLab OAuth Application redirect URI field."
+            label="URI de redirection"
+            hint="Copiez cette URL dans le champ URI de redirection de l’application OAuth."
           >
             <div className="flex gap-2">
               <TextInput
                 value={effectiveRedirectUri}
                 onChange={onRedirectUriChange}
+                readOnly
                 className="font-mono text-xs"
               />
               <button
@@ -128,20 +132,20 @@ export function ProviderCredentialsStep({
             />
           </FormField>
 
-          <FormField label="Application Secret">
+          <FormField label="Secret de l’application">
             <SecretInput
               value={applicationSecret}
               onChange={onApplicationSecretChange}
               placeholder="GitLab Application Secret"
               alreadySet={isEdit && applicationSecretConfigured}
-              label="Application Secret"
+              label="Secret de l’application"
             />
           </FormField>
 
-          <Collapsible title="Group restrictions (optional)">
+          <Collapsible title="Restrictions par groupe (facultatif)">
             <FormField
-              label="Allowed Groups"
-              hint="Comma-separated GitLab group paths. Leave empty to allow all."
+              label="Groupes autorisés"
+              hint="Chemins de groupes GitLab séparés par des virgules. Laissez vide pour tout autoriser."
             >
               <TextInput
                 value={groupNames}
@@ -162,45 +166,89 @@ export function ProviderCredentialsStep({
           <div className="flex items-center gap-2">
             <Key size={15} className="text-amber-400" />
             <p className="text-sm font-semibold text-[var(--text-primary)]">
-              Personal Access Token
+              Jeton d’accès personnel
             </p>
           </div>
 
           <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs text-[var(--text-secondary)] space-y-1">
             <p className="font-semibold text-[var(--text-primary)]">
-              Required token scopes
+              {isGithub
+                ? "Permissions du jeton GitHub"
+                : "Permissions requises"}
             </p>
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {(isGithub
-                ? ["repo", "workflow", "read:org", "read:user"]
-                : ["api", "read_repository", "write_repository", "read_registry"]
-              ).map((scope) => (
-                <code
-                  key={scope}
-                  className="rounded bg-[var(--hover)] px-1.5 py-0.5 font-mono"
-                >
-                  {scope}
-                </code>
-              ))}
-            </div>
+            {isGithub ? (
+              <div className="mt-1.5 space-y-1 leading-5">
+                <p>
+                  Préférez un jeton à permissions fines limité aux dépôts gérés
+                  par Sovrack.
+                </p>
+                <p>
+                  Permissions du dépôt : <strong>Contents (read/write)</strong>,{" "}
+                  <strong>Actions (read/write)</strong> et{" "}
+                  <strong>Webhooks (read/write)</strong>. GitHub ajoute
+                  automatiquement l’accès en lecture aux métadonnées.
+                </p>
+                <p>
+                  Alternative avec un jeton classique :{" "}
+                  <code className="rounded bg-[var(--hover)] px-1">repo</code>{" "}
+                  <code className="rounded bg-[var(--hover)] px-1">
+                    workflow
+                  </code>{" "}
+                  <code className="rounded bg-[var(--hover)] px-1">
+                    read:org
+                  </code>
+                  .
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {[
+                  "api",
+                  "read_repository",
+                  "write_repository",
+                  "read_registry",
+                ].map((scope) => (
+                  <code
+                    key={scope}
+                    className="rounded bg-[var(--hover)] px-1.5 py-0.5 font-mono"
+                  >
+                    {scope}
+                  </code>
+                ))}
+              </div>
+            )}
             <p className="mt-1.5">
-              Generate at:{" "}
-              <strong>
-                {isGithub
-                  ? "Settings → Developer settings → Personal access tokens"
-                  : "User Settings → Access Tokens"}
-              </strong>
+              {isGithub ? (
+                <a
+                  href="https://github.com/settings/personal-access-tokens/new"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-sky-400 underline-offset-2 hover:underline"
+                >
+                  Créer un jeton à permissions fines sur GitHub
+                </a>
+              ) : (
+                <>
+                  Créez-le dans : <strong>User Settings → Access Tokens</strong>
+                </>
+              )}
             </p>
           </div>
 
-          <FormField label={tokenLabel}>
+          <FormField
+            label={tokenLabel}
+            required={!isEdit || !adminTokenConfigured}
+            hint={
+              isEdit && adminTokenConfigured
+                ? "Laissez vide pour conserver le jeton chiffré actuellement configuré."
+                : "Le jeton est chiffré au repos et ne sera plus jamais affiché."
+            }
+          >
             <SecretInput
               value={adminToken}
               onChange={onAdminTokenChange}
               placeholder={
-                isGithub
-                  ? "<github-access-token>"
-                  : "<gitlab-access-token>"
+                isGithub ? "<github-access-token>" : "<gitlab-access-token>"
               }
               alreadySet={isEdit && adminTokenConfigured}
               label={tokenLabel}

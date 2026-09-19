@@ -17,7 +17,7 @@ type AuthActions = {
   setUser: (user: AuthUser | null) => void;
   clearAuth: () => void;
   clearError: () => void;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, mfaCode?: string) => Promise<void>;
   register: (input: {
     email: string;
     password: string;
@@ -90,13 +90,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
-      login: async (email: string, password: string) => {
+      login: async (email: string, password: string, mfaCode?: string) => {
         set({ loading: true, error: null });
 
         try {
           const response = await api.post<LoginResponse>("/auth/login", {
             email,
             password,
+            ...(mfaCode ? { mfaCode } : {}),
           });
 
           set({

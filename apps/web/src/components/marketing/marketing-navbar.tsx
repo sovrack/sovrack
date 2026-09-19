@@ -20,7 +20,11 @@ const resourcesLinks = [
   ...(isCapabilityEnabled("publicDocumentation")
     ? [{ href: publicSitePath("/docs"), label: "Documentation" }]
     : []),
-  { href: publicSitePath("/legal"), label: "Légal" },
+  { href: publicSitePath("/security"), label: "Sécurité" },
+  ...(isCapabilityEnabled("publicStatusPage")
+    ? [{ href: publicSitePath("/status"), label: "État des services" }]
+    : []),
+  { href: publicSitePath("/legal"), label: "Informations légales" },
 ];
 
 const publicPricingEnabled = isCapabilityEnabled("publicPricing");
@@ -290,7 +294,7 @@ export function MarketingNavbar() {
                 href={customerAppPath("/register")}
                 className="rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110"
               >
-                S&apos;inscrire
+                Créer un compte
               </Link>
             </div>
           )}
@@ -374,7 +378,7 @@ export function MarketingNavbar() {
                     onClick={() => setMobileMenuOpen(false)}
                     className="rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 px-4 py-2.5 text-center font-semibold text-white"
                   >
-                    S&apos;inscrire
+                    Créer un compte
                   </Link>
                 </>
               )}

@@ -1,4 +1,4 @@
-export type WorkspaceRole = "OWNER" | "ADMIN" | "BILLING" | "MEMBER";
+export type WorkspaceRole = "OWNER" | "ADMIN" | "MEMBER";
 export type WorkspaceType = "PERSONAL" | "ORGANIZATION";
 export type WorkspaceStatus =
   "ACTIVE" | "SUSPENDED" | "ARCHIVED" | "DELETION_PENDING";
@@ -18,6 +18,7 @@ export type TeamMember = {
   userId: string;
   role: WorkspaceRole;
   status: "ACTIVE" | "SUSPENDED";
+  canManageBilling: boolean;
   joinedAt: string;
   user: TeamMemberUser;
 };
@@ -52,6 +53,12 @@ export type WorkspaceInvitation = {
   email: string;
   role: WorkspaceRole;
   status: "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED";
+  deliveryStatus: "PENDING" | "SENT" | "FAILED";
+  deliveryAttempts: number;
+  deliveredAt: string | null;
+  lastDeliveryAttemptAt: string | null;
+  invitedByEmail: string;
+  invitedByName: string;
   expiresAt: string;
   createdAt: string;
 };

@@ -5,7 +5,7 @@ import { DeploymentStatusBadge } from "./deployment-status-badge";
 describe("DeploymentStatusBadge", () => {
   it("affiche le libellé du statut", () => {
     render(<DeploymentStatusBadge status="SUCCESS" />);
-    expect(screen.getByText("Success")).toBeInTheDocument();
+    expect(screen.getByText("Réussi")).toBeInTheDocument();
   });
 
   it("variante plain = forme bouton (fond carte), pas de pastille colorée", () => {

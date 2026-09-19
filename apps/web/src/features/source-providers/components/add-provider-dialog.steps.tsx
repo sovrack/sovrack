@@ -2,7 +2,11 @@
 
 import clsx from "clsx";
 import { CheckCircle2 } from "lucide-react";
-import { PROVIDER_META, ProviderLogo, type ProviderType } from "./provider-meta";
+import {
+  PROVIDER_META,
+  ProviderLogo,
+  type ProviderType,
+} from "./provider-meta";
 import {
   AuthMethodCard,
   Collapsible,
@@ -27,10 +31,10 @@ export function ProviderTypeStep({
     <div className="space-y-4">
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-          Select Provider
+          Sélection du fournisseur
         </p>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Choose the Git platform for this integration.
+          Choisissez la plateforme Git à connecter.
         </p>
       </div>
 
@@ -60,7 +64,10 @@ export function ProviderTypeStep({
                   meta.borderColor,
                 )}
               >
-                <ProviderLogo type={type} className={clsx("h-5 w-5", meta.color)} />
+                <ProviderLogo
+                  type={type}
+                  className={clsx("h-5 w-5", meta.color)}
+                />
               </div>
               <div>
                 <p className="text-sm font-semibold text-[var(--text-primary)]">
@@ -72,7 +79,7 @@ export function ProviderTypeStep({
               </div>
               {!meta.available && (
                 <span className="absolute right-2 top-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-400">
-                  {meta.badge ?? "Soon"}
+                  {meta.badge ?? "Bientôt"}
                 </span>
               )}
               {meta.available && meta.badge && !active && (
@@ -123,18 +130,18 @@ export function InstanceConfigStep({
     <div className="space-y-4">
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-          Instance Configuration
+          Configuration de l’instance
         </p>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Configure the provider name and instance URL.
+          Donnez un nom à la connexion et indiquez l’URL de l’instance.
         </p>
       </div>
 
-      <FormField label="Provider Name" required>
+      <FormField label="Nom du fournisseur" required>
         <TextInput
           value={name}
           onChange={onNameChange}
-          placeholder="e.g. GitLab Cloud, Company GitLab"
+          placeholder="Ex. GitLab Cloud, GitLab de l’entreprise"
         />
       </FormField>
 
@@ -143,8 +150,8 @@ export function InstanceConfigStep({
         required
         hint={
           selectedType === "GITHUB"
-            ? "Use https://github.com for GitHub.com, or your GitHub Enterprise URL."
-            : "Use https://gitlab.com for the cloud version, or your self-hosted instance URL."
+            ? "Utilisez https://github.com ou l’URL de votre instance GitHub Enterprise."
+            : "Utilisez https://gitlab.com ou l’URL de votre instance auto-hébergée."
         }
       >
         <TextInput
@@ -154,10 +161,10 @@ export function InstanceConfigStep({
         />
       </FormField>
 
-      <Collapsible title="Advanced instance options">
+      <Collapsible title="Options avancées de l’instance">
         <FormField
-          label="Internal URL"
-          hint="Optional internal URL for Sovrack-to-GitLab communication (behind a firewall)."
+          label="URL interne"
+          hint="URL interne facultative utilisée par Sovrack pour joindre l’instance derrière un pare-feu."
         >
           <TextInput
             value={internalUrl}
@@ -170,8 +177,8 @@ export function InstanceConfigStep({
       <Toggle
         value={isDefault}
         onChange={onIsDefaultChange}
-        label="Set as default provider"
-        hint="Projects will use this provider by default when connecting a repository."
+        label="Définir comme fournisseur par défaut"
+        hint="Ce fournisseur sera présélectionné lors de la connexion d’un dépôt."
       />
     </div>
   );
@@ -185,47 +192,47 @@ type AuthMethodStepProps = {
   onSelectAuthChoice: (choice: AuthChoice) => void;
 };
 
-// GitHub only has a PAT-based connection today — there is no backend OAuth
-// callback route for it (see AUDIT_VERIFICATION_UI.md Point 2: the wizard
-// used to offer "OAuth"/"Both" for GitHub anyway, showing a redirect URI that
-// could never work). Building the GitHub OAuth flow is a separate feature;
-// until then, "oauth" and "both" are disabled for this provider type.
-const OAUTH_DISABLED_REASON =
-  "GitHub OAuth isn't implemented yet — use a Personal Access Token.";
-
 export function AuthMethodStep({
   providerType,
   authChoice,
   onSelectAuthChoice,
 }: AuthMethodStepProps) {
-  const oauthAvailable = providerType !== "GITHUB";
+  const isGithub = providerType === "GITHUB";
 
   return (
     <div className="space-y-4">
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-          Authentication Method
+          Méthode d’authentification
         </p>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Choose how Sovrack authenticates with this provider.
+          {isGithub
+            ? "GitHub utilise en V1 un jeton personnel limité aux dépôts nécessaires."
+            : "Choisissez la méthode utilisée par Sovrack pour s’authentifier."}
         </p>
       </div>
 
       <div className="space-y-2">
-        {(["oauth", "pat", "both"] as AuthChoice[]).map((choice) => {
-          const disabled = !oauthAvailable && choice !== "pat";
-          return (
-            <AuthMethodCard
-              key={choice}
-              choice={choice}
-              selected={authChoice === choice}
-              onSelect={() => onSelectAuthChoice(choice)}
-              disabled={disabled}
-              disabledReason={disabled ? OAUTH_DISABLED_REASON : undefined}
-            />
-          );
-        })}
+        {(isGithub
+          ? (["pat"] as AuthChoice[])
+          : (["oauth", "pat", "both"] as AuthChoice[])
+        ).map((choice) => (
+          <AuthMethodCard
+            key={choice}
+            choice={choice}
+            selected={authChoice === choice}
+            onSelect={() => onSelectAuthChoice(choice)}
+            providerLabel={isGithub ? "GitHub" : "GitLab"}
+          />
+        ))}
       </div>
+
+      {isGithub && (
+        <p className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-xs leading-5 text-[var(--text-secondary)]">
+          OAuth GitHub n’est pas inclus dans la V1. Le jeton est chiffré avant
+          stockage, n’est jamais réaffiché et peut être remplacé à tout moment.
+        </p>
+      )}
     </div>
   );
 }

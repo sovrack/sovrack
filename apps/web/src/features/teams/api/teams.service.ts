@@ -42,7 +42,7 @@ export const teamsService = {
     return res.data;
   },
 
-  /** Delete a team */
+  /** Archive a workspace; resources are retained. */
   async remove(id: string): Promise<void> {
     await api.delete(`/workspaces/${id}`);
   },
@@ -62,6 +62,11 @@ export const teamsService = {
       `/workspaces/${teamId}/members/${userId}`,
     );
     return res.data;
+  },
+
+  /** Leave an organization as the current identity. */
+  async leave(workspaceId: string): Promise<void> {
+    await api.delete(`/workspaces/${workspaceId}/membership`);
   },
 
   async updateMemberRole(
@@ -84,6 +89,18 @@ export const teamsService = {
     const res = await api.patch<Team>(
       `/workspaces/${workspaceId}/members/${userId}/status`,
       { status },
+    );
+    return res.data;
+  },
+
+  async updateMemberBillingAccess(
+    workspaceId: string,
+    userId: string,
+    canManageBilling: boolean,
+  ): Promise<Team> {
+    const res = await api.patch<Team>(
+      `/workspaces/${workspaceId}/members/${userId}/billing-access`,
+      { canManageBilling },
     );
     return res.data;
   },
@@ -111,6 +128,17 @@ export const teamsService = {
     invitationId: string,
   ): Promise<void> {
     await api.delete(`/workspaces/${workspaceId}/invitations/${invitationId}`);
+  },
+
+  async resendInvitation(
+    workspaceId: string,
+    invitationId: string,
+  ): Promise<WorkspaceInvitation> {
+    const res = await api.post<WorkspaceInvitation>(
+      `/workspaces/${workspaceId}/invitations/${invitationId}/resend`,
+      {},
+    );
+    return res.data;
   },
 
   async acceptInvitation(token: string): Promise<Team> {

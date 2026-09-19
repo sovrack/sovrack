@@ -7,7 +7,10 @@ import { Button } from "@/shared/ui/button";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { ProviderCard } from "@/features/source-providers/components/provider-card";
 import { AddProviderDialog } from "@/features/source-providers/components/add-provider-dialog";
-import { GitLabLogo } from "@/features/source-providers/components/provider-meta";
+import {
+  GitHubLogo,
+  GitLabLogo,
+} from "@/features/source-providers/components/provider-meta";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { useToasts, type ToastItem } from "@/shared/hooks/use-toasts";
@@ -59,19 +62,32 @@ function EmptyProviders({
 }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg-app)] py-16 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-orange-500/20 bg-orange-500/10">
-        <GitLabLogo className="h-7 w-7" />
+      <div className="mb-4 flex items-center gap-2">
+        <span
+          role="img"
+          aria-label="GitLab"
+          className="flex h-14 w-14 items-center justify-center rounded-2xl border border-orange-500/20 bg-orange-500/10"
+        >
+          <GitLabLogo className="h-7 w-7" />
+        </span>
+        <span
+          role="img"
+          aria-label="GitHub"
+          className="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-500/25 bg-zinc-500/10 text-[var(--text-primary)]"
+        >
+          <GitHubLogo className="h-7 w-7" />
+        </span>
       </div>
       <h3 className="text-base font-semibold text-[var(--text-primary)]">
-        No Git Providers Connected
+        Aucun fournisseur Git connecté
       </h3>
       <p className="mt-1.5 max-w-sm text-sm text-[var(--text-secondary)]">
-        Connect a Git provider to import repositories, trigger pipelines, and
-        enable automatic deployments across your projects.
+        Connectez GitHub ou GitLab pour importer vos dépôts, déclencher les
+        pipelines et automatiser les déploiements de vos projets.
       </p>
       {isAdmin && (
         <Button className="mt-5" onClick={onAdd} icon={<Plus size={14} />}>
-          Connect first provider
+          Connecter un fournisseur
         </Button>
       )}
     </div>
@@ -153,8 +169,8 @@ export default function GitSettingsPage() {
     showToast(
       msg ||
         (oauth === "success"
-          ? "OAuth connected successfully"
-          : "OAuth connection failed"),
+          ? "Connexion OAuth réussie"
+          : "Échec de la connexion OAuth"),
       oauth === "success" ? "success" : "error",
     );
 
@@ -194,7 +210,7 @@ export default function GitSettingsPage() {
 
   const isGithubProvider = (p: GitlabProvider) => p.providerType === "GITHUB";
 
-const handleSave = async (
+  const handleSave = async (
     payload: CreateGitlabProviderPayload | UpdateGitlabProviderPayload,
     providerType?: "GITLAB" | "GITHUB",
   ) => {
@@ -212,7 +228,7 @@ const handleSave = async (
             payload as CreateGitlabProviderPayload,
           );
         }
-        showToast("Git provider connected successfully", "success");
+        showToast("Fournisseur Git connecté", "success");
       } else if (editingProvider) {
         if (isGithubProvider(editingProvider)) {
           await platformConfigService.updateGithubProvider(
@@ -225,7 +241,7 @@ const handleSave = async (
             payload as UpdateGitlabProviderPayload,
           );
         }
-        showToast("Provider updated", "success");
+        showToast("Fournisseur mis à jour", "success");
       }
       await reloadProviders();
       closeDialog();
@@ -281,7 +297,7 @@ const handleSave = async (
       } else {
         await platformConfigService.setDefaultGitlabProvider(id);
       }
-      showToast("Default provider updated", "success");
+      showToast("Fournisseur par défaut mis à jour", "success");
       await reloadProviders();
     } catch (err) {
       showToast(getApiErrorMessage(err), "error");
@@ -299,7 +315,7 @@ const handleSave = async (
       } else {
         await platformConfigService.deleteGitlabProvider(deleteTarget.id);
       }
-      showToast("Provider removed", "success");
+      showToast("Fournisseur supprimé", "success");
       setDeleteTarget(null);
       await reloadProviders();
     } catch (err) {
@@ -320,16 +336,16 @@ const handleSave = async (
     <>
       <div className="space-y-6">
         <PageHeader
-          eyebrow="Settings"
-          title="Git Providers"
-          description="Global reusable Git integrations. Projects reference these providers to import repositories, trigger builds, and deploy automatically."
+          eyebrow="Intégrations"
+          title="Fournisseurs Git"
+          description="Connexions Git réutilisables par les projets pour importer les dépôts, lancer les builds et déployer automatiquement."
           actions={
             isAdmin && (
               <Button
                 onClick={() => openCreate("GITLAB")}
                 icon={<Plus size={14} />}
               >
-                Add provider
+                Ajouter un fournisseur
               </Button>
             )
           }
@@ -346,7 +362,7 @@ const handleSave = async (
                 <div className="flex items-center justify-between">
                   <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)]">
                     <GitBranch size={14} />
-                    Connected Providers
+                    Fournisseurs connectés
                     <span className="rounded-full border border-[var(--border)] bg-[var(--hover)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-muted)]">
                       {providers.length}
                     </span>
@@ -396,9 +412,9 @@ const handleSave = async (
       {/* Delete confirmation */}
       <ConfirmDialog
         open={Boolean(deleteTarget)}
-        title={`Remove "${deleteTarget?.name ?? ""}"?`}
-        description="This will remove the provider from the platform. Projects already using it will lose access to pipelines and source operations."
-        confirmLabel={deleting ? "Removing…" : "Remove provider"}
+        title={`Supprimer « ${deleteTarget?.name ?? ""} » ?`}
+        description="Le fournisseur sera supprimé de cet espace. Les projets qui l’utilisent perdront l’accès aux pipelines et aux opérations sur les sources."
+        confirmLabel={deleting ? "Suppression…" : "Supprimer le fournisseur"}
         onConfirm={() => void handleDelete()}
         onCancel={() => setDeleteTarget(null)}
       />

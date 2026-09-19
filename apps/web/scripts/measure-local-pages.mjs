@@ -42,13 +42,50 @@ const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext();
 const page = await context.newPage();
 
-try {
+async function login() {
   await page.goto(`${appUrl}/login`);
   await page.getByLabel("Email").fill(email);
   await page.locator("#password").fill(password);
-  await page.getByRole("button", { name: "Se connecter" }).click();
-  await page.waitForURL(`${appUrl}/dashboard`);
-  await page.getByRole("heading", { name: /Bienvenue,/ }).waitFor();
+
+  for (let attempt = 1; attempt <= 6; attempt += 1) {
+    const responsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        response.url().includes("/backend-api/auth/login"),
+    );
+    await page
+      .getByRole("button", { name: "Se connecter", exact: true })
+      .click();
+    const response = await responsePromise;
+
+    if (response.ok()) {
+      await page.waitForURL(`${appUrl}/dashboard`);
+      await page.getByRole("heading", { name: /Bienvenue,/ }).waitFor();
+      return;
+    }
+
+    if (response.status() !== 429) {
+      throw new Error(
+        `Performance login failed with HTTP ${response.status()}.`,
+      );
+    }
+
+    if (attempt === 6) {
+      throw new Error("Performance login remained rate-limited after retries.");
+    }
+
+    const retryAfterSeconds = Number(response.headers()["retry-after"] ?? 10);
+    await page.waitForTimeout(
+      Math.max(1, Math.min(retryAfterSeconds, 30)) * 1_000,
+    );
+    await page
+      .getByRole("button", { name: "Se connecter", exact: true })
+      .waitFor({ state: "visible" });
+  }
+}
+
+try {
+  await login();
 
   const results = [];
   for (const target of targets) {

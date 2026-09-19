@@ -1,5 +1,6 @@
 import { Container, Database, FolderGit2, Package } from "lucide-react";
 import type { ManagedServiceType } from "@/features/projects/types/service";
+import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 
 // Catalogue + helpers du wizard d'ajout de service. Extrait du composant pour
 // le garder focalisé sur le flux (3 étapes) ; ces données/utilitaires sont purs.
@@ -14,7 +15,7 @@ export type ServiceKind =
 export type AppMode = "repo" | "group";
 export type Step = 1 | 2 | 3;
 
-export const KINDS: {
+const ALL_KINDS: {
   kind: ServiceKind;
   label: string;
   hint: string;
@@ -24,28 +25,34 @@ export const KINDS: {
   {
     kind: "APPLICATION",
     label: "Application",
-    hint: "Deploy from a Git repo or import a whole group (GitLab / GitHub)",
+    hint: "Déployer un dépôt Git ou importer un groupe (GitLab / GitHub)",
     icon: <FolderGit2 size={20} />,
   },
   {
     kind: "DATABASE",
-    label: "Database",
-    hint: "PostgreSQL, MySQL, Redis, MongoDB, RabbitMQ",
+    label: "Base de données",
+    hint: "PostgreSQL, MySQL, Redis, MongoDB ou RabbitMQ sur votre serveur",
     icon: <Database size={20} />,
   },
   {
     kind: "DOCKER",
-    label: "Docker image",
-    hint: "Deploy a prebuilt image from a registry",
+    label: "Image Docker",
+    hint: "Déployer une image existante depuis un registre",
     icon: <Container size={20} />,
   },
   {
     kind: "TEMPLATE",
-    label: "Template",
-    hint: "One-click bundles (e.g. PostgreSQL + pgAdmin), pre-wired together",
+    label: "Modèle",
+    hint: "Ensembles de services préconfigurés en un clic",
     icon: <Package size={20} />,
   },
 ];
+
+export const KINDS = ALL_KINDS.filter(({ kind }) => {
+  if (kind === "DATABASE") return isCapabilityEnabled("managedDatabases");
+  if (kind === "TEMPLATE") return isCapabilityEnabled("serviceTemplates");
+  return kind !== "COMPOSE";
+});
 
 export const DATABASES: {
   type: ManagedServiceType;

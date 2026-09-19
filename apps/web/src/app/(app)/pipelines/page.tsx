@@ -26,6 +26,7 @@ import type {
   GitlabPipeline,
   ProjectListItem,
 } from "@/features/projects/types/project";
+import { deploymentStatusLabel } from "@/shared/i18n/product-labels";
 
 type PipelineWithProject = GitlabPipeline & {
   project: Pick<ProjectListItem, "id" | "name">;
@@ -55,7 +56,7 @@ function PipelineStatusBadge({ status }: { status: string }) {
   return (
     <Badge tone={tone} size="sm">
       {icon}
-      {status}
+      {deploymentStatusLabel(status)}
     </Badge>
   );
 }
@@ -160,14 +161,14 @@ export default function PipelinesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Delivery"
+        eyebrow="Livraison"
         title="Pipelines"
-        description="Monitor GitLab CI pipelines across all your projects."
+        description="Surveillez les pipelines CI GitLab de tous vos projets."
       />
 
       <SubNav
         tabs={[
-          { label: "Deployments", href: "/deployments" },
+          { label: "Déploiements", href: "/deployments" },
           { label: "Pipelines", href: "/pipelines" },
         ]}
       />
@@ -176,9 +177,9 @@ export default function PipelinesPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: "Total", value: stats.total, tone: "default" },
-          { label: "Success", value: stats.success, tone: "success" },
-          { label: "Failed", value: stats.failed, tone: "error" },
-          { label: "Running", value: stats.running, tone: "info" },
+          { label: "Réussis", value: stats.success, tone: "success" },
+          { label: "Échoués", value: stats.failed, tone: "error" },
+          { label: "En cours", value: stats.running, tone: "info" },
         ].map(({ label, value }) => (
           <div
             key={label}
@@ -202,8 +203,8 @@ export default function PipelinesPage() {
 
       {/* Filter */}
       <SectionCard
-        title="Filter"
-        description="Project, status, branch, commit."
+        title="Filtres"
+        description="Projet, état, branche et commit."
         contentClassName="pt-0"
       >
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -212,7 +213,7 @@ export default function PipelinesPage() {
             onChange={(e) => setSelectedProjectId(e.target.value)}
             className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
           >
-            <option value="all">All projects</option>
+            <option value="all">Tous les projets</option>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -225,10 +226,10 @@ export default function PipelinesPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
           >
-            <option value="all">All statuses</option>
+            <option value="all">Tous les états</option>
             {statusOptions.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {deploymentStatusLabel(status)}
               </option>
             ))}
           </select>
@@ -238,7 +239,7 @@ export default function PipelinesPage() {
             onChange={(e) => setBranchFilter(e.target.value)}
             className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
           >
-            <option value="all">All branches</option>
+            <option value="all">Toutes les branches</option>
             {branchOptions.map((branch) => (
               <option key={branch} value={branch}>
                 {branch}
@@ -268,11 +269,11 @@ export default function PipelinesPage() {
         <SectionCard>
           <EmptyState
             icon={Activity}
-            title="No pipelines found"
+            title="Aucun pipeline trouvé"
             description={
               pipelines.length === 0
-                ? "Pipelines will appear here once your projects are connected to GitLab and CI runs."
-                : "No pipeline matches the current filters."
+                ? "Les pipelines apparaîtront ici dès qu’un projet GitLab exécutera sa CI."
+                : "Aucun pipeline ne correspond aux filtres actuels."
             }
           />
         </SectionCard>
@@ -330,7 +331,7 @@ export default function PipelinesPage() {
                       disabled={!!triggeringId}
                       loading={triggeringId === triggerKey}
                     >
-                      Re-run
+                      Relancer
                     </Button>
                     <a
                       href={pipeline.web_url}

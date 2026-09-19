@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { Rocket } from "lucide-react";
 import { staffService } from "@/features/staff/api/staff.service";
 
@@ -10,7 +11,7 @@ const PAGE_SIZE = 50;
 export default function StaffTeamsPage() {
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["staff-teams", page],
     queryFn: () => staffService.getTeams(page, PAGE_SIZE),
     enabled: typeof window !== "undefined",
@@ -49,7 +50,15 @@ export default function StaffTeamsPage() {
           <tbody className="divide-y divide-white/5">
             {(data?.items ?? []).map((t) => (
               <tr key={t.id} className="hover:bg-white/5">
-                <td className="px-4 py-3 font-medium text-white">{t.name}</td>
+                <td className="px-4 py-3 font-medium text-white">
+                  <Link
+                    href={`/staff/teams/${t.id}`}
+                    className="hover:text-sky-300"
+                  >
+                    {t.name}
+                  </Link>
+                  <p className="text-xs font-normal text-zinc-600">{t.slug}</p>
+                </td>
                 <td className="px-4 py-3 text-zinc-400">
                   {t.type === "PERSONAL" ? "Personnel" : "Organisation"}
                 </td>
@@ -72,6 +81,22 @@ export default function StaffTeamsPage() {
           </tbody>
         </table>
       </div>
+
+      {isLoading && (
+        <p className="mt-4 text-center text-sm text-zinc-500">Chargement…</p>
+      )}
+      {isError && (
+        <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+          Impossible de charger les workspaces.
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="ml-3 font-semibold underline"
+          >
+            Réessayer
+          </button>
+        </div>
+      )}
 
       {totalPages > 1 && (
         <div className="mt-4 flex items-center justify-between text-sm text-zinc-400">

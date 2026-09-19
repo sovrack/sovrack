@@ -107,10 +107,9 @@ export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
 
         {data && !data.configured && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
-            Loki is not configured. Install the centralized logs stack
-            (Automation → <strong>“Install Loki”</strong> action) to enable
-            history search. In the meantime, the <strong>Deployments</strong>{" "}
-            tab shows the container&apos;s live tail.
+            Centralized log history is not enabled in the V1. The{" "}
+            <strong>Deployments</strong> tab still shows the container&apos;s
+            live tail.
           </div>
         )}
 

@@ -73,8 +73,8 @@ export function ServiceMetricsChart({
         </div>
       ) : !data?.configured ? (
         <p className="py-8 text-center text-sm text-[var(--text-muted)]">
-          History unavailable — install the Prometheus stack (Automation) to
-          enable the charts. Live metrics remain available above.
+          Historical charts are not enabled in the V1. Live metrics remain
+          available above.
         </p>
       ) : points.length === 0 ? (
         <p className="py-8 text-center text-sm text-[var(--text-muted)]">

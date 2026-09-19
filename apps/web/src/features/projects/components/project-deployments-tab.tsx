@@ -19,6 +19,7 @@ import { getApiErrorMessage } from "@/shared/lib/api";
 import { DeployDialog } from "./deploy-dialog";
 import { useToast } from "@/shared/contexts/toast-context";
 import { DeploymentRow } from "./deployment-row";
+import { deploymentStatusLabel } from "@/shared/i18n/product-labels";
 
 type Props = {
   deployments: Deployment[];
@@ -47,11 +48,11 @@ type Props = {
 };
 
 const STATUS_FILTERS: { label: string; value: DeploymentStatus | "ALL" }[] = [
-  { label: "All", value: "ALL" },
-  { label: "Running", value: "RUNNING" },
-  { label: "Success", value: "SUCCESS" },
-  { label: "Failed", value: "FAILED" },
-  { label: "Pending", value: "PENDING" },
+  { label: "Tous", value: "ALL" },
+  { label: "En cours", value: "RUNNING" },
+  { label: "Réussis", value: "SUCCESS" },
+  { label: "Échoués", value: "FAILED" },
+  { label: "En attente", value: "PENDING" },
 ];
 
 export function ProjectDeploymentsTab({
@@ -147,7 +148,7 @@ export function ProjectDeploymentsTab({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold text-[var(--text-primary)]">
-            Deployments
+            Déploiements
           </p>
           <span className="rounded-full border border-[var(--border)] bg-[var(--hover)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]">
             {headerCount ?? deployments.length}
@@ -204,7 +205,8 @@ export function ProjectDeploymentsTab({
 
       {loading && (
         <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-8 text-sm text-[var(--text-secondary)]">
-          <Loader2 size={14} className="animate-spin" /> Loading history…
+          <Loader2 size={14} className="animate-spin" /> Chargement de
+          l’historique…
         </div>
       )}
 
@@ -213,13 +215,13 @@ export function ProjectDeploymentsTab({
           <Rocket size={28} className="mb-3 text-[var(--text-muted)]" />
           <p className="text-sm font-semibold text-[var(--text-primary)]">
             {statusFilter === "ALL"
-              ? "No deployments yet"
-              : `No ${statusFilter.toLowerCase()} deployments`}
+              ? "Aucun déploiement pour le moment"
+              : `Aucun déploiement ${deploymentStatusLabel(statusFilter).toLowerCase()}`}
           </p>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">
             {statusFilter === "ALL"
-              ? "Deploy your project to see history here."
-              : "Try a different filter."}
+              ? "Déployez votre projet pour afficher son historique ici."
+              : "Essayez un autre filtre."}
           </p>
         </div>
       )}
@@ -262,7 +264,7 @@ export function ProjectDeploymentsTab({
           href={`/deployments?project=${projectId}`}
           className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--border)] py-3 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
         >
-          <ExternalLink size={11} /> View all {filtered.length} deployments →
+          <ExternalLink size={11} /> Voir les {filtered.length} déploiements →
         </Link>
       )}
 

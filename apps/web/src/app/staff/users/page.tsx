@@ -2,36 +2,42 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import {
   Ban,
-  CheckCircle2,
   Loader2,
   Lock,
-  Trash2,
+  Search,
   UserCheck,
   Users,
-  XCircle,
   ShieldAlert,
 } from "lucide-react";
 import { staffService } from "@/features/staff/api/staff.service";
-import { useStaffAuth } from "@/features/staff/api/use-staff-auth";
 import { getApiErrorMessage } from "@/shared/lib/api";
 
 const PAGE_SIZE = 50;
 
 export default function StaffUsersPage() {
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<
+    "" | "active" | "disabled" | "deletion-scheduled"
+  >("");
   const [impersonationTarget, setImpersonationTarget] = useState<{
     id: string;
     name: string;
   } | null>(null);
   const [impersonationReason, setImpersonationReason] = useState("");
   const queryClient = useQueryClient();
-  const { staff } = useStaffAuth();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["staff-users", page],
-    queryFn: () => staffService.getUsers(page, PAGE_SIZE),
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["staff-users", page, search, status],
+    queryFn: () =>
+      staffService.getUsers(page, PAGE_SIZE, {
+        search: search || undefined,
+        status: status || undefined,
+      }),
     enabled: typeof window !== "undefined",
   });
 
@@ -53,11 +59,6 @@ export default function StaffUsersPage() {
     onSuccess: invalidate,
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => staffService.deleteUser(id),
-    onSuccess: invalidate,
-  });
-
   const impersonateMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       staffService.impersonateUser(id, reason),
@@ -67,8 +68,6 @@ export default function StaffUsersPage() {
       window.location.assign(redirectUrl);
     },
   });
-
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   return (
     <div>
@@ -84,6 +83,47 @@ export default function StaffUsersPage() {
           </p>
         </div>
       </div>
+
+      <form
+        className="mb-4 flex flex-col gap-2 sm:flex-row"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setPage(1);
+          setSearch(searchInput.trim());
+        }}
+      >
+        <label className="relative min-w-0 flex-1">
+          <Search
+            size={15}
+            className="pointer-events-none absolute left-3 top-3 text-zinc-500"
+          />
+          <input
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Rechercher par nom ou email"
+            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-9 pr-3 text-sm text-white outline-none focus:border-sky-500"
+          />
+        </label>
+        <select
+          value={status}
+          onChange={(event) => {
+            setPage(1);
+            setStatus(event.target.value as typeof status);
+          }}
+          className="rounded-xl border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-200"
+        >
+          <option value="">Tous les états</option>
+          <option value="active">Actifs</option>
+          <option value="disabled">Désactivés</option>
+          <option value="deletion-scheduled">Suppression programmée</option>
+        </select>
+        <button
+          type="submit"
+          className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-zinc-950"
+        >
+          Rechercher
+        </button>
+      </form>
 
       <div className="overflow-hidden rounded-2xl border border-white/10">
         <table className="w-full text-left text-sm">
@@ -101,7 +141,12 @@ export default function StaffUsersPage() {
             {(data?.items ?? []).map((u) => (
               <tr key={u.id} className="hover:bg-white/5">
                 <td className="px-4 py-3 font-medium text-white">
-                  {u.fullName}
+                  <Link
+                    href={`/staff/users/${u.id}`}
+                    className="hover:text-sky-300"
+                  >
+                    {u.fullName}
+                  </Link>
                 </td>
                 <td className="px-4 py-3 text-zinc-400">{u.email}</td>
                 <td className="px-4 py-3 text-zinc-400">
@@ -122,7 +167,11 @@ export default function StaffUsersPage() {
                         : "bg-red-500/15 text-red-400"
                     }`}
                   >
-                    {u.isActive ? "Actif" : "Désactivé"}
+                    {u.deletionScheduledFor
+                      ? "Suppression programmée"
+                      : u.isActive
+                        ? "Actif"
+                        : "Désactivé"}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-zinc-500">
@@ -162,37 +211,6 @@ export default function StaffUsersPage() {
                     >
                       <Lock size={16} />
                     </button>
-
-                    {staff?.role === "ROOT" ? (
-                      <>
-                        {confirmDelete === u.id ? (
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => deleteMutation.mutate(u.id)}
-                              disabled={deleteMutation.isPending}
-                              title="Confirmer la suppression"
-                              className="rounded-lg p-1.5 text-red-400 transition hover:bg-white/10 hover:text-red-300"
-                            >
-                              <CheckCircle2 size={16} />
-                            </button>
-                            <button
-                              onClick={() => setConfirmDelete(null)}
-                              className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10"
-                            >
-                              <XCircle size={16} />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setConfirmDelete(u.id)}
-                            title="Supprimer définitivement (ROOT)"
-                            className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-red-300"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </>
-                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -212,6 +230,19 @@ export default function StaffUsersPage() {
         <div className="mt-4 flex items-center justify-center gap-2 py-4 text-sm text-zinc-400">
           <Loader2 size={16} className="animate-spin" />
           Chargement…
+        </div>
+      )}
+
+      {isError && (
+        <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+          Impossible de charger les utilisateurs.
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="ml-3 font-semibold underline"
+          >
+            Réessayer
+          </button>
         </div>
       )}
 
