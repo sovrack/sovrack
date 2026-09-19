@@ -167,7 +167,7 @@ export class NotificationsSmtpService {
       const resolved = await this.getTransporter();
       if (!resolved) return;
       await resolved.transporter.sendMail({
-        from: resolved.smtp.from || 'billing@sovrack.tech',
+        from: resolved.smtp.from || 'contact@sovrack.tech',
         to,
         subject: `[Sovrack] ${subject}`,
         html,

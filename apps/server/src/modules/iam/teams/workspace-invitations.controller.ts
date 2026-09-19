@@ -39,6 +39,16 @@ export class WorkspaceInvitationsController {
     return { message: 'Invitation révoquée' };
   }
 
+  @Post(':workspaceId/invitations/:invitationId/resend')
+  @ApiOperation({ summary: 'Replace and resend a pending invitation' })
+  resend(
+    @Param('workspaceId') workspaceId: string,
+    @Param('invitationId') invitationId: string,
+    @GetUser() user: JwtPayload,
+  ) {
+    return this.invitations.resend(workspaceId, invitationId, user.id);
+  }
+
   @Post('invitations/accept')
   @ApiOperation({ summary: 'Accept a workspace invitation' })
   accept(

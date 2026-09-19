@@ -16,16 +16,13 @@ import {
   type GitlabProviderPublic,
 } from './git-provider-config.util';
 import { writeWithSingleDefault } from './provider-default-write.util';
+import { assertSafeOutboundHttpsUrl } from '../../../../shared/http/outbound-url-policy.util';
 
 type UpsertProviderInput = {
   name: string;
   providerUrl: string;
   internalUrl?: string;
-  redirectUri?: string;
-  applicationId?: string;
-  applicationSecret?: string;
-  groupNames?: string;
-  adminToken?: string;
+  adminToken: string;
   isDefault?: boolean;
 };
 type PatchProviderInput = Partial<UpsertProviderInput>;
@@ -63,9 +60,20 @@ export class GithubProviderService {
     teamId: string,
   ): Promise<GitlabProviderPublic> {
     const name = requireNonEmpty(input.name, 'Name est requis');
-    const githubUrl = requireNonEmpty(
-      input.providerUrl,
-      'GitHub URL est requis',
+    const githubUrl = assertSafeOutboundHttpsUrl(
+      requireNonEmpty(input.providerUrl, 'GitHub URL est requis'),
+      { label: 'GitHub URL', allowPath: false },
+    );
+    const internalUrl = normalizeOptional(input.internalUrl);
+    if (internalUrl) {
+      assertSafeOutboundHttpsUrl(internalUrl, {
+        label: 'GitHub internal URL',
+        allowPath: false,
+      });
+    }
+    const adminToken = requireNonEmpty(
+      input.adminToken,
+      'Un Personal Access Token GitHub est requis',
     );
 
     const count = await this.prisma.gitProviderConfig.count({
@@ -85,14 +93,12 @@ export class GithubProviderService {
             teamId,
             type: GitProviderType.GITHUB,
             providerUrl: githubUrl,
-            internalUrl: normalizeOptional(input.internalUrl),
-            redirectUri: normalizeOptional(input.redirectUri),
-            applicationId: normalizeOptional(input.applicationId),
-            applicationSecret: this.crypto.encryptOptional(
-              input.applicationSecret,
-            ),
-            groupNames: normalizeOptional(input.groupNames),
-            adminToken: this.crypto.encryptOptional(input.adminToken),
+            internalUrl,
+            redirectUri: null,
+            applicationId: null,
+            applicationSecret: null,
+            groupNames: null,
+            adminToken: this.crypto.encryptOptional(adminToken),
             isDefault: shouldBeDefault,
           },
         }),
@@ -111,24 +117,26 @@ export class GithubProviderService {
     if (typeof input.name === 'string')
       data.name = requireNonEmpty(input.name, 'Name est requis');
     if (typeof input.providerUrl === 'string')
-      data.providerUrl = requireNonEmpty(
-        input.providerUrl,
-        'GitHub URL est requis',
+      data.providerUrl = assertSafeOutboundHttpsUrl(
+        requireNonEmpty(input.providerUrl, 'GitHub URL est requis'),
+        { label: 'GitHub URL', allowPath: false },
       );
-    if (typeof input.internalUrl === 'string')
-      data.internalUrl = normalizeOptional(input.internalUrl);
-    if (typeof input.redirectUri === 'string')
-      data.redirectUri = normalizeOptional(input.redirectUri);
-    if (typeof input.applicationId === 'string')
-      data.applicationId = normalizeOptional(input.applicationId);
-    if (typeof input.applicationSecret === 'string')
-      data.applicationSecret = this.crypto.encryptOptional(
-        input.applicationSecret,
-      );
-    if (typeof input.groupNames === 'string')
-      data.groupNames = normalizeOptional(input.groupNames);
+    if (typeof input.internalUrl === 'string') {
+      const internalUrl = normalizeOptional(input.internalUrl);
+      data.internalUrl = internalUrl
+        ? assertSafeOutboundHttpsUrl(internalUrl, {
+            label: 'GitHub internal URL',
+            allowPath: false,
+          })
+        : null;
+    }
     if (typeof input.adminToken === 'string')
-      data.adminToken = this.crypto.encryptOptional(input.adminToken);
+      data.adminToken = this.crypto.encryptOptional(
+        requireNonEmpty(
+          input.adminToken,
+          'Le token GitHub ne peut pas être vide',
+        ),
+      );
 
     const makeDefault = input.isDefault === true && !current.isDefault;
     if (makeDefault) {
@@ -174,40 +182,25 @@ export class GithubProviderService {
     const adminToken = provider.adminToken
       ? this.crypto.decrypt(provider.adminToken).trim()
       : '';
-    const oauthToken = provider.oauthAccessToken
-      ? this.crypto.decrypt(provider.oauthAccessToken).trim()
-      : '';
-
-    if (!adminToken && !oauthToken) {
+    if (!adminToken) {
       throw new BadRequestException(
-        'Configure un PAT GitHub ou connecte OAuth avant le test',
+        'Configure un Personal Access Token GitHub avant le test',
       );
     }
 
     const apiBase = buildGithubApiBase(provider.providerUrl.trim());
-    const tokens = oauthToken
-      ? [
-          { token: oauthToken, label: 'OAuth' },
-          ...(adminToken ? [{ token: adminToken, label: 'PAT' }] : []),
-        ]
-      : [{ token: adminToken, label: 'PAT' }];
-
-    for (const { token, label } of tokens) {
-      try {
-        await firstValueFrom(
-          this.http.get(`${apiBase}/user`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        );
-        return { ok: true, message: `Connexion GitHub valide (${label})` };
-      } catch {
-        // try next token
-      }
+    try {
+      await firstValueFrom(
+        this.http.get(`${apiBase}/user`, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }),
+      );
+      return { ok: true, message: 'Connexion GitHub valide (PAT)' };
+    } catch {
+      throw new BadRequestException(
+        'Test GitHub échoué — vérifiez le PAT et ses permissions',
+      );
     }
-
-    throw new BadRequestException(
-      'Test GitHub échoué — vérifiez votre PAT ou OAuth',
-    );
   }
 
   async listRepos(id: string, teamId: string): Promise<GithubRepoOption[]> {
@@ -215,10 +208,7 @@ export class GithubProviderService {
     const adminToken = provider.adminToken
       ? this.crypto.decrypt(provider.adminToken).trim()
       : '';
-    const oauthToken = provider.oauthAccessToken
-      ? this.crypto.decrypt(provider.oauthAccessToken).trim()
-      : '';
-    const token = oauthToken || adminToken;
+    const token = adminToken;
 
     if (!token)
       throw new BadRequestException(

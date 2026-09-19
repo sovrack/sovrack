@@ -22,6 +22,9 @@ export class ImpersonationReadonlyGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
+    // Interactive transports enforce a stricter policy in their gateway after
+    // authenticating the socket. This HTTP guard cannot safely infer a method
+    // or identity before that transport-specific authentication has run.
     if (context.getType() !== 'http') return true;
 
     const request = context.switchToHttp().getRequest<Request>();

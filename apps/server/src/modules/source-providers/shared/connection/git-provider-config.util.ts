@@ -126,25 +126,16 @@ export function toGitlabProviderPublic(
 }
 
 /**
- * GitHub status: a PAT (adminToken) or a non-expired OAuth token => CONFIGURED;
- * an expired OAuth token => ACTION_REQUIRED (re-auth needed).
+ * GitHub is PAT-only in the V1. Legacy OAuth fields are ignored
+ * so an unusable old OAuth record can never appear as configured.
  */
 export function toGithubProviderPublic(
   provider: GitProviderConfig,
 ): GitlabProviderPublic {
-  const isOAuthExpired = provider.oauthExpiresAt
-    ? provider.oauthExpiresAt < new Date()
-    : false;
-  const oauthTokenConfigured = Boolean(provider.oauthAccessToken);
   const adminTokenConfigured = Boolean(provider.adminToken);
-  const applicationSecretConfigured = Boolean(provider.applicationSecret);
-
-  let status: GitProviderStatus = 'NOT_CONFIGURED';
-  if (adminTokenConfigured || (oauthTokenConfigured && !isOAuthExpired)) {
-    status = 'CONFIGURED';
-  } else if (oauthTokenConfigured && isOAuthExpired) {
-    status = 'ACTION_REQUIRED';
-  }
+  const status: GitProviderStatus = adminTokenConfigured
+    ? 'CONFIGURED'
+    : 'NOT_CONFIGURED';
 
   return {
     id: provider.id,
@@ -152,13 +143,13 @@ export function toGithubProviderPublic(
     type: 'GITHUB' as const,
     providerUrl: provider.providerUrl,
     internalUrl: provider.internalUrl ?? '',
-    redirectUri: provider.redirectUri ?? '',
-    applicationId: provider.applicationId ?? '',
-    applicationSecretConfigured,
-    groupNames: provider.groupNames ?? '',
+    redirectUri: '',
+    applicationId: '',
+    applicationSecretConfigured: false,
+    groupNames: '',
     adminTokenConfigured,
-    oauthTokenConfigured,
-    oauthExpiresAt: provider.oauthExpiresAt?.toISOString() ?? null,
+    oauthTokenConfigured: false,
+    oauthExpiresAt: null,
     status,
     isDefault: provider.isDefault,
     createdAt: provider.createdAt.toISOString(),

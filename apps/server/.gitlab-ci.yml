@@ -23,6 +23,10 @@ variables:
   STAFF_JWT_SECRET: ci-staff-jwt-secret-minimum-32-characters-ok
   # Secret HMAC indépendant pour les codes à usage unique staff.
   STAFF_OTP_SECRET: ci-staff-otp-secret-minimum-32-characters-ok
+  # Secret HMAC indépendant pour les codes de secours de la MFA client
+  # facultative. L'export OpenAPI initialise AppModule et valide donc lui aussi
+  # l'intégralité du contrat d'environnement.
+  CUSTOMER_MFA_SECRET: ci-customer-mfa-secret-minimum-32-characters-ok
   ANSIBLE_PLAYBOOKS_PATH: /tmp/playbooks
   ANSIBLE_VENV_PATH: /tmp/venv
   NODE_ENV: test
@@ -267,6 +271,6 @@ security:image:
     when: always
     paths:
       - backend-sbom.cdx.json
-    expire_in: 30 days
+    expire_in: 1 year
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'

@@ -92,6 +92,16 @@ describe('GithubProviderService', () => {
     expect(crypto.encryptOptional).toHaveBeenCalledWith('tok');
   });
 
+  it('rejects creation without a non-empty PAT', async () => {
+    await expect(
+      service.create(
+        { name: 'GH', providerUrl: 'https://github.com', adminToken: '  ' },
+        'workspace-1',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(txCfg.create).not.toHaveBeenCalled();
+  });
+
   it('404s for a missing or wrong-type provider', async () => {
     prisma.gitProviderConfig.findFirst.mockResolvedValue(
       row({ type: GitProviderType.GITLAB }),

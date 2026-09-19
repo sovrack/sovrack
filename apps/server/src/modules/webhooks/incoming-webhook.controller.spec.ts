@@ -8,8 +8,8 @@ import type { WebhookEndpointContext } from './interfaces/webhook-handler.interf
 /**
  * Security gate of the PUBLIC webhook endpoint: signature verification.
  * GitLab → constant-time X-Gitlab-Token compare; GitHub → HMAC-SHA256 of the
- * raw body. A wrong signature must NOT be accepted; a legacy endpoint (no
- * stored secret) is accepted for backward-compat.
+ * raw body. A wrong signature or an endpoint without a secret must never be
+ * accepted.
  */
 describe('IncomingWebhookController.verifySignature', () => {
   const controller = new IncomingWebhookController(
@@ -31,20 +31,10 @@ describe('IncomingWebhookController.verifySignature', () => {
       }
     ).verifySignature(endpoint, rawBody, headers);
 
-  it('accepts a legacy endpoint without a stored secret', () => {
-    expect(verify({ secret: null }, undefined, {}).verified).toBe(true);
-  });
-
-  it('rejects a legacy endpoint in production (no stored secret)', () => {
-    const original = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
-    try {
-      const r = verify({ secret: null }, undefined, {});
-      expect(r.verified).toBe(false);
-      expect(r.error).toContain('secret');
-    } finally {
-      process.env.NODE_ENV = original;
-    }
+  it('rejects a legacy endpoint without a stored secret in every environment', () => {
+    const r = verify({ secret: null }, undefined, {});
+    expect(r.verified).toBe(false);
+    expect(r.error).toContain('secret');
   });
 
   describe('GitLab (X-Gitlab-Token)', () => {
@@ -100,7 +90,7 @@ function makeEndpoint(
     id: 'ep1',
     isActive: opts.isActive ?? true,
     provider: opts.provider ?? GitProviderType.GITLAB,
-    secret: opts.secret !== undefined ? opts.secret : null,
+    secret: opts.secret !== undefined ? opts.secret : 'secret',
     projectId: 'proj1',
   };
 }
@@ -150,14 +140,12 @@ describe('IncomingWebhookController.handle', () => {
     expect(result).toEqual({ status: 'ignored' });
   });
 
-  it('passes through when no secret stored (legacy endpoint)', async () => {
-    const handler = makeHandler();
+  it('rejects when no secret is stored (legacy endpoint)', async () => {
     const svc = makeSvcFull({ endpoint: makeEndpoint({ secret: null }) });
-    const ctrl = new IncomingWebhookController(svc as never, [handler]);
-    const result = await ctrl.handle('tok', {}, {}, {
-      rawBody: Buffer.from('{}'),
-    } as never);
-    expect(result).toEqual({ status: 'ok' });
+    const ctrl = new IncomingWebhookController(svc as never, [makeHandler()]);
+    await expect(
+      ctrl.handle('tok', {}, {}, { rawBody: Buffer.from('{}') } as never),
+    ).rejects.toThrow(UnauthorizedException);
   });
 
   it('throws UnauthorizedException for wrong GitLab token', async () => {
@@ -179,7 +167,9 @@ describe('IncomingWebhookController.handle', () => {
     const handler = makeHandler();
     const svc = makeSvcFull();
     const ctrl = new IncomingWebhookController(svc as never, [handler]);
-    await ctrl.handle('tok', {}, {}, { rawBody: Buffer.from('{}') } as never);
+    await ctrl.handle('tok', {}, { 'x-gitlab-token': 'secret' }, {
+      rawBody: Buffer.from('{}'),
+    } as never);
     expect(svc.markProcessed).toHaveBeenCalledWith('evt1');
   });
 
@@ -188,9 +178,14 @@ describe('IncomingWebhookController.handle', () => {
     handler.handleIncoming.mockRejectedValue(new Error('dispatch error'));
     const svc = makeSvcFull();
     const ctrl = new IncomingWebhookController(svc as never, [handler]);
-    const result = await ctrl.handle('tok', {}, {}, {
-      rawBody: Buffer.from('{}'),
-    } as never);
+    const result = await ctrl.handle(
+      'tok',
+      {},
+      { 'x-gitlab-token': 'secret' },
+      {
+        rawBody: Buffer.from('{}'),
+      } as never,
+    );
     expect(result).toEqual({ status: 'ok' });
     expect(svc.markFailed).toHaveBeenCalledWith('evt1', 'dispatch error');
   });
@@ -199,9 +194,14 @@ describe('IncomingWebhookController.handle', () => {
     const handler = makeHandler();
     const svc = makeSvcFull({ recordError: true });
     const ctrl = new IncomingWebhookController(svc as never, [handler]);
-    const result = await ctrl.handle('tok', {}, {}, {
-      rawBody: Buffer.from('{}'),
-    } as never);
+    const result = await ctrl.handle(
+      'tok',
+      {},
+      { 'x-gitlab-token': 'secret' },
+      {
+        rawBody: Buffer.from('{}'),
+      } as never,
+    );
     expect(result).toEqual({ status: 'ok' });
     expect(handler.handleIncoming).toHaveBeenCalled();
   });
@@ -211,9 +211,14 @@ describe('IncomingWebhookController.handle', () => {
       endpoint: makeEndpoint({ provider: GitProviderType.GITLAB }),
     });
     const ctrl = new IncomingWebhookController(svc as never, []);
-    const result = await ctrl.handle('tok', {}, {}, {
-      rawBody: Buffer.from('{}'),
-    } as never);
+    const result = await ctrl.handle(
+      'tok',
+      {},
+      { 'x-gitlab-token': 'secret' },
+      {
+        rawBody: Buffer.from('{}'),
+      } as never,
+    );
     expect(result).toEqual({ status: 'ok' });
   });
 
@@ -221,9 +226,14 @@ describe('IncomingWebhookController.handle', () => {
     const handler = makeHandler();
     const svc = makeSvcFull();
     const ctrl = new IncomingWebhookController(svc as never, [handler]);
-    await ctrl.handle('tok', { object_kind: 'push' }, {}, {
-      rawBody: Buffer.from('{}'),
-    } as never);
+    await ctrl.handle(
+      'tok',
+      { object_kind: 'push' },
+      { 'x-gitlab-token': 'secret' },
+      {
+        rawBody: Buffer.from('{}'),
+      } as never,
+    );
     expect(svc.record).toHaveBeenCalledWith(
       expect.objectContaining({ eventType: 'push' }),
     );
@@ -235,9 +245,15 @@ describe('IncomingWebhookController.handle', () => {
       endpoint: makeEndpoint({ provider: GitProviderType.GITHUB }),
     });
     const ctrl = new IncomingWebhookController(svc as never, [handler]);
-    await ctrl.handle('tok', { action: 'synchronize' }, {}, {
-      rawBody: Buffer.from('{}'),
-    } as never);
+    const rawBody = Buffer.from('{}');
+    const signature =
+      'sha256=' + createHmac('sha256', 'secret').update(rawBody).digest('hex');
+    await ctrl.handle(
+      'tok',
+      { action: 'synchronize' },
+      { 'x-hub-signature-256': signature },
+      { rawBody } as never,
+    );
     expect(svc.record).toHaveBeenCalledWith(
       expect.objectContaining({ eventType: 'synchronize' }),
     );

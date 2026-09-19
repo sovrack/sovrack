@@ -35,7 +35,18 @@ describe('WorkspaceInvitationsService', () => {
   beforeEach(() => {
     prisma = {
       $transaction: jest.fn(),
-      user: { findUnique: jest.fn().mockResolvedValue(null) },
+      user: {
+        findUnique: jest.fn().mockImplementation(({ where }) =>
+          Promise.resolve(
+            where.id === 'actor-1'
+              ? {
+                  email: 'owner@example.com',
+                  fullName: 'Workspace Owner',
+                }
+              : null,
+          ),
+        ),
+      },
       team: {
         findUnique: jest.fn().mockResolvedValue({
           type: WorkspaceType.ORGANIZATION,

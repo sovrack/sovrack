@@ -44,10 +44,23 @@ class UpdateGitlabProviderDto {
   @IsOptional() @Type(() => Boolean) @IsBoolean() isDefault?: boolean;
 }
 
-// ─── GitHub DTO aliases (same shape as GitLab DTOs) ────────────────────
+// GitHub OAuth is intentionally outside the V1. Keep this
+// contract PAT-only so unsupported OAuth fields cannot silently be persisted.
+class CreateGithubProviderDto {
+  @IsString() @IsNotEmpty() name!: string;
+  @IsString() @IsNotEmpty() providerUrl!: string;
+  @IsOptional() @IsString() internalUrl?: string;
+  @IsString() @IsNotEmpty() adminToken!: string;
+  @IsOptional() @Type(() => Boolean) @IsBoolean() isDefault?: boolean;
+}
 
-type CreateGithubProviderDto = CreateGitlabProviderDto;
-type UpdateGithubProviderDto = UpdateGitlabProviderDto;
+class UpdateGithubProviderDto {
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsString() providerUrl?: string;
+  @IsOptional() @IsString() internalUrl?: string;
+  @IsOptional() @IsString() @IsNotEmpty() adminToken?: string;
+  @IsOptional() @Type(() => Boolean) @IsBoolean() isDefault?: boolean;
+}
 
 @ApiTags('Git Providers (Admin)')
 @ApiBearerAuth()

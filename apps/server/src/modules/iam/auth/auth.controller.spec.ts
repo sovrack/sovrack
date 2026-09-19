@@ -8,7 +8,12 @@ import { AuthController } from './auth.controller';
 import { ImpersonationSessionService } from './impersonation-session.service';
 
 describe('AuthController', () => {
-  const user = { id: 'user-1', role: Role.OWNER } as JwtPayload;
+  const user = {
+    id: 'user-1',
+    email: 'user@example.com',
+    role: Role.MEMBER,
+    sessionVersion: 7,
+  } as JwtPayload;
 
   function build() {
     const authService = {
@@ -53,7 +58,8 @@ describe('AuthController', () => {
     expect(ctrl.getWsToken(user)).toEqual({ wsToken: 'ws-tok' });
     expect(authService.generateWsToken).toHaveBeenCalledWith(
       'user-1',
-      Role.OWNER,
+      'user@example.com',
+      7,
     );
   });
 

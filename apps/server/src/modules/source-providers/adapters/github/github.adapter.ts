@@ -114,7 +114,7 @@ export class GithubAdapter implements IGitProvider {
 
   /**
    * Resolve a GitHub connection (apiBase + token) for discovery. Prefers
-   * an explicit `providerId` (decrypts its OAuth/admin token + uses its
+   * an explicit `providerId` (decrypts its PAT + uses its
    * providerUrl for GHES support); otherwise uses the raw `token` against
    * public github.com.
    */
@@ -138,12 +138,7 @@ export class GithubAdapter implements IGitProvider {
       const adminToken = provider.adminToken
         ? this.gitProviderRegistry.decryptProviderToken(provider.adminToken)
         : '';
-      const oauthToken = provider.oauthAccessToken
-        ? this.gitProviderRegistry.decryptProviderToken(
-            provider.oauthAccessToken,
-          )
-        : '';
-      const resolved = token || oauthToken || adminToken;
+      const resolved = token || adminToken;
       if (!resolved) {
         throw new BadRequestException(
           'Aucun token GitHub disponible pour ce provider',
@@ -231,10 +226,7 @@ export class GithubAdapter implements IGitProvider {
     const adminToken = provider.adminToken
       ? this.gitProviderRegistry.decryptProviderToken(provider.adminToken)
       : '';
-    const oauthToken = provider.oauthAccessToken
-      ? this.gitProviderRegistry.decryptProviderToken(provider.oauthAccessToken)
-      : '';
-    const token = oauthToken || adminToken;
+    const token = adminToken;
 
     if (!token) {
       throw new BadRequestException(

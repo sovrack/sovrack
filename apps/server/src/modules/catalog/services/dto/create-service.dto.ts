@@ -13,6 +13,7 @@ import { Type } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
+  IsIn,
   IsJSON,
   IsNotEmpty,
   IsNumber,
@@ -27,8 +28,8 @@ import {
 } from 'class-validator';
 
 export class SourceConnectionDto {
-  @ApiProperty({ enum: GitProviderType })
-  @IsEnum(GitProviderType)
+  @ApiProperty({ enum: [GitProviderType.GITLAB, GitProviderType.GITHUB] })
+  @IsIn([GitProviderType.GITLAB, GitProviderType.GITHUB])
   provider!: GitProviderType;
 
   @ApiProperty({ example: 'group/project' })
@@ -53,9 +54,12 @@ export class CreateServiceDto {
   @IsNotEmpty({ message: 'Le nom du service est requis' })
   name!: string;
 
-  @ApiPropertyOptional({ enum: ServiceType, example: ServiceType.APPLICATION })
+  @ApiPropertyOptional({
+    enum: [ServiceType.APPLICATION, ServiceType.DATABASE],
+    example: ServiceType.APPLICATION,
+  })
   @IsOptional()
-  @IsEnum(ServiceType)
+  @IsIn([ServiceType.APPLICATION, ServiceType.DATABASE])
   type?: ServiceType;
 
   @ApiPropertyOptional({ example: 'Backend API NestJS' })

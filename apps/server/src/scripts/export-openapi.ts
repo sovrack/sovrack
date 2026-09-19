@@ -12,7 +12,13 @@ async function exportOpenApi() {
   process.env.PROCESS_ROLE = 'api';
   const { AppModule } = await import('../app.module.js');
 
-  const app = await NestFactory.create(AppModule, { logger: false });
+  // Contract generation runs in CI and developer shells where a bootstrap
+  // error must be reported to the caller. Nest's default abort-on-error path
+  // terminates the process before our catch block can print the actual cause.
+  const app = await NestFactory.create(AppModule, {
+    logger: false,
+    abortOnError: false,
+  });
   const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
 
   const outputPath = resolve(

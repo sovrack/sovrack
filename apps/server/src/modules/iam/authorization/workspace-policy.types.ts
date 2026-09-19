@@ -38,6 +38,7 @@ export type WorkspaceActorContext = {
   userId: string;
   workspaceId: string;
   workspaceRole: WorkspaceRole;
+  canManageBilling: boolean;
 };
 
 export type ProjectActorContext = WorkspaceActorContext & {

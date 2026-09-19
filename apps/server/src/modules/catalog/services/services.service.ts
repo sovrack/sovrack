@@ -23,6 +23,7 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { DiscoverGroupDto } from './dto/discover-group.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { encryptDbCredentials } from '../../../shared/utils/database-spec.util';
+import { assertV1ServiceContract } from '../../../shared/product-capabilities/v1-product-contract';
 
 // envLinks: explicit `select` (not `include`) so a ServiceEnvironment's
 // sensitive fields (secretsEnv — encrypted, but never meant to leave the
@@ -145,6 +146,7 @@ export class ServicesService {
     userRole: Role,
     tx?: Prisma.TransactionClient,
   ) {
+    assertV1ServiceContract(dto);
     await this.projectAccess.assertCanManageProject(
       projectId,
       userId,
@@ -258,6 +260,7 @@ export class ServicesService {
     userId: string,
     userRole: Role,
   ) {
+    assertV1ServiceContract(dto);
     await this.projectAccess.assertCanManageProject(
       projectId,
       userId,

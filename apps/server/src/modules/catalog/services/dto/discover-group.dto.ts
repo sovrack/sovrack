@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { GitProviderType } from '@prisma/client';
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class DiscoverGroupDto {
-  @ApiProperty({ enum: GitProviderType })
-  @IsEnum(GitProviderType)
+  @ApiProperty({ enum: [GitProviderType.GITLAB, GitProviderType.GITHUB] })
+  @IsIn([GitProviderType.GITLAB, GitProviderType.GITHUB])
   provider!: GitProviderType;
 
   @ApiProperty({ example: 'my-group' })

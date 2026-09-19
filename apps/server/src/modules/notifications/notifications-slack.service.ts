@@ -10,6 +10,7 @@ import type {
   DockerConnectionDownPayload,
   DockerConnectionRecoveredPayload,
 } from './notifications-payloads.types';
+import { assertSafeOutboundHttpsUrl } from '../../shared/http/outbound-url-policy.util';
 
 @Injectable()
 export class NotificationsSlackService {
@@ -24,8 +25,9 @@ export class NotificationsSlackService {
     try {
       const webhookUrl = await this.config.get(CONFIG_KEYS.SLACK_WEBHOOK);
       if (!webhookUrl) return;
+      const safeWebhookUrl = this.safeSlackWebhookUrl(webhookUrl);
       await firstValueFrom(
-        this.httpService.post(webhookUrl, { text }, { timeout: 8000 }),
+        this.httpService.post(safeWebhookUrl, { text }, { timeout: 8000 }),
       );
     } catch (error: unknown) {
       this.logger.warn(
@@ -40,6 +42,7 @@ export class NotificationsSlackService {
     try {
       const webhookUrl = await this.config.get(CONFIG_KEYS.SLACK_WEBHOOK);
       if (!webhookUrl) return;
+      const safeWebhookUrl = this.safeSlackWebhookUrl(webhookUrl);
 
       const emoji =
         payload.status === 'SUCCESS'
@@ -86,7 +89,7 @@ export class NotificationsSlackService {
 
       await firstValueFrom(
         this.httpService.post(
-          webhookUrl,
+          safeWebhookUrl,
           { attachments: [{ color, blocks }] },
           { timeout: 8000 },
         ),
@@ -108,6 +111,7 @@ export class NotificationsSlackService {
     try {
       const webhookUrl = await this.config.get(CONFIG_KEYS.SLACK_WEBHOOK);
       if (!webhookUrl) return;
+      const safeWebhookUrl = this.safeSlackWebhookUrl(webhookUrl);
 
       const isDown = !recovered;
       const emoji = isDown ? '🔴' : '🟢';
@@ -130,7 +134,7 @@ export class NotificationsSlackService {
       ];
 
       await firstValueFrom(
-        this.httpService.post(webhookUrl, {
+        this.httpService.post(safeWebhookUrl, {
           blocks: [
             {
               type: 'section',
@@ -150,5 +154,12 @@ export class NotificationsSlackService {
         }`,
       );
     }
+  }
+
+  private safeSlackWebhookUrl(value: string): string {
+    return assertSafeOutboundHttpsUrl(value, {
+      label: 'Slack webhook URL',
+      allowedPublicHosts: ['hooks.slack.com'],
+    });
   }
 }

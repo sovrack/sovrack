@@ -1,5 +1,5 @@
 import { WorkspaceRole } from '@prisma/client';
-import { IsEmail, IsEnum, IsOptional } from 'class-validator';
+import { IsEmail, IsIn, IsOptional } from 'class-validator';
 import { NormalizeEmail } from '../../../../shared/validation/identity-validation.util';
 
 export class InviteWorkspaceMemberDto {
@@ -7,7 +7,7 @@ export class InviteWorkspaceMemberDto {
   @IsEmail()
   email!: string;
 
-  @IsEnum(WorkspaceRole)
+  @IsIn([WorkspaceRole.ADMIN, WorkspaceRole.MEMBER])
   @IsOptional()
   role?: WorkspaceRole;
 }

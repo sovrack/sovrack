@@ -4,6 +4,7 @@ import { SshExecutorService } from '../../../adapters/ssh/ssh-executor.service';
 import { ServersCryptoService } from '../../../adapters/ssh/servers-crypto.service';
 import { ServerHostKeyService } from '../../../adapters/ssh/server-host-key.service';
 import { buildAuthenticatedCloneUrl } from '../../../shared/utils/clone-url.util';
+import { assertSafeOutboundHttpsUrl } from '../../../shared/http/outbound-url-policy.util';
 import {
   isNamespacedRepoPath,
   normalizeRepoPath,
@@ -73,7 +74,10 @@ export class LocalBuildService {
     )
       .toString()
       .toUpperCase();
-    const providerUrl = svc.provider?.providerUrl ?? '';
+    const providerUrl = assertSafeOutboundHttpsUrl(
+      svc.provider?.providerUrl ?? '',
+      { label: 'Git provider URL', allowPath: false },
+    );
     const token = svc.provider?.adminToken
       ? this.crypto.decrypt(svc.provider.adminToken)
       : '';

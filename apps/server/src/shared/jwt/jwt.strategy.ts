@@ -1,14 +1,14 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import type { JwtPayloadDto } from './dto/jwt-payload.dto';
 import type { Request } from 'express';
-import { PrismaService } from '../database/prisma.service';
 import {
   extractTokenFromCookieHeader,
   resolveAuthCookieName,
 } from '../../shared/http/auth-cookie.util';
+import { JwtSessionValidator } from './jwt-session-validator.service';
 
 /**
  * JWT Passport Strategy — extracted from auth module.
@@ -18,7 +18,7 @@ import {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
-    private readonly prisma: PrismaService,
+    private readonly sessionValidator: JwtSessionValidator,
   ) {
     const jwtSecret = configService.get<string>('JWT_SECRET');
     const cookieName = resolveAuthCookieName(configService);
@@ -41,62 +41,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayloadDto): Promise<JwtPayloadDto> {
-    if (!payload.id || !payload.email) {
-      throw new UnauthorizedException('Invalid token payload');
-    }
-
-    // A signed token is not sufficient proof that the identity is still
-    // allowed to act: staff suspension/deletion and email-verification state
-    // must take effect immediately, without waiting for JWT expiration.
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.id },
-      select: {
-        email: true,
-        isActive: true,
-        emailVerifiedAt: true,
-        provider: true,
-        sessionVersion: true,
-        legacyStaffRetiredAt: true,
-      },
-    });
-    if (
-      !user ||
-      !user.isActive ||
-      user.email !== payload.email ||
-      !Number.isInteger(payload.sessionVersion) ||
-      user.sessionVersion !== payload.sessionVersion ||
-      Boolean(user.legacyStaffRetiredAt) ||
-      (user.provider === 'email' && !user.emailVerifiedAt)
-    ) {
-      throw new UnauthorizedException('Session utilisateur révoquée');
-    }
-
-    if (payload.authType === 'staff-impersonation') {
-      if (!payload.impersonationGrantId || !payload.impersonatedByStaffId) {
-        throw new UnauthorizedException("Session d'assistance invalide");
-      }
-      const grant = await this.prisma.staffImpersonationGrant.findUnique({
-        where: { id: payload.impersonationGrantId },
-        select: {
-          userId: true,
-          staffId: true,
-          consumedAt: true,
-          sessionExpiresAt: true,
-          endedAt: true,
-        },
-      });
-      if (
-        !grant ||
-        grant.userId !== payload.id ||
-        grant.staffId !== payload.impersonatedByStaffId ||
-        !grant.consumedAt ||
-        !grant.sessionExpiresAt ||
-        grant.sessionExpiresAt.getTime() <= Date.now() ||
-        grant.endedAt
-      ) {
-        throw new UnauthorizedException("Session d'assistance terminée");
-      }
-    }
-    return payload;
+    return this.sessionValidator.validate(payload);
   }
 }

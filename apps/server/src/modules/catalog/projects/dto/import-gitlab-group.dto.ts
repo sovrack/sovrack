@@ -4,7 +4,6 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
-  IsEnum,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -45,9 +44,11 @@ export class GitlabGroupImportRepositoryDto {
   @IsString()
   serviceName?: string;
 
-  @ApiPropertyOptional({ enum: ServiceType })
+  @ApiPropertyOptional({
+    enum: [ServiceType.APPLICATION, ServiceType.DATABASE],
+  })
   @IsOptional()
-  @IsEnum(ServiceType)
+  @IsIn([ServiceType.APPLICATION, ServiceType.DATABASE])
   serviceType?: ServiceType;
 }
 

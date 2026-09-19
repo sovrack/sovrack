@@ -1,7 +1,7 @@
 import { WorkspaceRole } from '@prisma/client';
-import { IsEnum } from 'class-validator';
+import { IsIn } from 'class-validator';
 
 export class UpdateWorkspaceMemberRoleDto {
-  @IsEnum(WorkspaceRole)
+  @IsIn([WorkspaceRole.OWNER, WorkspaceRole.ADMIN, WorkspaceRole.MEMBER])
   role!: WorkspaceRole;
 }

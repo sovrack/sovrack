@@ -16,6 +16,7 @@ import { StaffOperationsService } from './staff-operations.service';
 import { StaffInvitationService } from './staff-invitation.service';
 import type { Staff, User } from '@prisma/client';
 import { StaffMfaService } from './staff-mfa.service';
+import { StaffPlatformReadService } from './staff-platform-read.service';
 
 const staffFixture: Staff = {
   id: 'staff-1',
@@ -57,6 +58,8 @@ const userFixture: User = {
   passwordResetAttempts: 0,
   sessionVersion: 0,
   legacyStaffRetiredAt: null,
+  deletionRequestedAt: null,
+  deletionScheduledFor: null,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
 };
@@ -92,7 +95,15 @@ describe('StaffService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
-    team: { count: jest.fn(), findMany: jest.fn(), deleteMany: jest.fn() },
+    team: {
+      count: jest.fn(),
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      groupBy: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+      deleteMany: jest.fn(),
+    },
     subscription: { groupBy: jest.fn(), findMany: jest.fn() },
     teamMember: { findMany: jest.fn(), deleteMany: jest.fn() },
     auditLog: { deleteMany: jest.fn() },
@@ -117,7 +128,10 @@ describe('StaffService', () => {
     get: jest.fn((_key: string, fallback: string) => fallback),
   };
   const accountDeletion = {
-    deleteIdentity: jest.fn(async () => undefined),
+    scheduleIdentityDeletion: jest.fn(async () => ({
+      scheduledFor: new Date('2026-10-10T00:00:00.000Z'),
+    })),
+    cancelIdentityDeletion: jest.fn(async () => userFixture),
   };
   const notifications = {
     sendTransactionalEmail: jest.fn(async () => undefined),
@@ -155,6 +169,7 @@ describe('StaffService', () => {
         config as unknown as ConfigService,
         accountDeletion as unknown as AccountDeletionService,
       ),
+      new StaffPlatformReadService(prisma as never),
       invitationService,
       mfa as unknown as StaffMfaService,
     );
@@ -514,27 +529,6 @@ describe('StaffService', () => {
     });
   });
 
-  describe('setUserRole', () => {
-    it('change le rôle client et journalise', async () => {
-      prisma.user.findUnique.mockResolvedValue(userFixture);
-      prisma.user.update.mockResolvedValue({
-        ...userFixture,
-        role: Role.MEMBER,
-      });
-
-      const result = await service.setUserRole(
-        'user-1',
-        Role.MEMBER,
-        'staff-1',
-      );
-
-      expect(result.role).toBe('MEMBER');
-      expect(audit.record).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'user.role.change' }),
-      );
-    });
-  });
-
   describe('listUsers', () => {
     it('retourne une page paginée', async () => {
       prisma.user.count.mockResolvedValue(1);
@@ -545,24 +539,58 @@ describe('StaffService', () => {
     });
   });
 
-  describe('deleteUser', () => {
-    it('supprime uniquement l’identité via le service de domaine', async () => {
+  describe('customer identity lifecycle', () => {
+    it('planifie la suppression avec un délai de grâce et journalise le motif', async () => {
       prisma.user.findUnique.mockResolvedValue(userFixture);
-      prisma.teamMember.findMany.mockResolvedValue([{ teamId: 'team-1' }]);
-      prisma.$transaction.mockImplementation(
-        async (fn: (tx: typeof prisma) => Promise<void>) => fn(prisma),
+      const result = await service.scheduleUserDeletion(
+        'user-1',
+        'staff-1',
+        'Demande client confirmée par le support',
+        '::1',
       );
 
-      const result = await service.deleteUser('user-1', 'staff-1', '::1');
-
-      expect(accountDeletion.deleteIdentity).toHaveBeenCalledWith('user-1');
+      expect(accountDeletion.scheduleIdentityDeletion).toHaveBeenCalledWith(
+        'user-1',
+      );
       expect(audit.record).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: 'user.delete',
+          action: 'user.deletion.schedule',
           resourceId: 'user-1',
         }),
       );
-      expect(result.message).toContain('supprimé');
+      expect(result.message).toContain('délai de grâce');
+    });
+
+    it('annule une suppression programmée', async () => {
+      const result = await service.cancelUserDeletion(
+        'user-1',
+        'staff-1',
+        '::1',
+      );
+
+      expect(accountDeletion.cancelIdentityDeletion).toHaveBeenCalledWith(
+        'user-1',
+      );
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'user.deletion.cancel' }),
+      );
+      expect(result.message).toContain('Suppression annulée');
+    });
+
+    it('révoque les sessions client et les assistances actives', async () => {
+      prisma.user.findUnique.mockResolvedValue(userFixture);
+      prisma.user.update.mockResolvedValue(userFixture);
+      prisma.staffImpersonationGrant.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.revokeUserSessions('user-1', 'staff-1', '::1');
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { sessionVersion: { increment: 1 } },
+      });
+      expect(prisma.staffImpersonationGrant.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'user-1', endedAt: null } }),
+      );
     });
   });
 

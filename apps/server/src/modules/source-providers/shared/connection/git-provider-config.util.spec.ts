@@ -136,7 +136,7 @@ describe('git-provider-config.util', () => {
         toGithubProviderPublic(provider({ adminToken: 'pat' })).status,
       ).toBe('CONFIGURED');
     });
-    it('CONFIGURED with a non-expired OAuth token', () => {
+    it('ignores a legacy non-expired OAuth token without a PAT', () => {
       expect(
         toGithubProviderPublic(
           provider({
@@ -144,17 +144,18 @@ describe('git-provider-config.util', () => {
             oauthExpiresAt: new Date(Date.now() + 3_600_000),
           }),
         ).status,
-      ).toBe('CONFIGURED');
+      ).toBe('NOT_CONFIGURED');
     });
-    it('ACTION_REQUIRED with an expired OAuth token and no PAT', () => {
-      expect(
-        toGithubProviderPublic(
-          provider({
-            oauthAccessToken: 'o',
-            oauthExpiresAt: new Date(Date.now() - 3_600_000),
-          }),
-        ).status,
-      ).toBe('ACTION_REQUIRED');
+    it('ignores a legacy expired OAuth token and hides OAuth state', () => {
+      const result = toGithubProviderPublic(
+        provider({
+          oauthAccessToken: 'o',
+          oauthExpiresAt: new Date(Date.now() - 3_600_000),
+        }),
+      );
+      expect(result.status).toBe('NOT_CONFIGURED');
+      expect(result.oauthTokenConfigured).toBe(false);
+      expect(result.oauthExpiresAt).toBeNull();
     });
     it('NOT_CONFIGURED with nothing', () => {
       expect(toGithubProviderPublic(provider()).status).toBe('NOT_CONFIGURED');

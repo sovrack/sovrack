@@ -6,7 +6,7 @@ import { NormalizeEmail } from '../../../../shared/validation/identity-validatio
  * DTO de renvoi du code de vérification d'email.
  */
 export class ResendVerificationCodeDto {
-  @ApiProperty({ example: 'dev@sovrack.tech' })
+  @ApiProperty({ example: 'utilisateur@example.com' })
   @NormalizeEmail()
   @IsEmail({}, { message: 'Email invalide' })
   @IsNotEmpty({ message: 'Email requis' })

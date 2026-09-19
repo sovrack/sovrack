@@ -24,8 +24,10 @@ export type StaffAuditAction =
   | 'platform.email.settings.test'
   | 'user.block'
   | 'user.unblock'
-  | 'user.role.change'
-  | 'user.delete'
+  | 'user.deletion.schedule'
+  | 'user.deletion.cancel'
+  | 'user.sessions.revoke'
+  | 'workspace.status.change'
   | 'user.impersonate'
   | 'user.impersonation.exchange'
   | 'user.impersonation.logout';

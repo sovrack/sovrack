@@ -15,7 +15,6 @@ enum Role {
 enum WorkspaceRole {
   OWNER
   ADMIN
-  BILLING
   MEMBER
 }
 
@@ -42,6 +41,12 @@ enum InvitationStatus {
   ACCEPTED
   REVOKED
   EXPIRED
+}
+
+enum InvitationDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
 }
 
 enum ProjectRole {
@@ -290,6 +295,11 @@ model User {
   // Confirmation de suppression de compte (code à 6 chiffres par email).
   deleteAccountCode          String?
   deleteAccountExpiresAt     DateTime?
+  // A confirmed deletion enters a recoverable grace period before the
+  // identity is purged. Access is revoked immediately; tenant resources stay
+  // attached to the workspace and are never deleted implicitly.
+  deletionRequestedAt        DateTime?
+  deletionScheduledFor       DateTime?
   // Réinitialisation de mot de passe oublié (code à 6 chiffres par email).
   passwordResetCode          String?
   passwordResetExpiresAt     DateTime?
@@ -298,6 +308,11 @@ model User {
   // Every customer JWT carries this value. Incrementing it revokes all tokens
   // issued before a password change, reset, explicit logout or staff block.
   sessionVersion             Int                       @default(0)
+  // MFA client facultative. Un compte sans activation continue à utiliser
+  // uniquement son email et son mot de passe.
+  mfaSecret                  String?
+  mfaEnabled                 Boolean                   @default(false)
+  mfaLastUsedStep            BigInt?
   // Audit marker for accounts that represented platform administrators before
   // the dedicated Staff identity plane existed. Such identities are retained
   // for referential integrity but can never authenticate as customers.
@@ -312,8 +327,24 @@ model User {
   personalWorkspacesOwned    Team[]                    @relation("PersonalWorkspaceOwner")
   staffImpersonationGrants   StaffImpersonationGrant[]
   serverRunsRequested        ServerRun[]               @relation("ServerRunRequestedBy")
+  mfaRecoveryCodes           UserMfaRecoveryCode[]
   createdAt                  DateTime                  @default(now())
   updatedAt                  DateTime                  @updatedAt
+
+  @@index([deletionScheduledFor])
+}
+
+// Codes de secours de la MFA client facultative. Seuls leurs HMAC sont
+// persistés ; les valeurs en clair ne sont affichées qu'une fois.
+model UserMfaRecoveryCode {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String    @unique
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, usedAt])
 }
 
 model Project {
@@ -872,6 +903,9 @@ model TeamMember {
   user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId             String
   role               WorkspaceRole    @default(MEMBER)
+  // Billing is an orthogonal permission, not an exclusive collaboration role.
+  // The legacy BILLING enum value is migrated to MEMBER + this flag.
+  canManageBilling   Boolean          @default(false)
   status             MembershipStatus @default(ACTIVE)
   projectMemberships ProjectMember[]
   joinedAt           DateTime         @default(now())
@@ -883,23 +917,33 @@ model TeamMember {
 }
 
 model WorkspaceInvitation {
-  id          String           @id @default(uuid())
-  teamId      String
-  team        Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  email       String
-  role        WorkspaceRole    @default(MEMBER)
-  status      InvitationStatus @default(PENDING)
-  tokenHash   String           @unique
-  invitedById String
-  invitedBy   User             @relation("WorkspaceInvitationInviter", fields: [invitedById], references: [id], onDelete: Cascade)
-  expiresAt   DateTime
-  acceptedAt  DateTime?
-  revokedAt   DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @default(now()) @updatedAt
+  id                    String                   @id @default(uuid())
+  teamId                String
+  team                  Team                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  email                 String
+  role                  WorkspaceRole            @default(MEMBER)
+  status                InvitationStatus         @default(PENDING)
+  deliveryStatus        InvitationDeliveryStatus @default(PENDING)
+  deliveryAttempts      Int                      @default(0)
+  deliveredAt           DateTime?
+  lastDeliveryAttemptAt DateTime?
+  lastDeliveryError     String?
+  tokenHash             String                   @unique
+  // Keep an immutable display snapshot so deleting the inviter identity does
+  // not erase the invitation/audit history.
+  invitedById           String?
+  invitedBy             User?                    @relation("WorkspaceInvitationInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+  invitedByEmail        String
+  invitedByName         String
+  expiresAt             DateTime
+  acceptedAt            DateTime?
+  revokedAt             DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @default(now()) @updatedAt
 
   @@index([teamId, status, expiresAt])
   @@index([email, status])
+  @@index([deliveryStatus, lastDeliveryAttemptAt])
 }
 
 enum Plan {
@@ -931,7 +975,7 @@ model Subscription {
   teamId               String        @unique
   team                 Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
   plan                 Plan          @default(FREE)
-  status               BillingStatus @default(TRIALING)
+  status               BillingStatus @default(ACTIVE)
   stripeCustomerId     String?
   stripeSubscriptionId String?
   currentPeriodStart   DateTime?
@@ -1221,8 +1265,9 @@ model WebhookEndpoint {
   webhookToken String              @unique @default(uuid())
   // Secret partagé avec le provider, CHIFFRÉ (CONFIG_SECRET). Sert à vérifier
   // l'authenticité des webhooks entrants : GitLab compare X-Gitlab-Token ;
-  // GitHub vérifie le HMAC X-Hub-Signature-256. Nullable = endpoints legacy
-  // (créés avant le stockage du secret) → vérification ignorée (rétro-compat).
+  // GitHub vérifie le HMAC X-Hub-Signature-256. Nullable uniquement pour les
+  // lignes historiques : elles sont désactivées par migration jusqu'à une
+  // reconnexion explicite qui génère et chiffre un nouveau secret.
   secret       String?
   // Provider type (GitLab / GitHub / future). Stored so we know which
   // signature scheme to use for `verifyWebhookToken` at routing time.

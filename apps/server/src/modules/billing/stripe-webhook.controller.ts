@@ -16,6 +16,8 @@ import type { Request } from 'express';
 import { Public } from '../../shared/decorators/public.decorator';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { BillingService } from './billing.service';
+import { RequiresProductCapability } from '../../shared/product-capabilities/requires-product-capability.decorator';
+import { ProductCapabilities } from '../../shared/product-capabilities/product-capability';
 
 /**
  * Webhook Stripe (paiement en ligne). Public par nature — la signature
@@ -27,6 +29,7 @@ import { BillingService } from './billing.service';
  */
 @ApiTags('billing')
 @Controller('billing')
+@RequiresProductCapability(ProductCapabilities.SELF_SERVICE_BILLING)
 export class StripeWebhookController {
   private readonly logger = new Logger(StripeWebhookController.name);
 

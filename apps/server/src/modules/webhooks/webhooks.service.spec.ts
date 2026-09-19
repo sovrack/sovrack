@@ -99,7 +99,10 @@ describe('WebhooksService', () => {
         events: ['push'],
       });
       expect(result.secret).toMatch(/^[0-9a-f]{64}$/);
-      expect(prisma.webhookEndpoint.update).toHaveBeenCalled();
+      expect(prisma.webhookEndpoint.update).toHaveBeenCalledWith({
+        where: { id: 'ep_legacy' },
+        data: { secret: expect.any(String), isActive: true },
+      });
     });
 
     it('creates a new endpoint with a 32-byte secret when none exists', async () => {

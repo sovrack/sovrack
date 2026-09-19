@@ -163,10 +163,7 @@ export class GithubFileService {
     const adminToken = provider.adminToken
       ? this.gitProviderRegistry.decryptProviderToken(provider.adminToken)
       : '';
-    const oauthToken = provider.oauthAccessToken
-      ? this.gitProviderRegistry.decryptProviderToken(provider.oauthAccessToken)
-      : '';
-    const token = oauthToken || adminToken;
+    const token = adminToken;
     if (!token)
       throw new BadRequestException(
         'Aucun token GitHub configuré pour ce provider',

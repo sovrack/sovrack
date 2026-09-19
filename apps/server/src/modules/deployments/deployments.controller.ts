@@ -47,6 +47,8 @@ import {
   type LogLevelFilter,
 } from './query/deployments-log-search.service';
 import { ProjectWorkspaceGuard } from '../iam/authorization/project-workspace.guard';
+import { RequiresProductCapability } from '../../shared/product-capabilities/requires-product-capability.decorator';
+import { ProductCapabilities } from '../../shared/product-capabilities/product-capability';
 
 @ApiTags('Deployments')
 @ApiBearerAuth()
@@ -245,6 +247,7 @@ export class DeploymentsController {
   }
 
   @Post(':id/rollback')
+  @RequiresProductCapability(ProductCapabilities.DEPLOYMENT_ROLLBACK)
   // Rollback re-deploys (heavy + side-effecting) → same tight cap as create.
   @Throttle({ default: { ttl: 60_000, limit: 20 } })
   @ApiOperation({ summary: 'Roll back to the last stable image' })

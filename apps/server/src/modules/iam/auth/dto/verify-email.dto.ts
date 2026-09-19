@@ -12,7 +12,7 @@ import { NormalizeEmail } from '../../../../shared/validation/identity-validatio
  * DTO de vérification d'email — reçoit le code à 6 chiffres envoyé à l'adresse.
  */
 export class VerifyEmailDto {
-  @ApiProperty({ example: 'dev@sovrack.tech' })
+  @ApiProperty({ example: 'utilisateur@example.com' })
   @NormalizeEmail()
   @IsEmail({}, { message: 'Email invalide' })
   @IsNotEmpty({ message: 'Email requis' })

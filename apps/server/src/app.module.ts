@@ -52,6 +52,7 @@ import { AnsibleModule } from './adapters/provisioning/ansible.module';
 import { DockerModule } from './adapters/container-runtime/docker.module';
 import { SshModule } from './adapters/ssh/ssh.module';
 import { QueueModule } from './shared/queue/queue.module';
+import { ProductCapabilityGuard } from './shared/product-capabilities/product-capability.guard';
 
 @Module({
   imports: [
@@ -123,6 +124,7 @@ import { QueueModule } from './shared/queue/queue.module';
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: ImpersonationReadonlyGuard },
+    { provide: APP_GUARD, useClass: ProductCapabilityGuard },
   ],
 })
 export class AppModule {}

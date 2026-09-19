@@ -6,6 +6,7 @@ import type {
   BranchItem,
   PipelineItem,
 } from '../../contracts/git-provider.contract';
+import { assertSafeOutboundHttpsUrl } from '../../../../shared/http/outbound-url-policy.util';
 
 type GithubRepoRaw = {
   id: number;
@@ -38,8 +39,11 @@ export class GithubClient {
   constructor(private readonly httpService: HttpService) {}
 
   buildApiBase(providerUrl: string): string {
-    const url = providerUrl.replace(/\/+$/, '');
-    if (url === 'https://github.com' || url === 'http://github.com') {
+    const url = assertSafeOutboundHttpsUrl(providerUrl, {
+      label: 'GitHub URL',
+      allowPath: false,
+    });
+    if (url === 'https://github.com') {
       return 'https://api.github.com';
     }
     // GitHub Enterprise Server

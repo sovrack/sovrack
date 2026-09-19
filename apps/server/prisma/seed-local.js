@@ -6,6 +6,7 @@
  * seed itself without ts-node.
  */
 const path = require('path');
+const { createCipheriv, createHash, randomBytes } = require('crypto');
 
 function resolveFromApp(pkg) {
   let dir = __dirname;
@@ -65,6 +66,27 @@ const STAFF_PASSWORDS = {
   ADMIN: process.env.LOCAL_STAFF_ADMIN_PASSWORD || 'Local-Admin-2026!',
   OPERATOR: process.env.LOCAL_STAFF_OPERATOR_PASSWORD || 'Local-Operator-2026!',
 };
+const LOCAL_STAFF_MFA_SECRET =
+  process.env.LOCAL_STAFF_MFA_SECRET || 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP';
+
+function encryptLocalSecret(value) {
+  const configSecret = process.env.CONFIG_SECRET;
+  if (!configSecret || configSecret.length < 32) {
+    throw new Error('CONFIG_SECRET local doit contenir au moins 32 caractères');
+  }
+  const key = createHash('sha256')
+    .update(`${configSecret}::encryption::key`)
+    .digest();
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([
+    cipher.update(Buffer.from(value, 'utf8')),
+    cipher.final(),
+  ]);
+  return `v2:${Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString(
+    'base64',
+  )}`;
+}
 
 function assertLocalOnly() {
   if (process.env.ALLOW_LOCAL_SEED !== 'true') {
@@ -111,7 +133,14 @@ async function upsertUser(id, email, fullName, passwordHash) {
   });
 }
 
-async function upsertStaff(id, email, fullName, role, password) {
+async function upsertStaff(
+  id,
+  email,
+  fullName,
+  role,
+  password,
+  mfaSecret = null,
+) {
   const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
   const data = {
     email,
@@ -121,6 +150,9 @@ async function upsertStaff(id, email, fullName, role, password) {
     status: StaffStatus.ACTIVE,
     deletedAt: null,
     createdBy: 'local-seed',
+    mfaSecret: mfaSecret ? encryptLocalSecret(mfaSecret) : null,
+    mfaEnabled: Boolean(mfaSecret),
+    mfaLastUsedStep: null,
   };
   return prisma.staff.upsert({
     where: { id },
@@ -204,19 +236,25 @@ async function main() {
   });
 
   const memberships = [
-    [IDS.owner, WorkspaceRole.OWNER, MembershipStatus.ACTIVE],
-    [IDS.admin, WorkspaceRole.ADMIN, MembershipStatus.ACTIVE],
-    [IDS.maintainer, WorkspaceRole.MEMBER, MembershipStatus.ACTIVE],
-    [IDS.developer, WorkspaceRole.MEMBER, MembershipStatus.ACTIVE],
-    [IDS.viewer, WorkspaceRole.MEMBER, MembershipStatus.ACTIVE],
-    [IDS.suspended, WorkspaceRole.MEMBER, MembershipStatus.SUSPENDED],
-    [IDS.billing, WorkspaceRole.BILLING, MembershipStatus.ACTIVE],
+    [IDS.owner, WorkspaceRole.OWNER, MembershipStatus.ACTIVE, false],
+    [IDS.admin, WorkspaceRole.ADMIN, MembershipStatus.ACTIVE, false],
+    [IDS.maintainer, WorkspaceRole.MEMBER, MembershipStatus.ACTIVE, false],
+    [IDS.developer, WorkspaceRole.MEMBER, MembershipStatus.ACTIVE, false],
+    [IDS.viewer, WorkspaceRole.MEMBER, MembershipStatus.ACTIVE, false],
+    [IDS.suspended, WorkspaceRole.MEMBER, MembershipStatus.SUSPENDED, false],
+    [IDS.billing, WorkspaceRole.MEMBER, MembershipStatus.ACTIVE, true],
   ];
-  for (const [userId, role, status] of memberships) {
+  for (const [userId, role, status, canManageBilling] of memberships) {
     await prisma.teamMember.upsert({
       where: { teamId_userId: { teamId: IDS.workspace, userId } },
-      create: { teamId: IDS.workspace, userId, role, status },
-      update: { role, status },
+      create: {
+        teamId: IDS.workspace,
+        userId,
+        role,
+        status,
+        canManageBilling,
+      },
+      update: { role, status, canManageBilling },
     });
   }
   await prisma.teamMember.upsert({
@@ -289,6 +327,7 @@ async function main() {
     'Local Staff Root',
     PlatformRole.ROOT,
     STAFF_PASSWORDS.ROOT,
+    LOCAL_STAFF_MFA_SECRET,
   );
   await upsertStaff(
     IDS.staffAdmin,
@@ -296,6 +335,7 @@ async function main() {
     'Local Staff Admin',
     PlatformRole.ADMIN,
     STAFF_PASSWORDS.ADMIN,
+    LOCAL_STAFF_MFA_SECRET,
   );
   await upsertStaff(
     IDS.staffOperator,

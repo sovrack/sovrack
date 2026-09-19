@@ -27,6 +27,7 @@ describe('WorkspaceAccessService', () => {
       const { prisma, service } = make();
       prisma.teamMember.findUnique.mockResolvedValue({
         role,
+        canManageBilling: false,
         status: 'ACTIVE',
         user: { isActive: true },
         team: { status: 'ACTIVE' },
@@ -41,6 +42,7 @@ describe('WorkspaceAccessService', () => {
     const { prisma, service } = make();
     prisma.teamMember.findUnique.mockResolvedValue({
       role: WorkspaceRole.MEMBER,
+      canManageBilling: false,
       status: 'ACTIVE',
       user: { isActive: true },
       team: { status: 'ACTIVE' },
@@ -56,6 +58,43 @@ describe('WorkspaceAccessService', () => {
     await expect(
       service.assertWorkspaceAction('w2', 'u1', WorkspaceActions.READ),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('grants billing access through an independent membership permission', async () => {
+    const { prisma, service } = make();
+    prisma.teamMember.findUnique.mockResolvedValue({
+      role: WorkspaceRole.MEMBER,
+      canManageBilling: true,
+      status: 'ACTIVE',
+      user: { isActive: true },
+      team: { status: 'ACTIVE' },
+    });
+
+    await expect(
+      service.assertWorkspaceAction(
+        'w1',
+        'u1',
+        WorkspaceActions.MANAGE_BILLING,
+      ),
+    ).resolves.toMatchObject({
+      workspaceRole: WorkspaceRole.MEMBER,
+      canManageBilling: true,
+    });
+  });
+
+  it('does not let the billing permission grant workspace administration', async () => {
+    const { prisma, service } = make();
+    prisma.teamMember.findUnique.mockResolvedValue({
+      role: WorkspaceRole.MEMBER,
+      canManageBilling: true,
+      status: 'ACTIVE',
+      user: { isActive: true },
+      team: { status: 'ACTIVE' },
+    });
+
+    await expect(
+      service.assertWorkspaceAction('w1', 'u1', WorkspaceActions.UPDATE),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('requires explicit context when a user has multiple workspaces', async () => {
@@ -80,6 +119,7 @@ describe('WorkspaceAccessService', () => {
       });
       prisma.teamMember.findUnique.mockResolvedValue({
         role,
+        canManageBilling: false,
         status: 'ACTIVE',
         user: { isActive: true },
         team: { status: 'ACTIVE' },
@@ -101,6 +141,7 @@ describe('WorkspaceAccessService', () => {
     });
     prisma.teamMember.findUnique.mockResolvedValue({
       role: WorkspaceRole.ADMIN,
+      canManageBilling: false,
       status: 'ACTIVE',
       user: { isActive: true },
       team: { status: 'ACTIVE' },
@@ -131,6 +172,7 @@ describe('WorkspaceAccessService', () => {
     });
     prisma.teamMember.findUnique.mockResolvedValue({
       role: WorkspaceRole.MEMBER,
+      canManageBilling: false,
       status: 'ACTIVE',
       user: { isActive: true },
       team: { status: 'ACTIVE' },
@@ -152,6 +194,7 @@ describe('WorkspaceAccessService', () => {
     });
     prisma.teamMember.findUnique.mockResolvedValue({
       role: WorkspaceRole.MEMBER,
+      canManageBilling: false,
       status: 'ACTIVE',
       user: { isActive: true },
       team: { status: 'ACTIVE' },

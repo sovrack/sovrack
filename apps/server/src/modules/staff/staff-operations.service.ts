@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Role } from '@prisma/client';
+import { WorkspaceStatus, WorkspaceType } from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { AccountDeletionService } from '../iam/authorization/account-deletion.service';
@@ -24,135 +24,6 @@ export class StaffOperationsService {
     private readonly accountDeletion: AccountDeletionService,
   ) {}
 
-  async getOverview() {
-    const clientFilter = { legacyStaffRetiredAt: null } as const;
-    const [userAgg, activeUsers, teamsTotal, subs] = await Promise.all([
-      this.prisma.user.groupBy({
-        by: ['role'],
-        where: clientFilter,
-        _count: { id: true },
-      }),
-      this.prisma.user.count({
-        where: { ...clientFilter, isActive: true },
-      }),
-      this.prisma.team.count(),
-      this.prisma.subscription.groupBy({
-        by: ['status'],
-        _count: { id: true },
-      }),
-    ]);
-    const byRole = Object.fromEntries(
-      userAgg.map((role) => [role.role, role._count.id]),
-    );
-    const byStatus = Object.fromEntries(
-      subs.map((subscription) => [subscription.status, subscription._count.id]),
-    );
-    const recentUsers = await this.prisma.user.findMany({
-      where: clientFilter,
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-      },
-    });
-    return {
-      users: {
-        total: userAgg.reduce((total, role) => total + role._count.id, 0),
-        active: activeUsers,
-        owners: byRole['OWNER'] ?? 0,
-        members: byRole['MEMBER'] ?? 0,
-      },
-      teams: { total: teamsTotal },
-      subscriptions: {
-        total: subs.reduce(
-          (total, subscription) => total + subscription._count.id,
-          0,
-        ),
-        active: byStatus['ACTIVE'] ?? 0,
-        trialing: byStatus['TRIALING'] ?? 0,
-        canceled: byStatus['CANCELED'] ?? 0,
-      },
-      recentUsers,
-    };
-  }
-
-  async listUsers(pagination?: { page?: number; limit?: number }) {
-    const page = Math.max(1, Number(pagination?.page) || 1);
-    const take = Math.min(100, Math.max(1, Number(pagination?.limit) || 50));
-    const [total, items] = await Promise.all([
-      this.prisma.user.count({
-        where: { legacyStaffRetiredAt: null },
-      }),
-      this.prisma.user.findMany({
-        where: { legacyStaffRetiredAt: null },
-        skip: (page - 1) * take,
-        take,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          email: true,
-          fullName: true,
-          role: true,
-          isActive: true,
-          createdAt: true,
-          updatedAt: true,
-          teams: {
-            where: { status: 'ACTIVE' },
-            select: {
-              role: true,
-              team: { select: { id: true, name: true, type: true } },
-            },
-          },
-        },
-      }),
-    ]);
-    return { total, page, limit: take, items };
-  }
-
-  async listTeams(pagination?: { page?: number; limit?: number }) {
-    const page = Math.max(1, Number(pagination?.page) || 1);
-    const take = Math.min(100, Math.max(1, Number(pagination?.limit) || 50));
-    const [total, items] = await Promise.all([
-      this.prisma.team.count(),
-      this.prisma.team.findMany({
-        skip: (page - 1) * take,
-        take,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          type: true,
-          status: true,
-          createdAt: true,
-          _count: { select: { members: true, projects: true, servers: true } },
-        },
-      }),
-    ]);
-    return { total, page, limit: take, items };
-  }
-
-  async listSubscriptions() {
-    return this.prisma.subscription.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        plan: true,
-        status: true,
-        currentPeriodEnd: true,
-        trialEndsAt: true,
-        canceledAt: true,
-        createdAt: true,
-        team: { select: { id: true, name: true } },
-      },
-    });
-  }
-
   async setUserActive(
     userId: string,
     isActive: boolean,
@@ -165,15 +36,28 @@ export class StaffOperationsService {
       data: {
         isActive,
         sessionVersion: { increment: 1 },
+        ...(isActive
+          ? { deletionRequestedAt: null, deletionScheduledFor: null }
+          : {}),
       },
       select: {
         id: true,
         email: true,
         fullName: true,
-        role: true,
         isActive: true,
+        deletionScheduledFor: true,
       },
     });
+    if (isActive && user.deletionScheduledFor) {
+      await this.prisma.team.updateMany({
+        where: {
+          personalOwnerId: userId,
+          type: WorkspaceType.PERSONAL,
+          status: WorkspaceStatus.DELETION_PENDING,
+        },
+        data: { status: WorkspaceStatus.ACTIVE },
+      });
+    }
     await this.audit.record({
       staffId: actorId,
       action: isActive ? 'user.unblock' : 'user.block',
@@ -187,39 +71,6 @@ export class StaffOperationsService {
       ...updated,
       message: isActive ? 'Compte réactivé' : 'Compte désactivé',
     };
-  }
-
-  async setUserRole(
-    userId: string,
-    role: Role,
-    actorId: string,
-    ip?: string | null,
-  ) {
-    const user = await this.findClientUser(userId);
-    if (!Object.values(Role).includes(role)) {
-      throw new BadRequestException('Rôle invalide');
-    }
-    const updated = await this.prisma.user.update({
-      where: { id: userId },
-      data: { role },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-        isActive: true,
-      },
-    });
-    await this.audit.record({
-      staffId: actorId,
-      action: 'user.role.change',
-      resource: 'user',
-      resourceId: userId,
-      before: { role: user.role },
-      after: { role },
-      ip,
-    });
-    return { ...updated, message: `Rôle défini sur ${role}` };
   }
 
   async updateUser(
@@ -241,18 +92,114 @@ export class StaffOperationsService {
     return { active: activeResult };
   }
 
-  async deleteUser(userId: string, actorId: string, ip?: string | null) {
+  async scheduleUserDeletion(
+    userId: string,
+    actorId: string,
+    reason: string,
+    ip?: string | null,
+  ) {
     const user = await this.findClientUser(userId);
-    await this.accountDeletion.deleteIdentity(userId);
+    const normalizedReason = reason.trim();
+    if (normalizedReason.length < 10 || normalizedReason.length > 500) {
+      throw new BadRequestException(
+        'Le motif doit contenir entre 10 et 500 caractères',
+      );
+    }
+    const deletion =
+      await this.accountDeletion.scheduleIdentityDeletion(userId);
     await this.audit.record({
       staffId: actorId,
-      action: 'user.delete',
+      action: 'user.deletion.schedule',
+      resource: 'user',
+      resourceId: userId,
+      after: {
+        email: user.email,
+        reason: normalizedReason,
+        scheduledFor: deletion.scheduledFor.toISOString(),
+      },
+      ip,
+    });
+    return {
+      message: `Le compte ${user.email} est désactivé et sera supprimé après le délai de grâce`,
+      scheduledFor: deletion.scheduledFor,
+    };
+  }
+
+  async cancelUserDeletion(
+    userId: string,
+    actorId: string,
+    ip?: string | null,
+  ) {
+    const restored = await this.accountDeletion.cancelIdentityDeletion(userId);
+    await this.audit.record({
+      staffId: actorId,
+      action: 'user.deletion.cancel',
+      resource: 'user',
+      resourceId: userId,
+      after: { email: restored.email },
+      ip,
+    });
+    return { message: `Suppression annulée pour ${restored.email}` };
+  }
+
+  async revokeUserSessions(
+    userId: string,
+    actorId: string,
+    ip?: string | null,
+  ) {
+    const user = await this.findClientUser(userId);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { sessionVersion: { increment: 1 } },
+    });
+    await this.prisma.staffImpersonationGrant.updateMany({
+      where: { userId, endedAt: null },
+      data: { endedAt: new Date() },
+    });
+    await this.audit.record({
+      staffId: actorId,
+      action: 'user.sessions.revoke',
       resource: 'user',
       resourceId: userId,
       after: { email: user.email },
       ip,
     });
-    return { message: `Le compte ${user.email} a été supprimé définitivement` };
+    return { message: 'Toutes les sessions du compte ont été révoquées' };
+  }
+
+  async updateTeamStatus(
+    teamId: string,
+    status: WorkspaceStatus,
+    actorId: string,
+    ip?: string | null,
+  ) {
+    if (
+      status !== WorkspaceStatus.ACTIVE &&
+      status !== WorkspaceStatus.SUSPENDED &&
+      status !== WorkspaceStatus.ARCHIVED
+    ) {
+      throw new BadRequestException('Statut de workspace non modifiable');
+    }
+    const existing = await this.prisma.team.findUnique({
+      where: { id: teamId },
+      select: { id: true, name: true, status: true },
+    });
+    if (!existing) throw new NotFoundException('Workspace introuvable');
+    const updated = await this.prisma.team.update({
+      where: { id: teamId },
+      data: { status },
+      select: { id: true, name: true, type: true, status: true },
+    });
+    await this.audit.record({
+      staffId: actorId,
+      action: 'workspace.status.change',
+      resource: 'workspace',
+      resourceId: teamId,
+      before: { status: existing.status },
+      after: { status },
+      ip,
+    });
+    return updated;
   }
 
   async createImpersonationGrant(
@@ -377,7 +324,7 @@ export class StaffOperationsService {
       {
         id: exchanged.user.id,
         email: exchanged.user.email,
-        role: exchanged.user.role,
+        role: 'MEMBER',
         sub: exchanged.user.id,
         authType: 'staff-impersonation' as const,
         impersonatedByStaffId: exchanged.staffId,
@@ -405,19 +352,5 @@ export class StaffOperationsService {
       throw new NotFoundException('Utilisateur introuvable');
     }
     return user;
-  }
-
-  async listAudit(pagination?: { page?: number; limit?: number }) {
-    const page = Math.max(1, Number(pagination?.page) || 1);
-    const take = Math.min(200, Math.max(1, Number(pagination?.limit) || 50));
-    const [total, items] = await Promise.all([
-      this.prisma.staffAuditLog.count(),
-      this.prisma.staffAuditLog.findMany({
-        skip: (page - 1) * take,
-        take,
-        orderBy: { createdAt: 'desc' },
-      }),
-    ]);
-    return { total, page, limit: take, items };
   }
 }

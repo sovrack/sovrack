@@ -4,8 +4,11 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import {
+  InvitationDeliveryStatus,
   InvitationStatus,
   MembershipStatus,
   WorkspaceRole,
@@ -50,7 +53,13 @@ export class WorkspaceInvitationsService {
         acceptedAt: true,
         revokedAt: true,
         createdAt: true,
-        invitedBy: { select: { id: true, fullName: true, email: true } },
+        deliveryStatus: true,
+        deliveryAttempts: true,
+        deliveredAt: true,
+        lastDeliveryAttemptAt: true,
+        invitedByEmail: true,
+        invitedByName: true,
+        invitedBy: { select: { id: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -68,6 +77,13 @@ export class WorkspaceInvitationsService {
     );
     await this.assertOrganization(workspaceId);
     const role = dto.role ?? WorkspaceRole.MEMBER;
+    if (role === WorkspaceRole.OWNER) {
+      throw new BadRequestException({
+        code: 'WORKSPACE_INVITATION_ROLE_INVALID',
+        message:
+          'Invitez comme MEMBER ou ADMIN. La propriété et la facturation se délèguent séparément après acceptation.',
+      });
+    }
     if (
       actor.workspaceRole !== WorkspaceRole.OWNER &&
       role !== WorkspaceRole.MEMBER
@@ -79,15 +95,22 @@ export class WorkspaceInvitationsService {
     await this.usageGuard.guardForTeam(workspaceId, 'ADD_TEAM_MEMBER');
 
     const email = dto.email.trim().toLowerCase();
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email },
-      select: {
-        teams: {
-          where: { teamId: workspaceId, status: MembershipStatus.ACTIVE },
-          select: { id: true },
+    const [existingUser, inviter] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { email },
+        select: {
+          teams: {
+            where: { teamId: workspaceId, status: MembershipStatus.ACTIVE },
+            select: { id: true },
+          },
         },
-      },
-    });
+      }),
+      this.prisma.user.findUnique({
+        where: { id: actorUserId },
+        select: { email: true, fullName: true },
+      }),
+    ]);
+    if (!inviter) throw new NotFoundException('Inviteur introuvable');
     if (existingUser?.teams.length) {
       throw new ConflictException(
         'Cette personne est déjà membre du workspace',
@@ -111,27 +134,93 @@ export class WorkspaceInvitationsService {
         role,
         tokenHash: this.hashToken(token),
         invitedById: actorUserId,
+        invitedByEmail: inviter.email,
+        invitedByName: inviter.fullName,
         expiresAt: new Date(Date.now() + INVITATION_TTL_MS),
       },
       include: { team: { select: { name: true, slug: true } } },
     });
 
-    const frontendUrl = process.env.FRONTEND_URL?.replace(/\/$/, '') ?? '';
+    const frontendUrl = (
+      process.env.CUSTOMER_APP_URL ??
+      process.env.FRONTEND_URL ??
+      ''
+    ).replace(/\/$/, '');
     const link = `${frontendUrl}/invitations/accept?token=${encodeURIComponent(token)}`;
-    await this.smtp.sendTransactionalEmail(
-      email,
-      `Invitation au workspace ${invitation.team.name}`,
-      `<p>Vous avez été invité à rejoindre <strong>${this.escapeHtml(invitation.team.name)}</strong>.</p><p><a href="${this.escapeHtml(link)}">Accepter l'invitation</a></p><p>Cette invitation expire dans 7 jours.</p>`,
-    );
+    const attemptedAt = new Date();
+    try {
+      await this.smtp.sendTransactionalEmail(
+        email,
+        `Invitation au workspace ${invitation.team.name}`,
+        `<p>Vous avez été invité à rejoindre <strong>${this.escapeHtml(invitation.team.name)}</strong>.</p><p><a href="${this.escapeHtml(link)}">Accepter l'invitation</a></p><p>Cette invitation expire dans 7 jours.</p>`,
+      );
+      await this.prisma.workspaceInvitation.update({
+        where: { id: invitation.id },
+        data: {
+          deliveryStatus: InvitationDeliveryStatus.SENT,
+          deliveryAttempts: { increment: 1 },
+          deliveredAt: attemptedAt,
+          lastDeliveryAttemptAt: attemptedAt,
+          lastDeliveryError: null,
+        },
+      });
+    } catch (error) {
+      await this.prisma.workspaceInvitation.update({
+        where: { id: invitation.id },
+        data: {
+          deliveryStatus: InvitationDeliveryStatus.FAILED,
+          deliveryAttempts: { increment: 1 },
+          lastDeliveryAttemptAt: attemptedAt,
+          lastDeliveryError:
+            error instanceof Error ? error.name.slice(0, 100) : 'UnknownError',
+        },
+      });
+      throw new ServiceUnavailableException({
+        code: 'INVITATION_DELIVERY_FAILED',
+        message:
+          "L'invitation a été enregistrée mais l'email n'a pas été remis. Vous pouvez la renvoyer.",
+      });
+    }
 
     return {
       id: invitation.id,
       email: invitation.email,
       role: invitation.role,
       status: invitation.status,
+      deliveryStatus: InvitationDeliveryStatus.SENT,
       expiresAt: invitation.expiresAt,
       createdAt: invitation.createdAt,
     };
+  }
+
+  async resend(workspaceId: string, invitationId: string, actorUserId: string) {
+    await this.workspaceAccess.assertWorkspaceAction(
+      workspaceId,
+      actorUserId,
+      WorkspaceActions.INVITE_MEMBER,
+    );
+    await this.assertOrganization(workspaceId);
+    const invitation = await this.prisma.workspaceInvitation.findFirst({
+      where: {
+        id: invitationId,
+        teamId: workspaceId,
+        status: InvitationStatus.PENDING,
+      },
+      select: { email: true, role: true },
+    });
+    if (!invitation) {
+      throw new NotFoundException('Invitation active introuvable');
+    }
+    if (
+      invitation.role !== WorkspaceRole.ADMIN &&
+      invitation.role !== WorkspaceRole.MEMBER
+    ) {
+      throw new BadRequestException('Rôle historique non réutilisable');
+    }
+    return this.invite(workspaceId, actorUserId, {
+      email: invitation.email,
+      role: invitation.role,
+    });
   }
 
   async revoke(
@@ -236,6 +325,19 @@ export class WorkspaceInvitationsService {
     await this.prisma.workspaceInvitation.updateMany({
       where: {
         teamId: workspaceId,
+        status: InvitationStatus.PENDING,
+        expiresAt: { lte: new Date() },
+      },
+      data: { status: InvitationStatus.EXPIRED },
+    });
+  }
+
+  @Cron(CronExpression.EVERY_HOUR, {
+    name: 'expire-workspace-invitations',
+  })
+  async expireAllStale(): Promise<void> {
+    await this.prisma.workspaceInvitation.updateMany({
+      where: {
         status: InvitationStatus.PENDING,
         expiresAt: { lte: new Date() },
       },

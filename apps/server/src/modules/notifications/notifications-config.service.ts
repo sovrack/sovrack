@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { CryptoService } from '../../shared/crypto/crypto.service';
+import { assertSafeOutboundHttpsUrl } from '../../shared/http/outbound-url-policy.util';
 
 export const CONFIG_KEYS = {
   SLACK_WEBHOOK: 'SLACK_WEBHOOK_URL',
@@ -243,6 +244,15 @@ export class NotificationsConfigService {
       notifyOnFailure?: boolean;
     },
   ): Promise<void> {
+    if (settings.slackWebhookUrl?.trim()) {
+      settings.slackWebhookUrl = assertSafeOutboundHttpsUrl(
+        settings.slackWebhookUrl,
+        {
+          label: 'Slack webhook URL',
+          allowedPublicHosts: ['hooks.slack.com'],
+        },
+      );
+    }
     const K = CONFIG_KEYS;
     const upsert = async (key: string, value: string, isSecret = false) => {
       const stored = isSecret ? this.crypto.encrypt(value) : value;

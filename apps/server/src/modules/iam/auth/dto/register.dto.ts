@@ -18,7 +18,7 @@ import {
  * DTO d'inscription publique — crée un compte (User + Team + essai billing).
  */
 export class RegisterDto {
-  @ApiProperty({ example: 'dev@sovrack.tech' })
+  @ApiProperty({ example: 'utilisateur@example.com' })
   @NormalizeEmail()
   @IsEmail({}, { message: 'Email invalide' })
   @IsNotEmpty({ message: 'Email requis' })

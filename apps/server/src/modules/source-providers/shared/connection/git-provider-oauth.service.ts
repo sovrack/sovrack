@@ -11,6 +11,7 @@ import { randomBytes, timingSafeEqual } from 'crypto';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { CryptoService } from '../../../../shared/crypto/crypto.service';
+import { assertSafeOutboundHttpsUrl } from '../../../../shared/http/outbound-url-policy.util';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -402,7 +403,10 @@ export class GitProviderOauthService {
   }
 
   private normalizeGitlabBaseUrl(url: string): string {
-    return url.replace(/\/+$/, '');
+    return assertSafeOutboundHttpsUrl(url, {
+      label: 'GitLab URL',
+      allowPath: false,
+    });
   }
 
   private normalizeOptional(value?: string | null): string | null {

@@ -1,13 +1,16 @@
-# Deploy Automation Backend
+# Sovrack Backend
 
 NestJS backend for the Sovrack platform.
 
 ## Responsibilities
 
-- Authentication and RBAC (Admin/Developer)
+- Identités client, sessions, vérification email et MFA client facultative
+- Espaces personnels et organisations (`OWNER`, `ADMIN`, `MEMBER`)
+- Autorisations projet (`MAINTAINER`, `DEVELOPER`, `VIEWER`)
+- Identités staff séparées (`ROOT`, `ADMIN`, `OPERATOR`) avec MFA obligatoire
 - Projects, environments, deployments
 - Remote server onboarding and preparation (control-node Ansible)
-- Multi-VPS automation runs
+- Moteur d'automatisation multi-VPS conservé hors de la surface V1
 - Real SSH terminal sessions via WebSocket
 - Git providers, registry, audit logs, monitoring APIs
 
@@ -38,8 +41,8 @@ This repository never deploys itself (a control plane must not be its own
 workload). CI only builds and publishes:
 
 - `build:image` (stage `build`, Kaniko) builds the Docker image and pushes it
-  to this project's GitLab Container Registry, tagged `:$CI_COMMIT_SHORT_SHA`
-  and `:latest`. Runs only `if: $CI_COMMIT_BRANCH == "main"`.
+  to this project's GitLab Container Registry, tagged with the full immutable
+  commit SHA. It runs only on `main`; no mutable `latest` tag is promoted.
 
 Actual production deployment (pulling the image, running migrations,
 starting the containers) lives in the separate **`deploy-automation-infra`**
@@ -65,15 +68,13 @@ npx prisma validate
   "no persistent Ansible agent" principle above, not a contradiction of it — no daemon is
   installed, only a Python library used by Ansible during the SSH-driven run.
 - `CONFIG_SECRET` must be stable across restarts to decrypt stored secrets.
-- `FRONTEND_URL` (or `FRONTEND_URLS`, comma-separated) is **required** when
-  `NODE_ENV=production` — boot fails fast otherwise (`boot-helpers.ts`). Also
-  drives the CORS allow-list, so it must match the exact origin used in the
-  browser.
+- `PUBLIC_SITE_URL`, `CUSTOMER_APP_URL` and `STAFF_APP_URL` identify the three
+  product planes. `FRONTEND_URLS` drives the exact CORS allow-list.
 - `AUTH_COOKIE_SECURE` defaults to `NODE_ENV === 'production'` if unset. A
   `Secure` cookie is silently dropped by browsers over plain HTTP — set this
   to `false` explicitly until HTTPS is in front, or logins will appear to
   succeed (`201`) while the session never sticks.
-- `TRUST_PROXY` must be set (e.g. `1`) once a reverse proxy (Caddy, Traefik)
+- `TRUST_PROXY` must be set (e.g. `1`) once a reverse proxy (Nginx)
   sits in front of the backend — otherwise every request appears to come
   from the proxy's IP, which breaks the per-IP login rate-limiter for all
   users at once.
@@ -83,7 +84,7 @@ npx prisma validate
 - The first `ROOT` account is created once by the infrastructure repository's
   `bootstrap-staff` command. SMTP delivers an eight-digit activation code and
   the owner chooses the first password; no initial password exists.
-- Subsequent staff accounts are invited by a `ROOT` from `/staff/staff`. The
+- Subsequent staff accounts are invited by a `ROOT` from the staff back-office. The
   email contains a single-use activation code valid for 10 minutes; the link
   contains only the email address and no secret.
 - `ROOT` can edit SMTP at `/staff/settings/email`. `ADMIN` can inspect the safe

@@ -45,6 +45,8 @@ import {
   ImpersonationWriteAllowed,
 } from '../../../shared/decorators/impersonation-policy.decorator';
 import { ImpersonationSessionService } from './impersonation-session.service';
+import { RequiresProductCapability } from '../../../shared/product-capabilities/requires-product-capability.decorator';
+import { ProductCapabilities } from '../../../shared/product-capabilities/product-capability';
 
 /**
  * Contrôleur d'authentification
@@ -210,7 +212,11 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 403, description: 'Insufficient role' })
   getWsToken(@GetUser() user: JwtPayload): { wsToken: string } {
-    const wsToken = this.authService.generateWsToken(user.id, user.role);
+    const wsToken = this.authService.generateWsToken(
+      user.id,
+      user.email,
+      user.sessionVersion,
+    );
     return { wsToken };
   }
 
@@ -280,6 +286,7 @@ export class AuthController {
    */
   @Get('google')
   @Public()
+  @RequiresProductCapability(ProductCapabilities.GOOGLE_AUTHENTICATION)
   @ApiOperation({ summary: 'Start Google OAuth login (redirects to Google)' })
   @ApiResponse({
     status: 302,
@@ -298,6 +305,7 @@ export class AuthController {
    */
   @Get('google/callback')
   @Public()
+  @RequiresProductCapability(ProductCapabilities.GOOGLE_AUTHENTICATION)
   @ApiOperation({ summary: 'Google OAuth callback (sets JWT cookie)' })
   @ApiResponse({
     status: 302,
@@ -388,16 +396,16 @@ export class AuthController {
   }
 
   /**
-   * Supprime définitivement le compte (cascade) après validation du code email.
+   * Révoque l'accès et programme la suppression après le délai de grâce.
    * DELETE /auth/me
    */
   @Delete('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Delete the current account after email confirmation',
+    summary: 'Schedule account deletion after email confirmation',
   })
-  @ApiResponse({ status: 200, description: 'Account deleted' })
+  @ApiResponse({ status: 200, description: 'Account deletion scheduled' })
   @ApiResponse({ status: 401, description: 'Not authenticated' })
   @ApiResponse({ status: 400, description: 'Invalid or expired code' })
   async deleteAccount(

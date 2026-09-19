@@ -5,7 +5,6 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { NotificationsSmtpService } from '../../notifications/notifications-smtp.service';
 import { UsersService } from '../users/users.service';
 import { PasswordHasher } from '../security/password-hasher.service';
@@ -13,7 +12,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { EmailVerificationService } from './email-verification.service';
-import { Role, User, WorkspaceType } from '@prisma/client';
+import { Role, WorkspaceType } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { TeamsService } from '../teams/teams.service';
@@ -26,6 +25,8 @@ import {
 import { AccountDeletionService } from '../authorization/account-deletion.service';
 import { normalizeEmailAddress } from '../../../shared/validation/identity-validation.util';
 import { type SafeUser, toSafeUser } from '../users/user-safe-view';
+import { UserTokenService } from './user-token.service';
+import { UserMfaService } from './user-mfa.service';
 
 /**
  * Réponse d'authentification
@@ -41,7 +42,7 @@ export class AuthService {
 
   constructor(
     private readonly usersService: UsersService,
-    private readonly jwtService: JwtService,
+    private readonly userTokens: UserTokenService,
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly passwordHasher: PasswordHasher,
@@ -50,6 +51,7 @@ export class AuthService {
     private readonly smtp: NotificationsSmtpService,
     private readonly crypto: CryptoService,
     private readonly accountDeletion: AccountDeletionService,
+    private readonly userMfa: UserMfaService,
   ) {}
 
   /**
@@ -112,12 +114,7 @@ export class AuthService {
       },
     });
 
-    const access_token = this.generateTokenForId(
-      verified.id,
-      verified.email,
-      verified.role,
-      verified.sessionVersion,
-    );
+    const access_token = this.userTokens.generateAccessToken(verified);
 
     await this.auditService.record(
       verified.id,
@@ -188,6 +185,8 @@ export class AuthService {
       throw new UnauthorizedException('Votre compte est désactivé');
     }
 
+    await this.userMfa.verifyLoginSecondFactor(user, dto.mfaCode);
+
     // Migration douce : si le hachage est legacy (bcrypt), on le remplace par
     // argon2id maintenant qu'on a le mot de passe en clair et qu'il est valide.
     // Best-effort — un échec ici ne doit jamais bloquer la connexion.
@@ -208,7 +207,7 @@ export class AuthService {
     }
 
     // Générer le token JWT
-    const access_token = this.generateToken(user);
+    const access_token = this.userTokens.generateAccessToken(user);
 
     await this.auditService.record(user.id, 'AUTH_LOGIN', 'User', user.id, {
       email: user.email,
@@ -480,10 +479,16 @@ export class AuthService {
       throw new BadRequestException('Code de confirmation invalide');
     }
 
-    await this.accountDeletion.deleteIdentity(userId);
+    const deletion =
+      await this.accountDeletion.scheduleIdentityDeletion(userId);
 
-    this.logger.log(`Account ${user.email} (${userId}) deleted`);
-    return { message: 'Votre compte a été supprimé définitivement' };
+    this.logger.log(
+      `Account ${user.email} (${userId}) scheduled for deletion on ${deletion.scheduledFor.toISOString()}`,
+    );
+    return {
+      message:
+        'Votre accès est désactivé. La suppression définitive est programmée dans 30 jours.',
+    };
   }
 
   /**
@@ -491,18 +496,12 @@ export class AuthService {
    * @param user - Utilisateur pour lequel générer le token
    * @returns Token JWT
    */
-  generateWsToken(userId: string, role: string): string {
-    const payload = { sub: userId, role };
-    return this.jwtService.sign(payload, { expiresIn: '5m' });
-  }
-
-  private generateToken(user: User): string {
-    return this.generateTokenForId(
-      user.id,
-      user.email,
-      user.role,
-      user.sessionVersion,
-    );
+  generateWsToken(
+    userId: string,
+    email: string,
+    sessionVersion: number,
+  ): string {
+    return this.userTokens.generateWsToken(userId, email, sessionVersion);
   }
 
   /**
@@ -510,40 +509,6 @@ export class AuthService {
    * (id provenant de req.user.id après la stratégie passport).
    */
   async generateTokenForUserId(userId: string): Promise<AuthResponse> {
-    const user = await this.usersService.findById(userId);
-    if (!user || !user.isActive || user.legacyStaffRetiredAt) {
-      throw new UnauthorizedException('Utilisateur non trouvé');
-    }
-    const access_token = this.generateTokenForId(
-      user.id,
-      user.email,
-      user.role,
-      user.sessionVersion,
-    );
-    await this.auditService.record(
-      user.id,
-      'AUTH_GOOGLE_LOGIN',
-      'User',
-      user.id,
-      {
-        email: user.email,
-      },
-    );
-    return { access_token, user: toSafeUser(user) };
-  }
-
-  private generateTokenForId(
-    id: string,
-    email: string,
-    role: Role,
-    sessionVersion: number,
-  ): string {
-    const payload = {
-      id,
-      email,
-      role,
-      sessionVersion,
-    };
-    return this.jwtService.sign(payload);
+    return this.userTokens.generateTokenForUserId(userId);
   }
 }

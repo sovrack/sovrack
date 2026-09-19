@@ -78,10 +78,9 @@ export class IncomingWebhookController {
       return { status: 'ignored' };
     }
 
-    // Authenticité : on vérifie la signature du provider quand un secret est
-    // stocké (GitLab = X-Gitlab-Token ; GitHub = HMAC X-Hub-Signature-256).
-    // Pas de secret stocké = endpoint legacy → on saute (rétro-compat) avec un
-    // avertissement. Signature invalide = 401 (on ne traite pas l'événement).
+    // Authenticité obligatoire : GitLab = X-Gitlab-Token ; GitHub = HMAC
+    // X-Hub-Signature-256. Un endpoint historique sans secret est refusé : la
+    // migration le désactive et une reconnexion explicite le répare.
     const sig = this.verifySignature(endpoint, req.rawBody, rawHeaders);
     if (!sig.verified) {
       this.logger.warn(
@@ -150,39 +149,17 @@ export class IncomingWebhookController {
     }
   }
 
-  /**
-   * Provider dispatch via the handler registry. The handler receives the
-   * fully-resolved endpoint context (identity) + the raw payload (event
-   * data) and returns a status forwarded to the audit log. Adding a
-   * provider = registering one more {@link IWebhookHandler}.
-   */
-  /**
-   * Vérifie l'authenticité du webhook selon le provider. Sans secret stocké
-   * (endpoint legacy) → considéré vérifié (rétro-compat) pour ne pas casser les
-   * webhooks créés avant le stockage du secret ; ils seront sécurisés au
-   * prochain « Connect » (re-configuration).
-   */
+  /** Vérifie l'authenticité du webhook selon le provider. */
   private verifySignature(
     endpoint: WebhookEndpointContext,
     rawBody: Buffer | undefined,
     headers: Record<string, string | string[] | undefined>,
   ): { verified: boolean; error?: string } {
     if (!endpoint.secret) {
-      // Endpoints legacy sans secret stocké. Accepté hors prod (rétro-compat) ;
-      // en PRODUCTION c'est un trou de vérification → refusé (le provider doit
-      // être reconnecté pour stocker le secret). Le reverse-proxy doit
-      // restreindre l'accès à cette route in verified avant la prod.
-      if (process.env.NODE_ENV === 'production') {
-        return {
-          verified: false,
-          error:
-            'pas de secret stocké — reconnecte le webhook en stockage de secret (obligé en prod)',
-        };
-      }
-      this.logger.warn(
-        `Webhook ${endpoint.id} traité sans secret (legacy) — reconnecte-le pour activer la vérification`,
-      );
-      return { verified: true }; // legacy endpoint, pas de secret stocké
+      return {
+        verified: false,
+        error: 'pas de secret stocké — reconnectez le fournisseur Git',
+      };
     }
     if (endpoint.provider === GitProviderType.GITLAB) {
       const token = this.extractHeaderValue(headers, 'x-gitlab-token');

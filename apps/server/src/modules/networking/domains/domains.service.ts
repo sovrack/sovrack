@@ -40,13 +40,23 @@ export class DomainsService {
 
   async listProviders(teamId: string) {
     const providers = await this.prisma.dnsProvider.findMany({
-      where: { teamId },
+      where: { teamId, type: DnsProviderType.MANUAL },
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
     });
     return providers.map((provider) => this.toPublicProvider(provider));
   }
 
   async createProvider(dto: CreateDnsProviderDto, teamId: string) {
+    if (dto.type !== DnsProviderType.MANUAL) {
+      throw new BadRequestException(
+        "L'automatisation DNS n'est pas disponible dans la V1. Utilisez le mode MANUAL.",
+      );
+    }
+    if (dto.apiToken || dto.accountId || dto.zoneId) {
+      throw new BadRequestException(
+        "Le mode DNS manuel n'accepte pas de credentials fournisseur",
+      );
+    }
     const provider = await this.prisma.dnsProvider.create({
       data: {
         name: dto.name.trim(),
@@ -79,19 +89,9 @@ export class DomainsService {
           'Provider MANUAL prêt: Sovrack affichera les records à créer manuellement.',
       };
     }
-
-    if (!provider.apiToken) {
-      throw new BadRequestException(
-        'Token API DNS manquant pour tester ce provider',
-      );
-    }
-
-    return {
-      ok: true,
-      status: 'CONFIGURED',
-      message:
-        'Credentials présents. Le test API automatisé sera activé provider par provider.',
-    };
+    throw new BadRequestException(
+      "L'automatisation DNS n'est pas disponible dans la V1",
+    );
   }
 
   private toPublicProvider(provider: DnsProvider) {
@@ -240,10 +240,15 @@ export class DomainsService {
 
     const provider = await this.prisma.dnsProvider.findFirst({
       where: { id: providerId, teamId },
-      select: { id: true },
+      select: { id: true, type: true },
     });
     if (!provider) {
       throw new NotFoundException('Provider DNS introuvable');
+    }
+    if (provider.type !== DnsProviderType.MANUAL) {
+      throw new BadRequestException(
+        "L'automatisation DNS n'est pas disponible dans la V1",
+      );
     }
   }
 

@@ -23,6 +23,9 @@ const envSchema = z
     // Clé HMAC dédiée aux codes à usage unique (activation/récupération).
     // La séparer du JWT permet de renouveler l'une sans compromettre l'autre.
     STAFF_OTP_SECRET: z.string().min(32),
+    // HMAC des codes de secours de la MFA client facultative. Cette clé est
+    // indépendante des secrets JWT, staff et de chiffrement.
+    CUSTOMER_MFA_SECRET: z.string().min(32),
     // Rôles qui doivent activer la MFA avant d'accéder aux opérations du
     // back-office. L'inscription initiale reste possible via les seules routes
     // d'enrôlement MFA.
@@ -41,6 +44,11 @@ const envSchema = z
     PUBLIC_SITE_URL: z.url().optional(),
     CUSTOMER_APP_URL: z.url().optional(),
     STAFF_APP_URL: z.url().optional(),
+    HOST_PLANE_ENFORCEMENT: z.enum(['true', 'false']).optional(),
+    // Exact hostnames/IPs allowed when a self-hosted Git provider is private.
+    // Empty by default: localhost, RFC1918, link-local and metadata targets are
+    // rejected to prevent SSRF.
+    OUTBOUND_PRIVATE_HOST_ALLOWLIST: z.string().optional(),
 
     // ── Google OAuth (Se connecter avec Google) ───────────────────────────────
     // Optionnels : sans GOOGLE_CLIENT_ID/SECRET, la connexion Google est
@@ -134,38 +142,37 @@ const envSchema = z
     STRIPE_PRICE_ENTERPRISE: z.string().optional(),
   })
   .superRefine((env, ctx) => {
-    // STAFF_JWT_SECRET doit être un secret INDÉPENDANT — interdit s'il est dérivé
-    // de JWT_SECRET (ex. `${JWT_SECRET}-staff`), sinon une fuite de JWT_SECRET
-    // compromettrait aussi le back-office.
-    if (
-      env.JWT_SECRET &&
-      env.STAFF_JWT_SECRET &&
-      (env.STAFF_JWT_SECRET === env.JWT_SECRET ||
-        env.STAFF_JWT_SECRET.startsWith(env.JWT_SECRET) ||
-        env.JWT_SECRET.startsWith(env.STAFF_JWT_SECRET))
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['STAFF_JWT_SECRET'],
-        message:
-          'STAFF_JWT_SECRET doit être un secret INDÉPENDANT de JWT_SECRET (génère-le avec `openssl rand -hex 48`).',
-      });
-    }
-
-    for (const [otherName, otherSecret] of [
+    // Chaque usage cryptographique possède sa propre clé. Une égalité ou une
+    // dérivation triviale par préfixe est refusée ici aussi, indépendamment du
+    // preflight d'infrastructure, afin qu'un lancement manuel ne puisse pas
+    // contourner cette séparation.
+    const independentSecrets = [
       ['JWT_SECRET', env.JWT_SECRET],
       ['STAFF_JWT_SECRET', env.STAFF_JWT_SECRET],
-    ] as const) {
-      if (
-        env.STAFF_OTP_SECRET === otherSecret ||
-        env.STAFF_OTP_SECRET.startsWith(otherSecret) ||
-        otherSecret.startsWith(env.STAFF_OTP_SECRET)
+      ['STAFF_OTP_SECRET', env.STAFF_OTP_SECRET],
+      ['CUSTOMER_MFA_SECRET', env.CUSTOMER_MFA_SECRET],
+      ['CONFIG_SECRET', env.CONFIG_SECRET],
+    ] as const;
+
+    for (let index = 0; index < independentSecrets.length; index += 1) {
+      const [name, secret] = independentSecrets[index];
+      for (
+        let otherIndex = index + 1;
+        otherIndex < independentSecrets.length;
+        otherIndex += 1
       ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['STAFF_OTP_SECRET'],
-          message: `STAFF_OTP_SECRET doit être indépendant de ${otherName}.`,
-        });
+        const [otherName, otherSecret] = independentSecrets[otherIndex];
+        if (
+          secret === otherSecret ||
+          secret.startsWith(otherSecret) ||
+          otherSecret.startsWith(secret)
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [otherName],
+            message: `${otherName} doit être un secret indépendant de ${name}.`,
+          });
+        }
       }
     }
 

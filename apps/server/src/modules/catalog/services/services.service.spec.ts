@@ -3,7 +3,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, Role, ServiceType } from '@prisma/client';
+import { ManagedServiceType, Prisma, Role, ServiceType } from '@prisma/client';
 import { ServicesService } from './services.service';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { ProjectAccessService } from '../authorization/project-access.service';
@@ -342,25 +342,33 @@ describe('ServicesService — CRUD', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('create generates a strong DB password when none is provided', async () => {
-    const { service, prisma } = harness();
-    prisma.service.create.mockResolvedValue({ id: 'db1' });
-    prisma.service.findFirst.mockResolvedValue({ id: 'db1', name: 'db' });
+  it('creates a database with generated encrypted credentials', async () => {
+    const { service, prisma, crypto } = harness();
+    prisma.service.create.mockResolvedValue({ id: 'db-1' });
+    prisma.service.findFirst.mockResolvedValue({
+      id: 'db-1',
+      name: 'db',
+      type: ServiceType.DATABASE,
+    });
 
     await service.create(
       projectId,
-      { name: 'db', type: ServiceType.DATABASE } as CreateServiceDto,
+      {
+        name: 'db',
+        type: ServiceType.DATABASE,
+        databaseType: ManagedServiceType.POSTGRES,
+        databaseVersion: '16',
+      } as CreateServiceDto,
       userId,
       Role.OWNER,
     );
 
-    const sealed = prisma.service.create.mock.calls[0][0].data
-      .databaseCredentials as string;
-    expect(sealed).toMatch(/^enc:/);
-    const creds = JSON.parse(sealed.slice(4)) as { password: string };
-    expect(creds.password).toBeTruthy();
-    expect(creds.password.toLowerCase()).not.toBe('changeme');
-    expect(creds.password.length).toBeGreaterThan(10);
+    expect(prisma.service.create).toHaveBeenCalledTimes(1);
+    const data = prisma.service.create.mock.calls[0][0].data;
+    expect(data.databaseType).toBe(ManagedServiceType.POSTGRES);
+    expect(data.databaseVersion).toBe('16');
+    expect(crypto.encrypt).toHaveBeenCalledTimes(1);
+    expect(data.databaseCredentials).toMatch(/^enc:/);
   });
 
   it('update applies the patch and bumps the generation of every ServiceEnvironment', async () => {

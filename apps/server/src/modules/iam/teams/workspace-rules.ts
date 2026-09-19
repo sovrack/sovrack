@@ -73,6 +73,11 @@ export async function assertNotLastWorkspaceOwner(
       role: WorkspaceRole.OWNER,
       status: MembershipStatus.ACTIVE,
       userId: { not: targetUserId },
+      user: {
+        isActive: true,
+        deletionScheduledFor: null,
+        legacyStaffRetiredAt: null,
+      },
     },
   });
   if (ownerCount === 0) {

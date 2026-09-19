@@ -36,17 +36,17 @@ describe('NotificationsSlackService', () => {
     });
 
     it('POSTs to the configured webhook URL', async () => {
-      configGet.mockResolvedValue('https://hooks/x');
+      configGet.mockResolvedValue('https://hooks.slack.com/services/test');
       await service.sendSimpleSlack('hello');
       expect(httpPost).toHaveBeenCalledWith(
-        'https://hooks/x',
+        'https://hooks.slack.com/services/test',
         { text: 'hello' },
         { timeout: 8000 },
       );
     });
 
     it('never throws when POST fails', async () => {
-      configGet.mockResolvedValue('https://hooks/x');
+      configGet.mockResolvedValue('https://hooks.slack.com/services/test');
       httpPost.mockReturnValue(throwError(() => new Error('network down')));
       await expect(service.sendSimpleSlack('hello')).resolves.toBeUndefined();
     });
@@ -61,7 +61,9 @@ describe('NotificationsSlackService', () => {
     it('includes attachment with color for SUCCESS', async () => {
       configGet.mockImplementation((k: string) =>
         Promise.resolve(
-          k === CONFIG_KEYS.SLACK_WEBHOOK ? 'https://hooks/x' : null,
+          k === CONFIG_KEYS.SLACK_WEBHOOK
+            ? 'https://hooks.slack.com/services/test'
+            : null,
         ),
       );
       await service.sendDeploymentSlack({
@@ -69,7 +71,7 @@ describe('NotificationsSlackService', () => {
         status: 'SUCCESS',
       });
       expect(httpPost).toHaveBeenCalledWith(
-        'https://hooks/x',
+        'https://hooks.slack.com/services/test',
         expect.objectContaining({
           attachments: [expect.objectContaining({ color: '#36a64f' })],
         }),
@@ -80,12 +82,14 @@ describe('NotificationsSlackService', () => {
     it('uses red color for FAILED', async () => {
       configGet.mockImplementation((k: string) =>
         Promise.resolve(
-          k === CONFIG_KEYS.SLACK_WEBHOOK ? 'https://hooks/x' : null,
+          k === CONFIG_KEYS.SLACK_WEBHOOK
+            ? 'https://hooks.slack.com/services/test'
+            : null,
         ),
       );
       await service.sendDeploymentSlack({ ...deployPayload, status: 'FAILED' });
       expect(httpPost).toHaveBeenCalledWith(
-        'https://hooks/x',
+        'https://hooks.slack.com/services/test',
         expect.objectContaining({
           attachments: [expect.objectContaining({ color: '#dc2626' })],
         }),
@@ -94,7 +98,7 @@ describe('NotificationsSlackService', () => {
     });
 
     it('includes pipeline link block when pipelineUrl is provided', async () => {
-      configGet.mockResolvedValue('https://hooks/x');
+      configGet.mockResolvedValue('https://hooks.slack.com/services/test');
       await service.sendDeploymentSlack({
         ...deployPayload,
         pipelineUrl: 'https://gitlab.com/pipeline/1',
@@ -106,7 +110,7 @@ describe('NotificationsSlackService', () => {
     });
 
     it('never throws when POST fails', async () => {
-      configGet.mockResolvedValue('https://hooks/x');
+      configGet.mockResolvedValue('https://hooks.slack.com/services/test');
       httpPost.mockReturnValue(throwError(() => new Error('timeout')));
       await expect(
         service.sendDeploymentSlack(deployPayload),
@@ -116,7 +120,7 @@ describe('NotificationsSlackService', () => {
 
   describe('sendDockerConnectionSlack', () => {
     it('sends DOWN block when recovered=false', async () => {
-      configGet.mockResolvedValue('https://hooks/x');
+      configGet.mockResolvedValue('https://hooks.slack.com/services/test');
       const p = {
         serverId: 's1',
         serverName: 'srv',
@@ -132,7 +136,7 @@ describe('NotificationsSlackService', () => {
     });
 
     it('sends RECOVERED block when recovered=true', async () => {
-      configGet.mockResolvedValue('https://hooks/x');
+      configGet.mockResolvedValue('https://hooks.slack.com/services/test');
       const p = { serverId: 's1', endpoint: 'tcp://x:2376' };
       await service.sendDockerConnectionSlack(p, true);
       const body = httpPost.mock.calls[0][1] as {
@@ -142,7 +146,7 @@ describe('NotificationsSlackService', () => {
     });
 
     it('never throws when POST fails', async () => {
-      configGet.mockResolvedValue('https://hooks/x');
+      configGet.mockResolvedValue('https://hooks.slack.com/services/test');
       httpPost.mockReturnValue(throwError(() => new Error('down')));
       const p = {
         serverId: 's1',

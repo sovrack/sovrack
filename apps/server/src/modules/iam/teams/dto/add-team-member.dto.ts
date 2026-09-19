@@ -1,5 +1,5 @@
 import {
-  IsEnum,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -13,7 +13,7 @@ export class AddTeamMemberDto {
   @IsNotEmpty()
   userId!: string;
 
-  @IsEnum(WorkspaceRole)
+  @IsIn([WorkspaceRole.ADMIN, WorkspaceRole.MEMBER])
   @IsOptional()
   role?: WorkspaceRole;
 }

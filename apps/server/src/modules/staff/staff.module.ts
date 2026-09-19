@@ -15,6 +15,8 @@ import { StaffPasswordRecoveryService } from './staff-password-recovery.service'
 import { StaffInvitationService } from './staff-invitation.service';
 import { StaffMfaService } from './staff-mfa.service';
 import { StaffMfaController } from './staff-mfa.controller';
+import { StaffPlatformReadService } from './staff-platform-read.service';
+import { StaffPlatformController } from './staff-platform.controller';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ms = require('ms') as (value: string) => number;
 
@@ -42,10 +44,11 @@ const ms = require('ms') as (value: string) => number;
       },
     }),
   ],
-  controllers: [StaffController, StaffMfaController],
+  controllers: [StaffController, StaffMfaController, StaffPlatformController],
   providers: [
     StaffService,
     StaffOperationsService,
+    StaffPlatformReadService,
     StaffPasswordRecoveryService,
     StaffInvitationService,
     StaffMfaService,

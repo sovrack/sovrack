@@ -2,6 +2,7 @@ import request from 'supertest';
 import { GitProviderType } from '@prisma/client';
 import { bootstrapE2E, E2EContext } from '../setup-e2e';
 import { createTestFixtures } from '../utils/test-fixtures';
+import { CryptoService } from '../../src/shared/crypto/crypto.service';
 
 /**
  * Test 3 — unified webhook ingestion: record, 404 on unknown token, idempotence.
@@ -26,29 +27,41 @@ describe('Webhook ingestion (e2e)', () => {
     await ctx.resetDb();
   });
 
-  async function seedEndpoint(): Promise<{ token: string; projectId: string }> {
+  async function seedEndpoint(): Promise<{
+    token: string;
+    projectId: string;
+    secret: string;
+  }> {
     const f = await createTestFixtures(ctx.prisma);
+    const secret = 'e2e-gitlab-webhook-secret';
+    const crypto = ctx.app.get(CryptoService);
     const endpoint = await ctx.prisma.webhookEndpoint.create({
       data: {
         projectId: f.projectId,
         provider: GitProviderType.GITLAB,
         events: ['push'],
         isActive: true,
+        secret: crypto.encrypt(secret),
       },
       select: { webhookToken: true, projectId: true },
     });
-    return { token: endpoint.webhookToken, projectId: endpoint.projectId };
+    return {
+      token: endpoint.webhookToken,
+      projectId: endpoint.projectId,
+      secret,
+    };
   }
 
   const pushPayload = { object_kind: 'push', ref: 'refs/heads/main' };
 
   it('scenario 1 — valid token → 202 and a WebhookEvent is recorded', async () => {
-    const { token } = await seedEndpoint();
+    const { token, secret } = await seedEndpoint();
 
     const res = await request(ctx.app.getHttpServer())
       .post(`/webhooks/incoming/${token}`)
       .set('X-Gitlab-Event', 'Push Hook')
       .set('X-Gitlab-Event-Uuid', 'delivery-1')
+      .set('X-Gitlab-Token', secret)
       .send(pushPayload);
 
     expect(res.status).toBe(202);
@@ -68,12 +81,13 @@ describe('Webhook ingestion (e2e)', () => {
   });
 
   it('scenario 3 — same delivery id twice → 202 and exactly one WebhookEvent (dedup)', async () => {
-    const { token } = await seedEndpoint();
+    const { token, secret } = await seedEndpoint();
     const send = () =>
       request(ctx.app.getHttpServer())
         .post(`/webhooks/incoming/${token}`)
         .set('X-Gitlab-Event', 'Push Hook')
         .set('X-Gitlab-Event-Uuid', 'delivery-dup')
+        .set('X-Gitlab-Token', secret)
         .send(pushPayload);
 
     const first = await send();

@@ -56,7 +56,7 @@ describe('ImpersonationReadonlyGuard', () => {
     ).toThrow(ForbiddenException);
   });
 
-  it('ignore les contextes websocket', () => {
+  it('laisse la politique websocket au gateway authentifié', () => {
     expect(
       guard.canActivate(context('POST', 'staff-impersonation', 'ws')),
     ).toBe(true);

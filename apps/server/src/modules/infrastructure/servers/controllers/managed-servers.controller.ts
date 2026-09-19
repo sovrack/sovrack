@@ -23,6 +23,8 @@ import type { JwtPayload } from '../../../../shared/jwt/dto/jwt-payload.dto';
 import { ManagedServersService } from '../services/managed-servers.service';
 import { RequireServerAction } from '../../../iam/authorization/require-server-action.decorator';
 import { WorkspaceActions } from '../../../iam/authorization/workspace-policy.types';
+import { RequiresProductCapability } from '../../../../shared/product-capabilities/requires-product-capability.decorator';
+import { ProductCapabilities } from '../../../../shared/product-capabilities/product-capability';
 
 class CreateManagedServerDto {
   @IsString()
@@ -52,6 +54,7 @@ class SetManagedHostDto {
 @ApiBearerAuth()
 @Controller(['workspaces/:workspaceId/managed-servers', 'managed-servers'])
 @UseGuards(ServerWorkspaceGuard)
+@RequiresProductCapability(ProductCapabilities.MANAGED_INFRASTRUCTURE)
 export class ManagedServersController {
   constructor(private readonly managed: ManagedServersService) {}
 

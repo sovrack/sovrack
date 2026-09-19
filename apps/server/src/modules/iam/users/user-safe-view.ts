@@ -1,4 +1,4 @@
-import type { User } from '@prisma/client';
+import { Role, type User } from '@prisma/client';
 
 /**
  * Public representation of a customer identity.
@@ -26,7 +26,7 @@ export function toSafeUser(user: User): SafeUser {
     id: user.id,
     email: user.email,
     fullName: user.fullName,
-    role: user.role,
+    role: Role.MEMBER,
     provider: user.provider,
     isActive: user.isActive,
     emailVerifiedAt: user.emailVerifiedAt,

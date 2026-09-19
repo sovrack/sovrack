@@ -36,7 +36,9 @@ describe('DomainsService', () => {
           .mockImplementation(({ data }) =>
             Promise.resolve({ id: 'dp1', ...data }),
           ),
-        findFirst: jest.fn().mockResolvedValue({ id: 'dp1' }),
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ id: 'dp1', type: DnsProviderType.MANUAL }),
         findUnique: jest.fn().mockResolvedValue({ id: 'dp1' }),
       },
       project: {
@@ -81,16 +83,25 @@ describe('DomainsService', () => {
     );
   });
 
-  it('encrypts the DNS provider API token on create', async () => {
-    await service.createProvider(
-      {
-        name: 'cf',
-        type: DnsProviderType.CLOUDFLARE,
-        apiToken: 'secret',
-      } as never,
-      'workspace-1',
-    );
-    expect(crypto.encrypt).toHaveBeenCalledWith('secret');
+  it('accepts only the credential-free MANUAL provider in V1', async () => {
+    await expect(
+      service.createProvider(
+        { name: 'manual', type: DnsProviderType.MANUAL } as never,
+        'workspace-1',
+      ),
+    ).resolves.toEqual(expect.objectContaining({ type: 'MANUAL' }));
+    expect(crypto.encrypt).not.toHaveBeenCalled();
+
+    await expect(
+      service.createProvider(
+        {
+          name: 'cf',
+          type: DnsProviderType.CLOUDFLARE,
+          apiToken: 'secret',
+        } as never,
+        'workspace-1',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('masks the API token in the public provider shape', async () => {

@@ -3,6 +3,7 @@ import { SourceType } from '@prisma/client';
 import { GitProviderConfigService } from '../../shared/connection/git-provider-config.service';
 import { ConnectGitlabDto } from './dto/connect-gitlab.dto';
 import { PublicGitlabConfig, GitlabResolvedConfig } from './gitlab.types';
+import { assertSafeOutboundHttpsUrl } from '../../../../shared/http/outbound-url-policy.util';
 
 export type GitlabConnectionInput = {
   gitlabUrl: string;
@@ -15,7 +16,10 @@ export class GitlabConnectionService {
   constructor(private readonly gitProviderRegistry: GitProviderConfigService) {}
 
   normalizeUrl(url: string): string {
-    return url.trim().replace(/\/+$/, '');
+    return assertSafeOutboundHttpsUrl(url, {
+      label: 'GitLab URL',
+      allowPath: false,
+    });
   }
 
   normalizeOptionalString(value?: string | null): string | null {
@@ -108,7 +112,8 @@ export class GitlabConnectionService {
     dto: ConnectGitlabDto,
     teamId: string,
   ): Promise<GitlabConnectionInput> {
-    const manualUrl = this.normalizeOptionalString(dto.gitlabUrl);
+    const manualUrlRaw = this.normalizeOptionalString(dto.gitlabUrl);
+    const manualUrl = manualUrlRaw ? this.normalizeUrl(manualUrlRaw) : null;
     const manualToken = this.normalizeOptionalString(dto.gitlabToken);
 
     if (dto.providerId) {

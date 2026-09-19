@@ -1,6 +1,7 @@
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { WorkspaceType } from '@prisma/client';
+import { Role, WorkspaceType } from '@prisma/client';
 import { AuthService } from './auth.service';
+import { UserTokenService } from './user-token.service';
 
 function makeUser(
   overrides: Partial<{
@@ -9,7 +10,10 @@ function makeUser(
     password: string;
     isActive: boolean;
     role: string;
+    sessionVersion: number;
     legacyStaffRetiredAt: Date | null;
+    mfaEnabled: boolean;
+    mfaSecret: string | null;
   }> = {},
 ) {
   return {
@@ -17,8 +21,11 @@ function makeUser(
     email: 'user@example.com',
     password: 'argon2id-hash',
     isActive: true,
-    role: 'USER',
+    role: Role.MEMBER,
+    sessionVersion: 0,
     legacyStaffRetiredAt: null,
+    mfaEnabled: false,
+    mfaSecret: null,
     fullName: 'User Example',
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -80,6 +87,7 @@ function makeSvc(
       id: 'user-1',
       email: 'user@example.com',
       role: 'MEMBER',
+      sessionVersion: 0,
     }),
     resendCode: jest.fn().mockResolvedValue(undefined),
   } as never;
@@ -89,12 +97,24 @@ function makeSvc(
     encrypt: jest.fn((value: string) => `enc:${value}`),
     decrypt: jest.fn((value: string) => value.replace(/^enc:/, '')),
   } as never;
-  const accountDeletion = { deleteIdentity: jest.fn() } as never;
+  const accountDeletion = {
+    scheduleIdentityDeletion: jest.fn().mockResolvedValue({
+      scheduledFor: new Date('2026-10-10T00:00:00.000Z'),
+    }),
+  } as never;
+  const userTokens = new UserTokenService(
+    jwtService,
+    usersService,
+    auditService,
+  );
+  const userMfa = {
+    verifyLoginSecondFactor: jest.fn().mockResolvedValue(undefined),
+  } as never;
 
   return {
     svc: new AuthService(
       usersService,
-      jwtService,
+      userTokens,
       prisma,
       auditService,
       passwordHasher,
@@ -103,6 +123,7 @@ function makeSvc(
       smtp,
       crypto,
       accountDeletion,
+      userMfa,
     ),
     usersService,
     jwtService,
@@ -111,6 +132,7 @@ function makeSvc(
     prisma,
     teamsService,
     emailVerification,
+    userMfa,
   };
 }
 
@@ -125,6 +147,21 @@ describe('AuthService', () => {
       expect(result.access_token).toBe('jwt-token');
       expect(result.user).not.toHaveProperty('password');
       expect(result.user.email).toBe('user@example.com');
+    });
+
+    it('applies the optional MFA policy after validating the password', async () => {
+      const { svc, userMfa } = makeSvc({
+        user: makeUser({ mfaEnabled: true, mfaSecret: 'encrypted-secret' }),
+      });
+      await svc.login({
+        email: 'user@example.com',
+        password: 'pass',
+        mfaCode: '123456',
+      });
+      expect(userMfa.verifyLoginSecondFactor).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'user-1', mfaEnabled: true }),
+        '123456',
+      );
     });
 
     it('throws UnauthorizedException when user is not found', async () => {
@@ -225,12 +262,19 @@ describe('AuthService', () => {
   });
 
   describe('generateWsToken', () => {
-    it('calls jwtService.sign with sub and role, expires in 5m', () => {
+    it('binds the short-lived token to the current identity session', () => {
       const { svc, jwtService } = makeSvc();
-      const token = svc.generateWsToken('user-1', 'OWNER');
+      const token = svc.generateWsToken('user-1', 'user@example.com', 7);
       expect(token).toBe('jwt-token');
       expect(jwtService.sign).toHaveBeenCalledWith(
-        { sub: 'user-1', role: 'OWNER' },
+        {
+          id: 'user-1',
+          sub: 'user-1',
+          email: 'user@example.com',
+          role: Role.MEMBER,
+          sessionVersion: 7,
+          authType: 'user',
+        },
         { expiresIn: '5m' },
       );
     });
@@ -294,6 +338,7 @@ describe('AuthService', () => {
             id: 'user-1',
             email: 'user@example.com',
             role: 'MEMBER',
+            sessionVersion: 0,
           };
         });
 

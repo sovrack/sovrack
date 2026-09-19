@@ -6,7 +6,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PlatformRole, Role, StaffStatus, type Staff } from '@prisma/client';
+import {
+  PlatformRole,
+  StaffStatus,
+  type Staff,
+  WorkspaceStatus,
+  WorkspaceType,
+} from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { PasswordHasher } from '../iam/security/password-hasher.service';
 import { StaffAuditService } from './staff-audit.service';
@@ -23,6 +29,7 @@ import { StaffOperationsService } from './staff-operations.service';
 import { StaffInvitationService } from './staff-invitation.service';
 import { type SafeStaff, toSafeStaff } from './staff-safe-view';
 import { StaffMfaService } from './staff-mfa.service';
+import { StaffPlatformReadService } from './staff-platform-read.service';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ms = require('ms') as (value: string) => number;
@@ -44,6 +51,7 @@ export class StaffService {
     private readonly audit: StaffAuditService,
     private readonly config: ConfigService,
     private readonly operations: StaffOperationsService,
+    private readonly platformReads: StaffPlatformReadService,
     private readonly invitations: StaffInvitationService,
     private readonly mfa: StaffMfaService,
   ) {}
@@ -299,19 +307,38 @@ export class StaffService {
   // ──────────────────────────── USERS (clients) ────────────────────────────
 
   async getOverview() {
-    return this.operations.getOverview();
+    return this.platformReads.getOverview();
   }
 
-  async listUsers(pagination?: { page?: number; limit?: number }) {
-    return this.operations.listUsers(pagination);
+  async listUsers(pagination?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: 'active' | 'disabled' | 'deletion-scheduled';
+  }) {
+    return this.platformReads.listUsers(pagination);
   }
 
-  async listTeams(pagination?: { page?: number; limit?: number }) {
-    return this.operations.listTeams(pagination);
+  async listTeams(pagination?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    type?: WorkspaceType;
+    status?: WorkspaceStatus;
+  }) {
+    return this.platformReads.listTeams(pagination);
+  }
+
+  async getUser(userId: string) {
+    return this.platformReads.getUser(userId);
+  }
+
+  async getTeam(teamId: string) {
+    return this.platformReads.getTeam(teamId);
   }
 
   async listSubscriptions() {
-    return this.operations.listSubscriptions();
+    return this.platformReads.listSubscriptions();
   }
 
   async setUserActive(
@@ -323,15 +350,6 @@ export class StaffService {
     return this.operations.setUserActive(userId, isActive, actorId, ip);
   }
 
-  async setUserRole(
-    userId: string,
-    role: Role,
-    actorId: string,
-    ip?: string | null,
-  ) {
-    return this.operations.setUserRole(userId, role, actorId, ip);
-  }
-
   async updateUser(
     userId: string,
     dto: StaffUpdateUserDto,
@@ -341,8 +359,38 @@ export class StaffService {
     return this.operations.updateUser(userId, dto, actorId, ip);
   }
 
-  async deleteUser(userId: string, actorId: string, ip?: string | null) {
-    return this.operations.deleteUser(userId, actorId, ip);
+  async scheduleUserDeletion(
+    userId: string,
+    actorId: string,
+    reason: string,
+    ip?: string | null,
+  ) {
+    return this.operations.scheduleUserDeletion(userId, actorId, reason, ip);
+  }
+
+  async cancelUserDeletion(
+    userId: string,
+    actorId: string,
+    ip?: string | null,
+  ) {
+    return this.operations.cancelUserDeletion(userId, actorId, ip);
+  }
+
+  async revokeUserSessions(
+    userId: string,
+    actorId: string,
+    ip?: string | null,
+  ) {
+    return this.operations.revokeUserSessions(userId, actorId, ip);
+  }
+
+  async updateTeamStatus(
+    teamId: string,
+    status: WorkspaceStatus,
+    actorId: string,
+    ip?: string | null,
+  ) {
+    return this.operations.updateTeamStatus(teamId, status, actorId, ip);
   }
 
   /** Impersonation : autorisation éphémère échangée sur le domaine client. */
@@ -365,6 +413,6 @@ export class StaffService {
   }
 
   async listAudit(pagination?: { page?: number; limit?: number }) {
-    return this.operations.listAudit(pagination);
+    return this.platformReads.listAudit(pagination);
   }
 }

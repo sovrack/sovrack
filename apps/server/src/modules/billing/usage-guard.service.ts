@@ -4,11 +4,7 @@ import { BillingService } from './billing.service';
 import { Plan } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
 
-export type UsageAction =
-  | 'CREATE_PROJECT'
-  | 'ADD_SERVER'
-  | 'ADD_TEAM_MEMBER'
-  | 'INCREASE_STORAGE';
+export type UsageAction = 'CREATE_PROJECT' | 'ADD_SERVER' | 'ADD_TEAM_MEMBER';
 
 /**
  * UsageGuard — enforcement central des limites de plan.
@@ -47,17 +43,11 @@ export class UsageGuardService {
     const plan = subscription?.plan ?? Plan.FREE;
     const limits = await this.billing.getLimitsForPlan(plan);
 
-    const [projectCount, serverCount, memberCount, volumeCount] =
-      await Promise.all([
-        database.project.count({ where: { teamId } }),
-        database.server.count({ where: { teamId } }),
-        database.teamMember.count({ where: { teamId } }),
-        database.volume.count({
-          where: {
-            server: { teamId },
-          },
-        }),
-      ]);
+    const [projectCount, serverCount, memberCount] = await Promise.all([
+      database.project.count({ where: { teamId } }),
+      database.server.count({ where: { teamId } }),
+      database.teamMember.count({ where: { teamId } }),
+    ]);
 
     let exceeded = false;
     let message = '';
@@ -81,12 +71,6 @@ export class UsageGuardService {
           message = `Limite du plan ${plan} atteinte : ${memberCount}/${limits.maxTeamMembers} membres.`;
         }
         break;
-      case 'INCREASE_STORAGE':
-        if (volumeCount >= limits.storageLimitMb) {
-          exceeded = true;
-          message = `Stockage du plan ${plan} atteint (${limits.storageLimitMb} Mo).`;
-        }
-        break;
       default:
         return;
     }
@@ -96,7 +80,7 @@ export class UsageGuardService {
         `UsageGuard deny: team=${teamId} action=${action} plan=${plan}`,
       );
       throw new ForbiddenException(
-        `${message} Passez au plan supérieur pour continuer.`,
+        `${message} Contactez contact@sovrack.tech si vous avez besoin d’une capacité supplémentaire.`,
       );
     }
   }

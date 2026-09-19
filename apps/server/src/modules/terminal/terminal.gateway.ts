@@ -7,6 +7,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { ConfigService } from '@nestjs/config';
+import { ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 import { Role } from '@prisma/client';
@@ -16,11 +17,8 @@ import {
 } from '../../shared/http/auth-cookie.util';
 import { resolveGatewayCorsOrigins } from '../../shared/http/cors-origins.util';
 import { TerminalService } from './terminal.service';
-
-type JwtPayload = {
-  sub: string;
-  role: string;
-};
+import type { JwtPayloadDto } from '../../shared/jwt/dto/jwt-payload.dto';
+import { JwtSessionValidator } from '../../shared/jwt/jwt-session-validator.service';
 
 type SessionEntry = {
   write: (data: string) => void;
@@ -45,6 +43,7 @@ export class TerminalGateway implements OnGatewayDisconnect {
     private readonly terminalService: TerminalService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly sessionValidator: JwtSessionValidator,
   ) {}
 
   handleDisconnect(client: Socket) {
@@ -59,7 +58,7 @@ export class TerminalGateway implements OnGatewayDisconnect {
   ) {
     try {
       const token = this.resolveToken(client, body.token);
-      const actor = token ? this.verifyToken(token) : null;
+      const actor = token ? await this.verifyToken(token) : null;
       if (!actor) {
         client.emit('terminal:error', 'Non autorisé');
         return;
@@ -73,7 +72,7 @@ export class TerminalGateway implements OnGatewayDisconnect {
       const session = await this.terminalService.openSession(
         body.serverId,
         actor.id,
-        actor.role as Role,
+        actor.role,
         { cols, rows },
         {
           onData: (data) => client.emit('terminal:data', data),
@@ -121,11 +120,19 @@ export class TerminalGateway implements OnGatewayDisconnect {
     }
   }
 
-  private verifyToken(token: string): { id: string; role: string } | null {
+  private async verifyToken(
+    token: string,
+  ): Promise<{ id: string; role: Role } | null> {
     try {
       const secret = this.configService.get<string>('JWT_SECRET') ?? '';
-      const payload = this.jwtService.verify<JwtPayload>(token, { secret });
-      return { id: payload.sub, role: payload.role };
+      const payload = this.jwtService.verify<JwtPayloadDto>(token, { secret });
+      await this.sessionValidator.validate(payload);
+      if (payload.authType === 'staff-impersonation') {
+        throw new ForbiddenException(
+          "Le terminal est indisponible dans une session d'assistance",
+        );
+      }
+      return { id: payload.id, role: payload.role };
     } catch {
       return null;
     }

@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -35,14 +34,12 @@ import { StaffPasswordRecoveryService } from './staff-password-recovery.service'
 import { StaffAuditService } from './staff-audit.service';
 import {
   AcceptStaffInvitationDto,
-  CreateStaffImpersonationDto,
   ExchangeStaffImpersonationDto,
   RequestStaffActivationCodeDto,
   CreateStaffDto,
   StaffForgotPasswordDto,
   StaffLoginDto,
   StaffResetPasswordDto,
-  StaffUpdateUserDto,
   UpdateStaffDto,
 } from './dto/staff.dto';
 import {
@@ -315,109 +312,6 @@ export class StaffController {
   }
 
   // ──────────────────────────── PLATEFORME ────────────────────────────
-
-  @Get('overview')
-  @UseGuards(StaffRolesGuard)
-  @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN, PlatformRole.OPERATOR)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Vue globale de la plateforme' })
-  getOverview() {
-    return this.staffService.getOverview();
-  }
-
-  @Get('audit-logs')
-  @UseGuards(StaffRolesGuard)
-  @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Journal d’audit du back-office (append-only)' })
-  getAuditLogs(@Query('page') page?: string, @Query('limit') limit?: string) {
-    return this.auditService.list({
-      page: Number(page),
-      limit: Number(limit),
-    });
-  }
-
-  @Get('users')
-  @UseGuards(StaffRolesGuard)
-  @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Liste des utilisateurs clients' })
-  listUsers(@Query('page') page?: string, @Query('limit') limit?: string) {
-    return this.staffService.listUsers({
-      page: Number(page),
-      limit: Number(limit),
-    });
-  }
-
-  @Get('teams')
-  @UseGuards(StaffRolesGuard)
-  @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Liste des équipes plateforme' })
-  listTeams(@Query('page') page?: string, @Query('limit') limit?: string) {
-    return this.staffService.listTeams({
-      page: Number(page),
-      limit: Number(limit),
-    });
-  }
-
-  @Get('subscriptions')
-  @UseGuards(StaffRolesGuard)
-  @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Liste des abonnements plateforme' })
-  listSubscriptions() {
-    return this.staffService.listSubscriptions();
-  }
-
-  @Patch('users/:id')
-  @UseGuards(StaffRolesGuard)
-  @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Bloquer ou débloquer une identité cliente' })
-  updateUser(
-    @Param('id') id: string,
-    @Body() dto: StaffUpdateUserDto,
-    @GetStaff() staff: StaffJwtPayload,
-    @Req() req: Request,
-  ) {
-    return this.staffService.updateUser(id, dto, staff.id, clientIp(req));
-  }
-
-  @Delete('users/:id')
-  @UseGuards(StaffRolesGuard)
-  @StaffRoles(PlatformRole.ROOT)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Supprimer définitivement un compte client (ROOT)' })
-  deleteUser(
-    @Param('id') id: string,
-    @GetStaff() staff: StaffJwtPayload,
-    @Req() req: Request,
-  ) {
-    return this.staffService.deleteUser(id, staff.id, clientIp(req));
-  }
-
-  @Post('users/:id/impersonate')
-  @UseGuards(StaffRolesGuard)
-  @StaffRoles(PlatformRole.ROOT, PlatformRole.ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Créer une autorisation client éphémère et journalisée',
-  })
-  async impersonate(
-    @Param('id') id: string,
-    @Body() dto: CreateStaffImpersonationDto,
-    @GetStaff() staff: StaffJwtPayload,
-    @Req() req: Request,
-  ) {
-    return this.staffService.impersonateUser(
-      id,
-      staff.id,
-      dto.reason,
-      clientIp(req),
-    );
-  }
-
   @Post('impersonation/exchange')
   @StaffPublic()
   @HttpCode(HttpStatus.OK)

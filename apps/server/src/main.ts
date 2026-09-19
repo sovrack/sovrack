@@ -24,15 +24,31 @@ import {
   resolveAllowedOrigins,
   verifyAnsibleCollectionVersions,
 } from './boot/boot-helpers';
+import {
+  createCsrfOriginMiddleware,
+  createRequestPlaneMiddleware,
+  requestPlaneConfigFromEnv,
+} from './shared/http/request-plane.middleware';
 
-const SANITIZE_QUERY_KEYS = [
+const SANITIZE_QUERY_KEYS = new Set([
   'token',
   'password',
   'secret',
   'api_key',
   'private_key',
   'access_token',
-];
+  'authorization',
+  'code',
+  'state',
+  'otp',
+  'mfa_code',
+  'mfacode',
+  'recovery_code',
+  'recoverycode',
+  'invitation_code',
+  'reset_code',
+  'verification_code',
+]);
 
 function sanitizeUrlForLogs(url: string): string {
   try {
@@ -40,8 +56,17 @@ function sanitizeUrlForLogs(url: string): string {
     if (questionIndex === -1) return url;
     const path = url.slice(0, questionIndex);
     const params = new URLSearchParams(url.slice(questionIndex + 1));
-    for (const key of SANITIZE_QUERY_KEYS) {
-      if (params.has(key)) params.set(key, '[REDACTED]');
+    for (const key of Array.from(params.keys())) {
+      const normalizedKey = key.toLowerCase().replaceAll('-', '_');
+      if (
+        SANITIZE_QUERY_KEYS.has(normalizedKey) ||
+        normalizedKey.endsWith('_token') ||
+        normalizedKey.endsWith('_secret') ||
+        normalizedKey.endsWith('_password') ||
+        normalizedKey.endsWith('_code')
+      ) {
+        params.set(key, '[REDACTED]');
+      }
     }
     return `${path}?${params.toString()}`;
   } catch {
@@ -87,6 +112,12 @@ async function bootstrap() {
     }),
   );
   app.use(compression());
+
+  // Defence in depth behind Nginx: each hostname exposes only its own API
+  // plane, and cookie-authenticated mutations require an exact Origin match.
+  const requestPlaneConfig = requestPlaneConfigFromEnv();
+  app.use(createRequestPlaneMiddleware(requestPlaneConfig));
+  app.use(createCsrfOriginMiddleware(requestPlaneConfig));
 
   // Parse TRUST_PROXY : nombre, "true"/"false", ou IP.
   // Exemples valides : "1", "2", "true", "false", "loopback", "10.0.0.1"

@@ -57,11 +57,22 @@ export class CryptoService {
       ]).toString('utf8');
     }
 
+    // CryptoJS/OpenSSL préfixe explicitement ses valeurs salées par
+    // `Salted__`. Il faut reconnaître ce format avant l'ancien CBC interne :
+    // certains ciphertexts CryptoJS ont, par hasard, un padding CBC valide et
+    // produiraient alors du texte corrompu au lieu de déclencher le fallback.
+    const decoded = Buffer.from(encryptedValue, 'base64');
+    if (
+      decoded.length > 16 &&
+      decoded.subarray(0, 8).equals(Buffer.from('Salted__', 'utf8'))
+    ) {
+      return this.decryptLegacy(encryptedValue, secret);
+    }
+
     // Ancien format AES-256-CBC (base64(iv[16] | data)) — rétro-compat.
     try {
-      const buffer = Buffer.from(encryptedValue, 'base64');
-      const iv = buffer.subarray(0, 16);
-      const encrypted = buffer.subarray(16);
+      const iv = decoded.subarray(0, 16);
+      const encrypted = decoded.subarray(16);
       const decipher = createDecipheriv('aes-256-cbc', key, iv);
       let decrypted = decipher.update(encrypted);
       decrypted = Buffer.concat([decrypted, decipher.final()]);

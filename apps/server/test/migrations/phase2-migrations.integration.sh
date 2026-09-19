@@ -116,6 +116,18 @@ npx prisma migrate deploy
 docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_fresh \
   -c "SELECT count(*) FROM information_schema.columns WHERE table_name='TeamMember' AND column_name IN ('role','status');" \
   | grep -qx '2'
+docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_fresh \
+  -c "SELECT EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='WorkspaceRole' AND e.enumlabel='BILLING');" \
+  | grep -qx 'f'
+docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_fresh \
+  -c "SELECT count(*) FROM information_schema.columns WHERE table_name='User' AND column_name IN ('mfaSecret','mfaEnabled','mfaLastUsedStep');" \
+  | grep -qx '3'
+docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_fresh \
+  -c "SELECT to_regclass('\"UserMfaRecoveryCode\"') IS NOT NULL;" \
+  | grep -qx 't'
+docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_fresh \
+  -c "SELECT column_default FROM information_schema.columns WHERE table_name='Subscription' AND column_name='status';" \
+  | grep -q 'ACTIVE'
 
 # Chemin upgrade : applique uniquement l'historique antérieur à Phase 2, insère
 # un tenant représentatif et une credential DB legacy, puis exécute le même
@@ -160,6 +172,12 @@ INSERT INTO "ProjectMember" (
 ) VALUES (
   'project-member-1', 'project-1', 'user-1', 'OWNER', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 );
+INSERT INTO "Subscription" (
+  "id", "teamId", "plan", "status", "trialEndsAt", "createdAt", "updatedAt"
+) VALUES (
+  'subscription-1', 'team-1', 'FREE', 'TRIALING',
+  CURRENT_TIMESTAMP + INTERVAL '14 days', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+);
 INSERT INTO "Service" (
   "id", "name", "type", "projectId", "databaseType", "databaseCredentials",
   "createdAt", "updatedAt"
@@ -186,6 +204,15 @@ docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_upgrade \
 docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_upgrade \
   -c "SELECT EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='Role' AND e.enumlabel='SUPER_ADMIN');" \
   | grep -qx 'f'
+docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_upgrade \
+  -c "SELECT EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid WHERE t.typname='WorkspaceRole' AND e.enumlabel='BILLING');" \
+  | grep -qx 'f'
+docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_upgrade \
+  -c "SELECT \"status\"::text || ':' || (\"trialEndsAt\" IS NULL)::text FROM \"Subscription\" WHERE id='subscription-1';" \
+  | grep -qx 'ACTIVE:true'
+docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_upgrade \
+  -c "SELECT to_regclass('\"UserMfaRecoveryCode\"') IS NOT NULL;" \
+  | grep -qx 't'
 
 # Atomicity path: deliberately violate the first Phase-2 precondition after
 # applying the complete historical schema. PostgreSQL must roll back every DDL
@@ -211,4 +238,4 @@ docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_atomicity \
 docker exec "$CONTAINER_NAME" psql -At -U postgres -d phase2_atomicity \
   -c "SELECT to_regclass('\"Team_name_key\"') IS NOT NULL;" | grep -qx 't'
 
-echo "Fresh, pre-Phase-2 upgrade, legacy SUPER_ADMIN retirement and transactional-failure migration paths passed."
+echo "Fresh, pre-Phase-2 upgrade, legacy role retirement and transactional-failure migration paths passed."

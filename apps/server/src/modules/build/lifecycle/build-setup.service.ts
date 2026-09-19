@@ -70,6 +70,11 @@ export class BuildSetupService {
     serviceId?: string,
     expectedWorkspaceId?: string,
   ): Promise<void> {
+    if (dto.dockerComposeContent !== undefined) {
+      throw new BadRequestException(
+        'Les services Docker Compose ne sont pas disponibles dans la V1',
+      );
+    }
     await this.buildService.assertCanConfigureBuild(
       projectId,
       userId,

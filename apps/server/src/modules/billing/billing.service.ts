@@ -12,8 +12,9 @@ import { NotificationsSmtpService } from '../notifications/notifications-smtp.se
 
 /**
  * Prix par plan en millimes (1 TND = 1000 millimes).
- * Alignement marché 2026 : FREE = essai 14 jours, STARTER/PRO/ENTERPRISE
- * avec infra gérée incluse (serveurs Sovrack).
+ * La V1 publique utilise le plan FREE sans date d'expiration. Les anciens
+ * plans payants restent dans le modèle pour compatibilité, mais leur parcours
+ * libre-service est désactivé par le contrat produit.
  */
 export const PLAN_PRICES_MILLIMES: Record<Plan, number> = {
   [Plan.FREE]: 0,
@@ -61,8 +62,6 @@ export const PLAN_LIMITS_DEFAULTS: Record<
     maxBackups: 365,
   },
 };
-
-const TRIAL_DAYS = 14;
 
 /**
  * Billing intégré à la plateforme, attaché à la Team (tenant).
@@ -112,29 +111,6 @@ export class BillingService {
       });
     }
     return memberships[0].teamId;
-  }
-
-  /** Vue billing pour le dashboard (résout la team de l'utilisateur). */
-  async getMyBillingForUser(userId: string) {
-    const teamId = await this.resolveTeamId(userId);
-    return this.getMyBilling(teamId);
-  }
-
-  /** Changement de plan pour un utilisateur (résout la team). */
-  async subscribeForUser(userId: string, plan: Plan) {
-    const teamId = await this.resolveTeamId(userId);
-    return this.subscribe(teamId, plan, userId);
-  }
-
-  /**
-   * Annulation de l'abonnement pour un utilisateur (résout la team).
-   * Mode manuel : pas d'intégration Stripe réelle, on passe simplement le
-   * statut à CANCELED. Les services restent accessibles jusqu'à la fin de la
-   * période courante.
-   */
-  async cancelForUser(userId: string) {
-    const teamId = await this.resolveTeamId(userId);
-    return this.cancel(teamId, userId);
   }
 
   /**
@@ -193,14 +169,15 @@ export class BillingService {
       where: { teamId },
     });
     if (!subscription) {
-      const now = new Date();
-      const trialEndsAt = new Date(
-        now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000,
-      );
       subscription = await this.prisma.subscription.create({
-        data: { teamId, plan: Plan.FREE, status: 'TRIALING', trialEndsAt },
+        data: {
+          teamId,
+          plan: Plan.FREE,
+          status: 'ACTIVE',
+          trialEndsAt: null,
+        },
       });
-      this.logger.log(`Subscription FREE/TRIALING created for team ${teamId}`);
+      this.logger.log(`Free V1 access created for team ${teamId}`);
     }
     return subscription;
   }
@@ -296,13 +273,10 @@ export class BillingService {
         where: { id: subscription.id },
         data: {
           plan,
-          status: amount > 0 ? 'ACTIVE' : 'TRIALING',
+          status: 'ACTIVE',
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,
-          trialEndsAt:
-            amount > 0
-              ? null
-              : new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
+          trialEndsAt: null,
         },
       });
       if (amount > 0) {
@@ -420,7 +394,7 @@ export class BillingService {
   <div style="padding:24px;border:1px solid #e5e7eb;border-radius:0 0 12px 12px">
     <p>Bonjour ${owner.user.fullName},</p>
     <p>L'équipe <strong>${team.name}</strong> est maintenant sur le plan
-       <strong>${plan}</strong>${amount > 0 ? ` (${amountTnd} DT / mois)` : ' (essai gratuit)'}.</p>
+       <strong>${plan}</strong>${amount > 0 ? ` (${amountTnd} DT / mois)` : ' (accès gratuit)'}.</p>
     <p>Votre facture est disponible depuis le dashboard → Facturation.</p>
     <p style="color:#6b7280;font-size:12px;margin-top:24px">Sovrack — déployez sans limites</p>
   </div>

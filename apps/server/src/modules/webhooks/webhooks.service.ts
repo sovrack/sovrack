@@ -83,7 +83,9 @@ export class WebhooksService {
         }
         await this.prisma.webhookEndpoint.update({
           where: { id: existing.id },
-          data: { secret: this.crypto.encrypt(secret) },
+          // Une reconnexion explicite répare et réactive l'ancien endpoint que
+          // la migration de sécurité a neutralisé faute de secret vérifiable.
+          data: { secret: this.crypto.encrypt(secret), isActive: true },
         });
       }
       return { id: existing.id, webhookToken: existing.webhookToken, secret };

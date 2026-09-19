@@ -7,7 +7,7 @@ import { NotificationsSmtpService } from '../src/modules/notifications/notificat
 describe('Staff password recovery (e2e)', () => {
   let ctx: E2EContext;
   let smtp: { sendTransactionalEmail: jest.Mock };
-  const email = 'admin@sovrack.tech';
+  const email = 'contact@sovrack.tech';
   const oldPassword = 'Old-Staff-Password-2026!';
   const newPassword = 'New-Staff-Password-2026!';
 

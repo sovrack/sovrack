@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule as NestJwtModule, type JwtModuleOptions } from '@nestjs/jwt';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtService } from './jwt.service';
+import { JwtSessionValidator } from './jwt-session-validator.service';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ms = require('ms') as (value: string) => number;
 
@@ -31,7 +32,7 @@ const ms = require('ms') as (value: string) => number;
       },
     }),
   ],
-  providers: [JwtStrategy, JwtService],
-  exports: [NestJwtModule, JwtService, JwtStrategy],
+  providers: [JwtSessionValidator, JwtStrategy, JwtService],
+  exports: [NestJwtModule, JwtService, JwtStrategy, JwtSessionValidator],
 })
 export class AppJwtModule {}

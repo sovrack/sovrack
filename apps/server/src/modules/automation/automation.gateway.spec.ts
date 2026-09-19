@@ -1,5 +1,9 @@
 import { ServerRunKind } from '@prisma/client';
 import { AutomationGateway } from './automation.gateway';
+import {
+  ENABLED_PRODUCT_CAPABILITIES,
+  ProductCapabilities,
+} from '../../shared/product-capabilities/product-capability';
 
 function makeClient(
   opts: {
@@ -66,7 +70,32 @@ function makeDeps(
 }
 
 describe('AutomationGateway', () => {
+  beforeEach(() => {
+    ENABLED_PRODUCT_CAPABILITIES.add(ProductCapabilities.SERVER_AUTOMATION);
+  });
+
+  afterAll(() => {
+    ENABLED_PRODUCT_CAPABILITIES.delete(ProductCapabilities.SERVER_AUTOMATION);
+  });
+
   describe('handleConnection', () => {
+    it('disconnects every client while server automation is outside the V1', () => {
+      ENABLED_PRODUCT_CAPABILITIES.delete(
+        ProductCapabilities.SERVER_AUTOMATION,
+      );
+      const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
+      const gw = new AutomationGateway(
+        jwtService as never,
+        prisma as never,
+        configService as never,
+        workspaceAccess as never,
+      );
+      const client = makeClient({ authToken: 'valid-token' });
+      gw.handleConnection(client);
+      expect(client.disconnect).toHaveBeenCalled();
+      expect(jwtService.verify).not.toHaveBeenCalled();
+    });
+
     it('disconnects client when no token is present', () => {
       const { jwtService, prisma, configService, workspaceAccess } = makeDeps();
       const gw = new AutomationGateway(

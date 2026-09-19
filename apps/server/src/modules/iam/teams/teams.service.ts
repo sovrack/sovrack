@@ -169,11 +169,12 @@ export class TeamsService {
       actor.id,
       WorkspaceActions.DELETE,
     );
-    const workspace = await this.prisma.team.delete({
+    const workspace = await this.prisma.team.update({
       where: { id },
+      data: { status: WorkspaceStatus.ARCHIVED },
       include: workspaceWithMembersInclude,
     });
-    this.logger.warn(`Workspace "${workspace.name}" (${id}) deleted`);
+    this.logger.warn(`Workspace "${workspace.name}" (${id}) archived`);
     return workspace;
   }
 
@@ -261,6 +262,31 @@ export class TeamsService {
     });
   }
 
+  async updateMemberBillingAccess(
+    id: string,
+    targetUserId: string,
+    canManageBilling: boolean,
+    actor: { id: string },
+  ): Promise<WorkspaceWithMembers> {
+    const actorContext = await this.workspaceAccess.assertWorkspaceAction(
+      id,
+      actor.id,
+      WorkspaceActions.MANAGE_OWNERS,
+    );
+    await assertCollaborativeWorkspace(this.prisma, id);
+    if (actorContext.workspaceRole !== WorkspaceRole.OWNER) {
+      throw new ForbiddenException(
+        'Seul un OWNER peut déléguer la gestion de la facturation',
+      );
+    }
+    await getActiveMembershipOrFail(this.prisma, id, targetUserId);
+    await this.prisma.teamMember.update({
+      where: { teamId_userId: { teamId: id, userId: targetUserId } },
+      data: { canManageBilling },
+    });
+    return this.findOne(id, actor);
+  }
+
   async removeMember(
     id: string,
     userId: string,
@@ -297,6 +323,26 @@ export class TeamsService {
       if (!workspace) throw new NotFoundException('Workspace introuvable');
       return workspace;
     });
+  }
+
+  async leaveWorkspace(id: string, actor: { id: string }): Promise<void> {
+    await this.workspaceAccess.assertWorkspaceAction(
+      id,
+      actor.id,
+      WorkspaceActions.READ,
+    );
+    await assertCollaborativeWorkspace(this.prisma, id);
+
+    await runSerializable(this.prisma, async (tx) => {
+      const membership = await getActiveMembershipOrFail(tx, id, actor.id);
+      if (membership.role === WorkspaceRole.OWNER) {
+        await assertNotLastWorkspaceOwner(tx, id, actor.id);
+      }
+      await tx.teamMember.delete({
+        where: { teamId_userId: { teamId: id, userId: actor.id } },
+      });
+    });
+    this.logger.log(`User ${actor.id} left workspace ${id}`);
   }
 
   async updateMemberStatus(

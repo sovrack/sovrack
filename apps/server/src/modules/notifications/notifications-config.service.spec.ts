@@ -192,7 +192,7 @@ describe('NotificationsConfigService', () => {
           port: 587,
           security: 'starttls',
           user: 'apikey',
-          from: 'noreply@sovrack.tech',
+          from: 'contact@sovrack.tech',
         }),
       ).rejects.toThrow('mot de passe SMTP');
     });
@@ -200,7 +200,9 @@ describe('NotificationsConfigService', () => {
 
   describe('saveSettings', () => {
     it('upserts slackWebhookUrl as secret', async () => {
-      await service.saveSettings({ slackWebhookUrl: 'https://hooks/x' });
+      await service.saveSettings({
+        slackWebhookUrl: 'https://hooks.slack.com/services/test',
+      });
       expect(prisma.platformConfig.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { key: CONFIG_KEYS.SLACK_WEBHOOK },

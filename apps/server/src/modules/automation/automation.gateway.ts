@@ -20,6 +20,10 @@ import {
 import { resolveGatewayCorsOrigins } from '../../shared/http/cors-origins.util';
 import { WorkspaceAccessService } from '../iam/authorization/workspace-access.service';
 import { WorkspaceActions } from '../iam/authorization/workspace-policy.types';
+import {
+  isProductCapabilityEnabled,
+  ProductCapabilities,
+} from '../../shared/product-capabilities/product-capability';
 
 type JoinRunPayload = {
   runId?: string;
@@ -47,6 +51,11 @@ export class AutomationGateway implements OnGatewayConnection {
   ) {}
 
   handleConnection(client: Socket): void {
+    if (!isProductCapabilityEnabled(ProductCapabilities.SERVER_AUTOMATION)) {
+      client.disconnect();
+      return;
+    }
+
     const authData = client.handshake.auth as Record<string, unknown>;
     const cookieName = this.configService.get<string>(
       'AUTH_COOKIE_NAME',

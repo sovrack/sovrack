@@ -2,16 +2,20 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
+  IsBoolean,
   IsEnum,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
+  Max,
   Matches,
   MinLength,
+  Min,
 } from 'class-validator';
-import { PlatformRole } from '@prisma/client';
+import { PlatformRole, WorkspaceStatus, WorkspaceType } from '@prisma/client';
 import {
   SOVRACK_PASSWORD_OPENAPI,
   IsSovrackPassword,
@@ -19,7 +23,7 @@ import {
 } from '../../../shared/validation/identity-validation.util';
 
 export class StaffLoginDto {
-  @ApiProperty({ example: 'admin@sovrack.tech' })
+  @ApiProperty({ example: 'contact@sovrack.tech' })
   @NormalizeEmail()
   @IsEmail()
   email: string;
@@ -66,14 +70,14 @@ export class StaffResetMfaDto {
 }
 
 export class StaffForgotPasswordDto {
-  @ApiProperty({ example: 'admin@sovrack.tech' })
+  @ApiProperty({ example: 'contact@sovrack.tech' })
   @NormalizeEmail()
   @IsEmail()
   email: string;
 }
 
 export class StaffResetPasswordDto {
-  @ApiProperty({ example: 'admin@sovrack.tech' })
+  @ApiProperty({ example: 'contact@sovrack.tech' })
   @NormalizeEmail()
   @IsEmail()
   email: string;
@@ -139,7 +143,7 @@ export class CreateStaffDto {
 }
 
 export class AcceptStaffInvitationDto {
-  @ApiProperty({ example: 'admin@sovrack.tech' })
+  @ApiProperty({ example: 'contact@sovrack.tech' })
   @NormalizeEmail()
   @IsEmail()
   email: string;
@@ -157,7 +161,7 @@ export class AcceptStaffInvitationDto {
 }
 
 export class RequestStaffActivationCodeDto {
-  @ApiProperty({ example: 'admin@sovrack.tech' })
+  @ApiProperty({ example: 'contact@sovrack.tech' })
   @NormalizeEmail()
   @IsEmail()
   email: string;
@@ -192,5 +196,96 @@ export class StaffUpdateUserDto {
     description: 'Désactiver (false) ou réactiver (true)',
   })
   @IsOptional()
+  @IsBoolean()
   isActive?: boolean;
+}
+
+export class StaffScheduleUserDeletionDto {
+  @ApiProperty({
+    description: 'Motif opérationnel conservé dans le journal append-only',
+    minLength: 10,
+    maxLength: 500,
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsString()
+  @MinLength(10)
+  @MaxLength(500)
+  reason!: string;
+}
+
+export class StaffUpdateWorkspaceStatusDto {
+  @ApiProperty({
+    enum: [
+      WorkspaceStatus.ACTIVE,
+      WorkspaceStatus.SUSPENDED,
+      WorkspaceStatus.ARCHIVED,
+    ],
+  })
+  @IsIn([
+    WorkspaceStatus.ACTIVE,
+    WorkspaceStatus.SUSPENDED,
+    WorkspaceStatus.ARCHIVED,
+  ])
+  status!: WorkspaceStatus;
+}
+
+export class StaffListUsersQueryDto {
+  @ApiPropertyOptional({ minimum: 1, default: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 100, default: 50 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+
+  @ApiPropertyOptional({ maxLength: 200 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  search?: string;
+
+  @ApiPropertyOptional({
+    enum: ['active', 'disabled', 'deletion-scheduled'],
+  })
+  @IsOptional()
+  @IsIn(['active', 'disabled', 'deletion-scheduled'])
+  status?: 'active' | 'disabled' | 'deletion-scheduled';
+}
+
+export class StaffListWorkspacesQueryDto {
+  @ApiPropertyOptional({ minimum: 1, default: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 100, default: 50 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+
+  @ApiPropertyOptional({ maxLength: 200 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  search?: string;
+
+  @ApiPropertyOptional({ enum: WorkspaceType })
+  @IsOptional()
+  @IsEnum(WorkspaceType)
+  type?: WorkspaceType;
+
+  @ApiPropertyOptional({ enum: WorkspaceStatus })
+  @IsOptional()
+  @IsEnum(WorkspaceStatus)
+  status?: WorkspaceStatus;
 }

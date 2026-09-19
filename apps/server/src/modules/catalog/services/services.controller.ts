@@ -26,6 +26,8 @@ import { UpdateServiceDto } from './dto/update-service.dto';
 import { ServicesService } from './services.service';
 import { ServicesCredentialsService } from './services-credentials.service';
 import { ServiceTemplatesFactoryService } from './service-templates-factory.service';
+import { RequiresProductCapability } from '../../../shared/product-capabilities/requires-product-capability.decorator';
+import { ProductCapabilities } from '../../../shared/product-capabilities/product-capability';
 
 @ApiTags('Services')
 @ApiBearerAuth()
@@ -85,12 +87,14 @@ export class ServicesController {
   }
 
   @Get('templates')
+  @RequiresProductCapability(ProductCapabilities.SERVICE_TEMPLATES)
   @ApiOperation({ summary: 'List one-click service templates' })
   listTemplates() {
     return this.templatesFactory.listTemplates();
   }
 
   @Post('templates/:templateId')
+  @RequiresProductCapability(ProductCapabilities.SERVICE_TEMPLATES)
   @ApiOperation({ summary: 'Create every service of a one-click template' })
   @ApiResponse({ status: 201, description: 'Template services created' })
   async createFromTemplate(

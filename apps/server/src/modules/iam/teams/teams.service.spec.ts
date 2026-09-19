@@ -157,4 +157,37 @@ describe('TeamsService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
     expect(prisma.teamMember.delete).not.toHaveBeenCalled();
   });
+
+  it('lets an active member leave an organization', async () => {
+    prisma.teamMember.findUnique.mockResolvedValue({
+      userId: 'u1',
+      role: WorkspaceRole.MEMBER,
+      status: MembershipStatus.ACTIVE,
+    });
+
+    await service.leaveWorkspace('t1', { id: 'u1' });
+
+    expect(workspaceAccess.assertWorkspaceAction).toHaveBeenCalledWith(
+      't1',
+      'u1',
+      WorkspaceActions.READ,
+    );
+    expect(prisma.teamMember.delete).toHaveBeenCalledWith({
+      where: { teamId_userId: { teamId: 't1', userId: 'u1' } },
+    });
+  });
+
+  it('does not let the last active owner leave an organization', async () => {
+    prisma.teamMember.findUnique.mockResolvedValue({
+      userId: 'u1',
+      role: WorkspaceRole.OWNER,
+      status: MembershipStatus.ACTIVE,
+    });
+    prisma.teamMember.count.mockResolvedValue(0);
+
+    await expect(
+      service.leaveWorkspace('t1', { id: 'u1' }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.teamMember.delete).not.toHaveBeenCalled();
+  });
 });

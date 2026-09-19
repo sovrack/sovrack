@@ -23,6 +23,7 @@ import { CreateTeamDto } from './dto/create-team.dto';
 import { ConvertPersonalWorkspaceDto } from './dto/convert-personal-workspace.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { UpdateWorkspaceMemberRoleDto } from './dto/update-workspace-member-role.dto';
+import { UpdateWorkspaceMemberBillingAccessDto } from './dto/update-workspace-member-billing-access.dto';
 import { UpdateWorkspaceMemberStatusDto } from './dto/update-workspace-member-status.dto';
 import { TeamsService } from './teams.service';
 
@@ -78,8 +79,8 @@ export class TeamsController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete a team' })
-  @ApiResponse({ status: 200, description: 'Team deleted' })
+  @ApiOperation({ summary: 'Archive a workspace without deleting resources' })
+  @ApiResponse({ status: 200, description: 'Workspace archived' })
   @ApiResponse({ status: 404, description: 'Team not found' })
   async remove(@Param('id') id: string, @GetUser() user: JwtPayload) {
     return this.teamsService.remove(id, user);
@@ -114,6 +115,18 @@ export class TeamsController {
     return this.teamsService.removeMember(id, userId, user);
   }
 
+  @Delete(':id/membership')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Leave an organization as the current user' })
+  @ApiResponse({ status: 204, description: 'Organization left' })
+  @ApiResponse({ status: 409, description: 'The last owner cannot leave' })
+  async leaveWorkspace(
+    @Param('id') id: string,
+    @GetUser() user: JwtPayload,
+  ): Promise<void> {
+    await this.teamsService.leaveWorkspace(id, user);
+  }
+
   @Patch(':id/members/:userId/role')
   @ApiOperation({ summary: 'Update a workspace member role' })
   async updateMemberRole(
@@ -123,6 +136,24 @@ export class TeamsController {
     @GetUser() user: JwtPayload,
   ) {
     return this.teamsService.updateMemberRole(id, userId, dto.role, user);
+  }
+
+  @Patch(':id/members/:userId/billing-access')
+  @ApiOperation({
+    summary: 'Grant or revoke the independent billing permission',
+  })
+  async updateMemberBillingAccess(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body() dto: UpdateWorkspaceMemberBillingAccessDto,
+    @GetUser() user: JwtPayload,
+  ) {
+    return this.teamsService.updateMemberBillingAccess(
+      id,
+      userId,
+      dto.canManageBilling,
+      user,
+    );
   }
 
   @Patch(':id/members/:userId/status')

@@ -3,6 +3,8 @@ import { UnauthorizedException } from '@nestjs/common';
 import { JwtStrategy } from './jwt.strategy';
 import type { JwtPayloadDto } from './dto/jwt-payload.dto';
 import { PrismaService } from '../database/prisma.service';
+import { JwtSessionValidator } from './jwt-session-validator.service';
+import { Role } from '@prisma/client';
 
 function buildStrategy(
   user: unknown = {
@@ -25,15 +27,16 @@ function buildStrategy(
       findUnique: jest.fn().mockResolvedValue(grant),
     },
   } as unknown as PrismaService;
-  return new JwtStrategy(config, prisma);
+  return new JwtStrategy(config, new JwtSessionValidator(prisma));
 }
 
 describe('JwtStrategy', () => {
   it('throws at construction when JWT_SECRET is missing', () => {
     const config = { get: () => undefined } as unknown as ConfigService;
-    expect(() => new JwtStrategy(config, {} as PrismaService)).toThrow(
-      'JWT_SECRET',
-    );
+    expect(
+      () =>
+        new JwtStrategy(config, new JwtSessionValidator({} as PrismaService)),
+    ).toThrow('JWT_SECRET');
   });
 
   describe('validate', () => {
@@ -45,7 +48,10 @@ describe('JwtStrategy', () => {
         role: 'OWNER',
         sessionVersion: 0,
       } as unknown as JwtPayloadDto;
-      await expect(strategy.validate(payload)).resolves.toBe(payload);
+      await expect(strategy.validate(payload)).resolves.toEqual({
+        ...payload,
+        role: Role.MEMBER,
+      });
     });
 
     it('rejects (401) a payload missing id', async () => {
@@ -132,7 +138,10 @@ describe('JwtStrategy', () => {
         impersonationGrantId: 'grant-1',
       } as JwtPayloadDto;
 
-      await expect(strategy.validate(payload)).resolves.toBe(payload);
+      await expect(strategy.validate(payload)).resolves.toEqual({
+        ...payload,
+        role: Role.MEMBER,
+      });
     });
 
     it("refuse immédiatement une session d'assistance terminée", async () => {

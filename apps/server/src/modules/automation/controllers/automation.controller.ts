@@ -17,11 +17,14 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateAutomationRunDto } from '../dto/create-automation-run.dto';
 import { AutomationPaginationDto } from '../dto/automation-pagination.dto';
 import { AutomationService } from '../services/automation.service';
+import { ProductCapabilities } from '../../../shared/product-capabilities/product-capability';
+import { RequiresProductCapability } from '../../../shared/product-capabilities/requires-product-capability.decorator';
 
 @ApiTags('Automation')
 @ApiBearerAuth()
 @Controller(['workspaces/:workspaceId', ''])
 @UseGuards(JwtAuthGuard, WorkspaceGuard)
+@RequiresProductCapability(ProductCapabilities.SERVER_AUTOMATION)
 export class AutomationController {
   constructor(private readonly automationService: AutomationService) {}
 

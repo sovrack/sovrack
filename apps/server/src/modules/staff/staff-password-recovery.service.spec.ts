@@ -8,7 +8,7 @@ import { StaffPasswordRecoveryService } from './staff-password-recovery.service'
 
 const staff: Staff = {
   id: 'staff-1',
-  email: 'admin@sovrack.tech',
+  email: 'contact@sovrack.tech',
   password: '$argon2id$old',
   fullName: 'Root Admin',
   role: PlatformRole.ROOT,

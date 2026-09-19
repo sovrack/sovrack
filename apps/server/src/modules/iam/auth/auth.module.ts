@@ -13,6 +13,9 @@ import { AuditModule } from '../../audit';
 import { TeamsModule } from '../teams/teams.module';
 import { NotificationsModule } from '../../notifications';
 import { ImpersonationSessionService } from './impersonation-session.service';
+import { UserTokenService } from './user-token.service';
+import { UserMfaController } from './user-mfa.controller';
+import { UserMfaService } from './user-mfa.service';
 
 /**
  * Module d'authentification
@@ -33,6 +36,8 @@ import { ImpersonationSessionService } from './impersonation-session.service';
     EmailVerificationService,
     GoogleOAuthService,
     ImpersonationSessionService,
+    UserTokenService,
+    UserMfaService,
     // La stratégie Google n'est instanciée QUE si les variables Google OAuth
     // sont renseignées. Sinon (dev, ou pas encore configuré), la valeur fournie
     // est `undefined` : l'app tourne normalement et AuthGuard('google') reste
@@ -53,6 +58,6 @@ import { ImpersonationSessionService } from './impersonation-session.service';
       },
     },
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, UserMfaController],
 })
 export class AuthModule {}

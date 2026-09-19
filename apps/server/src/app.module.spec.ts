@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { APP_GUARD } from '@nestjs/core';
-import { AppModule } from './app.module';
 import { PrismaService } from './shared/database/prisma.service';
 import { JwtService } from './shared/jwt/jwt.service';
 import { AnsibleRunnerService } from './adapters/provisioning/ansible-runner.service';
@@ -16,6 +15,9 @@ describe('AppModule', () => {
   });
 
   it('compiles without errors', async () => {
+    process.env.CUSTOMER_MFA_SECRET = 'e'.repeat(64);
+    const { AppModule } =
+      jest.requireActual<typeof import('./app.module')>('./app.module');
     mod = await Test.createTestingModule({
       imports: [AppModule],
     })

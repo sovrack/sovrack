@@ -1,7 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
-  ForbiddenException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -10,171 +8,103 @@ import { PrismaService } from '../../../shared/database/prisma.service';
 import { PasswordHasher } from '../security/password-hasher.service';
 import { UsersService } from './users.service';
 
-// Deterministic, fast password hashing for tests (mirrors the legacy
-// `hashed:<pw>` shape the assertions rely on).
 const passwordHasher = {
-  hash: jest.fn((pw: string) => Promise.resolve(`hashed:${pw}`)),
-  verify: jest.fn((hash: string, pw: string) =>
-    Promise.resolve(hash === `hashed:${pw}`),
+  hash: jest.fn((password: string) => Promise.resolve(`hashed:${password}`)),
+  verify: jest.fn((hash: string, password: string) =>
+    Promise.resolve(hash === `hashed:${password}`),
   ),
-  needsRehash: jest.fn(() => false),
 };
 
-const userRow = (over: Record<string, unknown> = {}) => ({
-  id: 'u1',
-  email: 'a@b.com',
+const userRow = (overrides: Record<string, unknown> = {}) => ({
+  id: 'user-1',
+  email: 'person@example.com',
   password: 'hashed:current',
-  fullName: 'A B',
+  fullName: 'Person',
   role: Role.MEMBER,
   isActive: true,
+  sessionVersion: 0,
   createdAt: new Date(),
   updatedAt: new Date(),
-  ...over,
+  ...overrides,
 });
 
 describe('UsersService', () => {
-  let prisma: {
+  const prisma = {
     user: {
-      findUnique: jest.Mock;
-      findMany: jest.Mock;
-      count: jest.Mock;
-      create: jest.Mock;
-      update: jest.Mock;
-      delete: jest.Mock;
-    };
-    teamMember: {
-      findMany: jest.Mock;
-      findFirst: jest.Mock;
-    };
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
   };
   let service: UsersService;
 
   beforeEach(() => {
-    prisma = {
-      user: {
-        findUnique: jest.fn().mockResolvedValue(null),
-        findMany: jest.fn().mockResolvedValue([userRow()]),
-        count: jest.fn().mockResolvedValue(1),
-        create: jest
-          .fn()
-          .mockImplementation(({ data }) => Promise.resolve(userRow(data))),
-        update: jest
-          .fn()
-          .mockImplementation(({ data }) => Promise.resolve(userRow(data))),
-        delete: jest.fn().mockResolvedValue(userRow()),
-      },
-      teamMember: {
-        findMany: jest.fn().mockResolvedValue([]),
-        findFirst: jest.fn().mockResolvedValue(null),
-      },
-    };
+    jest.clearAllMocks();
+    prisma.user.findUnique.mockResolvedValue(userRow());
+    prisma.user.update.mockImplementation(({ data }) =>
+      Promise.resolve(userRow({ password: data.password, sessionVersion: 1 })),
+    );
     service = new UsersService(
       prisma as unknown as PrismaService,
       passwordHasher as unknown as PasswordHasher,
     );
   });
 
-  it('hashes the password, defaults role to DEVELOPER, and strips the hash', async () => {
-    const res = await service.create({
-      email: 'new@b.com',
-      password: 'pw',
-      fullName: 'N',
-    } as never);
-    expect(prisma.user.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          password: 'hashed:pw',
-          role: Role.MEMBER,
-        }),
-      }),
+  it('exposes identity lookup for authentication services', async () => {
+    await expect(service.findByEmail('person@example.com')).resolves.toEqual(
+      expect.objectContaining({ id: 'user-1' }),
     );
-    expect(res).not.toHaveProperty('password');
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { email: 'person@example.com' },
+    });
   });
 
-  it('rejects a duplicate email', async () => {
-    prisma.user.findUnique.mockResolvedValue(userRow());
+  it('rejects a password change for a missing identity', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
     await expect(
-      service.create({
-        email: 'a@b.com',
-        password: 'x',
-        fullName: 'X',
-      } as never),
-    ).rejects.toBeInstanceOf(ConflictException);
-  });
-
-  it('paginates findAll when page + limit are given', async () => {
-    const res = await service.findAll({ page: 1, limit: 10 } as never);
-    expect(prisma.user.count).toHaveBeenCalled();
-    expect(res).toHaveProperty('data');
-  });
-
-  it('forbids a non-admin from updating another user', async () => {
-    prisma.user.findUnique.mockResolvedValue(userRow());
-    await expect(
-      service.update('u1', { fullName: 'X' }, { id: 'u2', role: Role.MEMBER }),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-  });
-
-  it('forbids a non-admin from changing role/isActive (even on self)', async () => {
-    prisma.user.findUnique.mockResolvedValue(userRow());
-    await expect(
-      service.update(
-        'u1',
-        { role: Role.OWNER },
-        { id: 'u1', role: Role.MEMBER },
-      ),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-  });
-
-  it('rejects a password change when the current password is wrong', async () => {
-    prisma.user.findUnique.mockResolvedValue(
-      userRow({ password: 'hashed:other' }),
-    );
-    await expect(
-      service.update(
-        'u1',
-        {
-          currentPassword: 'wrong',
-          newPassword: 'newpw',
-          confirmNewPassword: 'newpw',
-        },
-        { id: 'u1', role: Role.MEMBER },
-      ),
-    ).rejects.toBeInstanceOf(UnauthorizedException);
-  });
-
-  it('rejects a password change when confirmation mismatches', async () => {
-    prisma.user.findUnique.mockResolvedValue(userRow());
-    await expect(
-      service.changeMyPassword('u1', {
+      service.changeMyPassword('missing', {
         currentPassword: 'current',
-        newPassword: 'a',
-        confirmNewPassword: 'b',
-      } as never),
+        newPassword: 'new-password',
+        confirmNewPassword: 'new-password',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('rejects a mismatched password confirmation', async () => {
+    await expect(
+      service.changeMyPassword('user-1', {
+        currentPassword: 'current',
+        newPassword: 'new-password',
+        confirmNewPassword: 'different-password',
+      }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('changes the password when the current one matches', async () => {
-    prisma.user.findUnique.mockResolvedValue(userRow());
-    await service.changeMyPassword('u1', {
-      currentPassword: 'current',
-      newPassword: 'newpw',
-      confirmNewPassword: 'newpw',
-    } as never);
-    expect(prisma.user.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: {
-          password: 'hashed:newpw',
-          sessionVersion: { increment: 1 },
-        },
+  it('rejects an invalid current password', async () => {
+    passwordHasher.verify.mockResolvedValueOnce(false);
+    await expect(
+      service.changeMyPassword('user-1', {
+        currentPassword: 'wrong-password',
+        newPassword: 'new-password',
+        confirmNewPassword: 'new-password',
       }),
-    );
+    ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
-  it('404s when toggling a missing user', async () => {
-    prisma.user.findUnique.mockResolvedValue(null);
-    await expect(service.toggleActive('nope')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+  it('changes the password and revokes every existing customer session', async () => {
+    const result = await service.changeMyPassword('user-1', {
+      currentPassword: 'current',
+      newPassword: 'new-password',
+      confirmNewPassword: 'new-password',
+    });
+
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: {
+        password: 'hashed:new-password',
+        sessionVersion: { increment: 1 },
+      },
+    });
+    expect(result).not.toHaveProperty('password');
+    expect(result.role).toBe(Role.MEMBER);
   });
 });

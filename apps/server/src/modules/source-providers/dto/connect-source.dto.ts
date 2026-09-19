@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { GitProviderType } from '@prisma/client';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsOptional, IsString } from 'class-validator';
 
 /**
  * Provider-agnostic DTO for connecting a source (GitLab or GitHub) to a
@@ -11,11 +11,11 @@ import { IsEnum, IsOptional, IsString } from 'class-validator';
  */
 export class ConnectSourceDto {
   @ApiProperty({
-    enum: GitProviderType,
+    enum: [GitProviderType.GITLAB, GitProviderType.GITHUB],
     example: 'GITLAB',
     description: 'Type de provider Git (GITLAB ou GITHUB)',
   })
-  @IsEnum(GitProviderType)
+  @IsIn([GitProviderType.GITLAB, GitProviderType.GITHUB])
   provider!: GitProviderType;
 
   @ApiPropertyOptional({

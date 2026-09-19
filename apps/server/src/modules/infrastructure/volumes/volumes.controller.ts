@@ -16,11 +16,14 @@ import { VolumesService } from './volumes.service';
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
 import { GetWorkspaceId } from '../../../shared/decorators/get-workspace-id.decorator';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
+import { RequiresProductCapability } from '../../../shared/product-capabilities/requires-product-capability.decorator';
+import { ProductCapabilities } from '../../../shared/product-capabilities/product-capability';
 
 @ApiTags('volumes')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller(['workspaces/:workspaceId/volumes', 'volumes'])
+@RequiresProductCapability(ProductCapabilities.PERSISTENT_VOLUMES)
 export class VolumesController {
   constructor(private readonly volumesService: VolumesService) {}
 

@@ -9,6 +9,7 @@ import {
   parseNullableHeaderInt,
   throwGitlabRequestError,
 } from './gitlab-pagination.helper';
+import { assertSafeOutboundHttpsUrl } from '../../../../shared/http/outbound-url-policy.util';
 
 export type { GitlabPipelineItem } from '../../contracts/gitlab-pipeline.types';
 
@@ -80,7 +81,10 @@ export class GitlabClient {
   ) {}
 
   private normalizeBaseUrl(url: string): string {
-    return url.replace(/\/+$/, '');
+    return assertSafeOutboundHttpsUrl(url, {
+      label: 'GitLab URL',
+      allowPath: false,
+    });
   }
 
   private async getByConnection<T>(

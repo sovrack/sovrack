@@ -19,6 +19,7 @@ import {
   type GitlabProviderPublic,
   type GitProviderStatus,
 } from './git-provider-config.util';
+import { assertSafeOutboundHttpsUrl } from '../../../../shared/http/outbound-url-policy.util';
 
 // ─── Public Types ────────────────────────────────────────────────────────────
 
@@ -69,8 +70,11 @@ export type PatchGitlabProviderInput = {
 
 // ─── GitHub type aliases (same shape as GitLab types) ──────────────────
 
-type UpsertGithubProviderInput = UpsertGitlabProviderInput;
-type PatchGithubProviderInput = PatchGitlabProviderInput;
+type UpsertGithubProviderInput = Pick<
+  UpsertGitlabProviderInput,
+  'name' | 'providerUrl' | 'internalUrl' | 'adminToken' | 'isDefault'
+> & { adminToken: string };
+type PatchGithubProviderInput = Partial<UpsertGithubProviderInput>;
 
 // ─── Service ────────────────────────────────────────────────────────────────
 
@@ -130,7 +134,10 @@ export class GitProviderConfigService {
 
     const refreshed =
       await this.oauth.refreshProviderOAuthTokenIfNeeded(provider);
-    const gitlabUrl = refreshed.providerUrl.trim();
+    const gitlabUrl = assertSafeOutboundHttpsUrl(refreshed.providerUrl, {
+      label: 'GitLab URL',
+      allowPath: false,
+    });
     if (!gitlabUrl) {
       throw new BadRequestException('GitLab URL manquante sur le provider');
     }
@@ -176,10 +183,22 @@ export class GitProviderConfigService {
     teamId: string,
   ): Promise<GitlabProviderPublic> {
     const name = requireNonEmpty(input.name, 'Name est requis');
-    const gitlabUrl = requireNonEmpty(
-      input.providerUrl,
-      'GitLab URL est requis',
+    const gitlabUrl = assertSafeOutboundHttpsUrl(
+      requireNonEmpty(input.providerUrl, 'GitLab URL est requis'),
+      { label: 'GitLab URL', allowPath: false },
     );
+    const internalUrl = normalizeOptional(input.internalUrl);
+    if (internalUrl) {
+      assertSafeOutboundHttpsUrl(internalUrl, {
+        label: 'GitLab internal URL',
+        allowPath: false,
+      });
+    }
+    if (normalizeOptional(input.redirectUri)) {
+      throw new BadRequestException(
+        "L'URI de callback OAuth est calculée par Sovrack et ne peut pas être personnalisée",
+      );
+    }
 
     const count = await this.prisma.gitProviderConfig.count({
       where: { teamId, type: GitProviderType.GITLAB },
@@ -198,8 +217,8 @@ export class GitProviderConfigService {
             teamId,
             type: GitProviderType.GITLAB,
             providerUrl: gitlabUrl,
-            internalUrl: normalizeOptional(input.internalUrl),
-            redirectUri: normalizeOptional(input.redirectUri),
+            internalUrl,
+            redirectUri: null,
             applicationId: normalizeOptional(input.applicationId),
             applicationSecret: this.crypto.encryptOptional(
               input.applicationSecret,
@@ -236,14 +255,24 @@ export class GitProviderConfigService {
     if (typeof input.name === 'string')
       data.name = requireNonEmpty(input.name, 'Name est requis');
     if (typeof input.providerUrl === 'string')
-      data.providerUrl = requireNonEmpty(
-        input.providerUrl,
-        'GitLab URL est requis',
+      data.providerUrl = assertSafeOutboundHttpsUrl(
+        requireNonEmpty(input.providerUrl, 'GitLab URL est requis'),
+        { label: 'GitLab URL', allowPath: false },
       );
-    if (typeof input.internalUrl === 'string')
-      data.internalUrl = normalizeOptional(input.internalUrl);
-    if (typeof input.redirectUri === 'string')
-      data.redirectUri = normalizeOptional(input.redirectUri);
+    if (typeof input.internalUrl === 'string') {
+      const internalUrl = normalizeOptional(input.internalUrl);
+      data.internalUrl = internalUrl
+        ? assertSafeOutboundHttpsUrl(internalUrl, {
+            label: 'GitLab internal URL',
+            allowPath: false,
+          })
+        : null;
+    }
+    if (normalizeOptional(input.redirectUri)) {
+      throw new BadRequestException(
+        "L'URI de callback OAuth est calculée par Sovrack et ne peut pas être personnalisée",
+      );
+    }
     if (typeof input.applicationId === 'string')
       data.applicationId = normalizeOptional(input.applicationId);
     if (typeof input.groupNames === 'string')

@@ -37,10 +37,6 @@ const WORKSPACE_PERMISSIONS: Readonly<
     WorkspaceActions.READ_INTEGRATION,
     WorkspaceActions.MANAGE_INTEGRATION,
   ]),
-  BILLING: new Set([
-    WorkspaceActions.READ_BILLING,
-    WorkspaceActions.MANAGE_BILLING,
-  ]),
   MEMBER: new Set([WorkspaceActions.READ]),
 };
 
@@ -97,6 +93,7 @@ export class WorkspaceAccessService {
       where: { teamId_userId: { teamId: workspaceId, userId } },
       select: {
         role: true,
+        canManageBilling: true,
         status: true,
         user: { select: { isActive: true } },
         team: { select: { status: true } },
@@ -111,7 +108,13 @@ export class WorkspaceAccessService {
     ) {
       throw new NotFoundException('Workspace introuvable');
     }
-    if (!WORKSPACE_PERMISSIONS[membership.role].has(action)) {
+    const billingPermission =
+      action === WorkspaceActions.READ_BILLING ||
+      action === WorkspaceActions.MANAGE_BILLING;
+    const isAllowed =
+      WORKSPACE_PERMISSIONS[membership.role].has(action) ||
+      (billingPermission && membership.canManageBilling);
+    if (!isAllowed) {
       throw new ForbiddenException({
         code: 'WORKSPACE_ACCESS_DENIED',
         message: "Votre rôle ne permet pas d'effectuer cette action",
@@ -122,6 +125,7 @@ export class WorkspaceAccessService {
       userId,
       workspaceId,
       workspaceRole: membership.role,
+      canManageBilling: membership.canManageBilling,
     };
   }
 
