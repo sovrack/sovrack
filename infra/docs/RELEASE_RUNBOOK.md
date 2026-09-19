@@ -11,7 +11,7 @@ Une release est un ensemble immuable :
 - topologie runtime (`compact`, `split` ou baseline `legacy-single`) ;
 - dernière migration Prisma attendue ;
 - SHA-256 du contrat OpenAPI ;
-- identifiant SemVer (`v3.0.0-rc.1`, puis `v3.0.0`).
+- identifiant SemVer (`v3.1.0-rc.1`, puis `v3.1.0`).
 
 Le VPS utilise le layout suivant :
 
@@ -45,10 +45,14 @@ migration, les contrôles de schéma et les healthchecks.
 9. Une release précédente compatible et son manifeste sont archivés.
 10. Chaque environnement possède un deploy token GitLab distinct, limité à
     `read_registry`, protégé, masqué et assorti d'une date d'expiration.
+11. Les cinq secrets applicatifs (`JWT_SECRET`, `STAFF_JWT_SECRET`,
+    `STAFF_OTP_SECRET`, `CUSTOMER_MFA_SECRET`, `CONFIG_SECRET`) ont été générés
+    indépendamment. Le preflight refuse une valeur absente, trop courte ou
+    partagée entre deux usages.
 
 ## Qualification sur la VM locale
 
-Créer d'abord un tag `v3.0.0-rc.1`. La VM de qualification doit restaurer une
+Créer d'abord un tag `v3.1.0-rc.1`. La VM de qualification doit restaurer une
 copie pseudonymisée du schéma de production, puis exécuter le bundle exact sous
 les limites CPU/RAM du VPS. Aucune pseudo-staging publique n'est utilisée.
 Exécuter ensuite :
@@ -70,7 +74,7 @@ d'un identifiant de release existant.
 
 ## Promotion de production
 
-Créer le tag final `v3.0.0` uniquement après validation de la RC. Le job
+Créer le tag final `v3.1.0` uniquement après validation de la RC. Le job
 `deploy:production` doit être manuel, protégé et soumis à approbation dans
 GitLab.
 

@@ -21,6 +21,16 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=example.test' \
   -keyout "$TEMP_DIR/certs/privkey.pem" \
   -out "$TEMP_DIR/certs/fullchain.pem" >/dev/null 2>&1
 
+# mktemp crée 0700. Dans la CI, le daemon Docker rootless (UID 1000) vit dans
+# un service séparé et doit pouvoir traverser le volume /builds partagé. Les
+# fichiers concernés sont uniquement un certificat autosigné jetable et un
+# marqueur de maintenance vide.
+chmod 755 "$TEMP_DIR" "$TEMP_DIR/certs" "$TEMP_DIR/maintenance"
+if [ -n "${DIND_SHARED_UID:-}" ]; then
+  chown -R "$DIND_SHARED_UID:${DIND_SHARED_GID:-$DIND_SHARED_UID}" \
+    "$TEMP_DIR/certs" "$TEMP_DIR/maintenance"
+fi
+
 docker run --rm -d --name "$CONTAINER" -e DOMAIN=example.test \
   -e APP_DOMAIN=app.example.test -e STAFF_DOMAIN=staff.example.test \
   -v "$ROOT/nginx/proxy.conf.template:/etc/nginx/proxy.conf.template:ro" \

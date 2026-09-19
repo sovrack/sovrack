@@ -3,6 +3,7 @@
 ## Bloquants avant la prochaine release candidate
 
 - [ ] Tous les secrets publiés hors de leur mécanisme secret ont été renouvelés ; aucune valeur ne doit entrer dans Git ou les logs.
+- [ ] `JWT_SECRET`, `STAFF_JWT_SECRET`, `STAFF_OTP_SECRET`, `CUSTOMER_MFA_SECRET` et `CONFIG_SECRET` sont tous présents, suffisamment longs et distincts.
 - [ ] Tous les anciens runners sont révoqués et aucun runner ne tourne sur le VPS applicatif.
 - [ ] Les nouveaux runners séparés portent les tags attendus.
 - [ ] La qualification locale rejoue le bundle exact avec les limites du VPS.
@@ -13,8 +14,9 @@
 - [ ] La baseline R0 (schéma 105 + anciens digests) est archivée.
 - [ ] L'état du `ROOT` existant a été contrôlé sans l'écraser ; `bootstrap-staff` n'est utilisé que s'il est réellement absent.
 - [ ] SMTP a été configuré depuis `/staff/settings/email`, limité au fournisseur attendu et testé.
-- [ ] La récupération du `ROOT` via `admin@sovrack.tech` et sa redirection OVH a été testée de bout en bout.
+- [ ] La récupération du `ROOT` via `contact@sovrack.tech` et sa redirection OVH a été testée de bout en bout.
 - [ ] SPF, DKIM et DMARC sont publiés pour le domaine d'envoi.
+- [ ] L'identité légale de l'éditeur, son adresse et les informations d'hébergement ont été validées puis reportées dans les mentions légales ; aucune donnée n'est inventée par l'équipe technique.
 - [ ] Les DNS `sovrack.tech`, `app.sovrack.tech` et `staff.sovrack.tech` pointent vers la cible et le certificat SAN couvre les quatre noms avec `www`.
 - [ ] Les cookies client/staff sont host-only ; aucun `AUTH_COOKIE_DOMAIN` global n'est défini.
 - [ ] Le ROOT a validé la récupération par code ; l'ouverture publique reste conditionnée à une MFA staff effective.

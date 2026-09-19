@@ -44,11 +44,12 @@ Un utilisateur possède au maximum un workspace `PERSONAL`, mais peut appartenir
 explicite et irréversible ; elle active la collaboration. `Enterprise` est un
 plan commercial, jamais un type d'identité ou de workspace.
 
-Les rôles workspace sont `OWNER`, `ADMIN`, `BILLING`, `MEMBER`. Les rôles projet
-sont `MAINTAINER`, `DEVELOPER`, `VIEWER`. Un `ADMIN` workspace administre les
-opérations, mais ne lit pas automatiquement les secrets : cette action exige une
-affectation projet `MAINTAINER`. Le back-office utilise un modèle entièrement
-séparé : `ROOT`, `ADMIN`, `OPERATOR`.
+Les rôles workspace sont `OWNER`, `ADMIN`, `MEMBER`. L’accès à la facturation
+est une permission indépendante (`canManageBilling`), pas un rôle concurrent.
+Les rôles projet sont `MAINTAINER`, `DEVELOPER`, `VIEWER`. Un `ADMIN` workspace
+administre les opérations, mais ne lit pas automatiquement les secrets : cette
+action exige une affectation projet `MAINTAINER`. Le back-office utilise un
+modèle entièrement séparé : `ROOT`, `ADMIN`, `OPERATOR`.
 
 ## Runtime et données
 

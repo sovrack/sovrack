@@ -21,7 +21,13 @@ trap cleanup EXIT
 mkdir -p "$RELEASE_ROOT" "$BASE_DIR/shared"
 mkdir -p "$BASE_DIR/releases/previous-release"
 ln -s "$BASE_DIR/releases/previous-release" "$BASE_DIR/current"
-cp -R "$SOURCE_ROOT/." "$RELEASE_ROOT/"
+# Le temporaire DinD doit vivre dans CI_PROJECT_DIR pour être partagé avec le
+# daemon rootless. Une archive filtrée évite donc de recopier le test dans
+# lui-même et exclut aussi les métadonnées Git inutiles à une release.
+tar -C "$SOURCE_ROOT" \
+  --exclude='./.git' \
+  --exclude='./.docker-test-tmp-*' \
+  -cf - . | tar -C "$RELEASE_ROOT" -xf -
 infra_commit="$(git -C "$SOURCE_ROOT" rev-parse HEAD)"
 printf '%s\n' "$infra_commit" > "$RELEASE_ROOT/.infra-commit"
 
@@ -39,6 +45,7 @@ REDIS_PASSWORD=redis-test-password-00000000
 JWT_SECRET=jwt-test-secret-000000000000000000000000000000000000
 STAFF_JWT_SECRET=staff-jwt-test-secret-000000000000000000000000000000
 STAFF_OTP_SECRET=staff-otp-test-secret-000000000000000000000000000000
+CUSTOMER_MFA_SECRET=customer-mfa-test-secret-000000000000000000000000000
 CONFIG_SECRET=config-test-secret-00000000000000000000000000000000
 STAFF_ROOT_EMAIL=staff@example.test
 STAFF_ROOT_PASSWORD=staff-test-password-000000000

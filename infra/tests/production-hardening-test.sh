@@ -38,6 +38,15 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
   -keyout "$CERT_DIR/privkey.pem" -out "$CERT_DIR/fullchain.pem" \
   >/dev/null 2>&1
 
+# Autorise uniquement le daemon DinD rootless à traverser les fixtures
+# éphémères montées en lecture seule. Les secrets et certificats de production
+# ne passent jamais par ce test.
+chmod 755 "$TEMP_DIR" "$CERT_DIR" "$MAINTENANCE_DIR"
+if [ -n "${DIND_SHARED_UID:-}" ]; then
+  chown -R "$DIND_SHARED_UID:${DIND_SHARED_GID:-$DIND_SHARED_UID}" \
+    "$CERT_DIR" "$MAINTENANCE_DIR"
+fi
+
 cat > "$ENV_FILE" <<EOF
 DOMAIN=hardening.test
 APP_DOMAIN=app.hardening.test
@@ -54,6 +63,7 @@ REDIS_PASSWORD=hardening-redis-password-000000000
 JWT_SECRET=hardening-jwt-secret-000000000000000000000000000000
 STAFF_JWT_SECRET=hardening-staff-jwt-secret-00000000000000000000000
 STAFF_OTP_SECRET=hardening-staff-otp-secret-00000000000000000000000
+CUSTOMER_MFA_SECRET=hardening-customer-mfa-secret-00000000000000000000
 CONFIG_SECRET=hardening-config-secret-00000000000000000000000000
 BACKEND_IMAGE=$BACKEND_IMAGE
 FRONTEND_IMAGE=$FRONTEND_IMAGE
@@ -97,7 +107,7 @@ done
 rate_limited=false
 for _attempt in $(seq 1 12); do
   status="$(curl -ksS -o /dev/null -w '%{http_code}' \
-    -H 'Host: hardening.test' -H 'Content-Type: application/json' \
+    -H 'Host: app.hardening.test' -H 'Content-Type: application/json' \
     -d '{}' https://127.0.0.1:18443/backend-api/auth/login)"
   if [ "$status" = "429" ]; then
     rate_limited=true

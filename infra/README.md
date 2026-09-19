@@ -112,7 +112,7 @@ migration Phase 2.
 
 - [Préparation reproductible d'un VPS](docs/HOST_PROVISIONING.md)
 - [Recette sur la VM locale](docs/LOCAL_ACCEPTANCE.md)
-- [Périmètre de la première bêta privée](docs/PRIVATE_BETA_SCOPE.md)
+- [Périmètre produit V1](docs/V1_PRODUCT_SCOPE.md)
 - [Inventaire des cookies](docs/COOKIE_INVENTORY.md)
 - [Runners GitLab séparés](docs/RUNNER_HARDENING.md)
 - [Durcissement du VPS](docs/HOST_HARDENING.md)

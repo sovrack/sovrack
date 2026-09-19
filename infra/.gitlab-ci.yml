@@ -12,6 +12,52 @@ variables:
   NGINX_IMAGE: nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
   POSTGRES_IMAGE: postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
   REDIS_IMAGE: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+  DOCKER_COMPOSE_VERSION: v2.40.3
+  DOCKER_COMPOSE_SHA256_AMD64: dba9d98e1ba5bfe11d88c99b9bd32fc4a0624a30fafe68eea34d61a3e42fd372
+  DOCKER_COMPOSE_SHA256_ARM64: d26373b19e89160546d15407516cc59f453030d9bc5b43ba7faf16f7b4980137
+
+# Le runner Docker-tests conserve une allowlist minimale `node:*`. Le client
+# Docker provient de Debian et le plugin Compose officiel est téléchargé à une
+# version immuable puis vérifié avant sa première exécution. Seul le service
+# DinD rootless reçoit le privilège du runner dédié.
+.docker-test-job:
+  image: node:22@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
+  tags:
+    - sovrack-docker-tests
+  services:
+    - name: docker:27-dind-rootless@sha256:9d7346a1c76e658d818714d48d6154436bcf681ea3251985ccbe55f7788d9e20
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ''
+    # UID/GID de l'utilisateur du service officiel docker:dind-rootless. Les
+    # seuls chemins ajustés sont des fixtures éphémères générées par les tests.
+    DIND_SHARED_UID: '1000'
+    DIND_SHARED_GID: '1000'
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends ca-certificates curl docker.io git openssl
+    - git config --global --add safe.directory "$CI_PROJECT_DIR"
+    - mkdir -p /usr/local/lib/docker/cli-plugins
+    - |
+      case "$(uname -m)" in
+        x86_64) compose_arch=x86_64; compose_sha="$DOCKER_COMPOSE_SHA256_AMD64" ;;
+        aarch64|arm64) compose_arch=aarch64; compose_sha="$DOCKER_COMPOSE_SHA256_ARM64" ;;
+        *) echo "Architecture non prise en charge pour Docker Compose : $(uname -m)"; exit 1 ;;
+      esac
+      compose_path=/usr/local/lib/docker/cli-plugins/docker-compose
+      curl --fail --location --silent --show-error --retry 3 \
+        "https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_VERSION/docker-compose-linux-$compose_arch" \
+        --output "$compose_path"
+      printf '%s  %s\n' "$compose_sha" "$compose_path" | sha256sum --check --strict -
+      chmod 0755 "$compose_path"
+      docker compose version
+    # Le daemon DinD rootless ne voit en écriture que le volume exact du projet,
+    # contrairement au /tmp du job et au parent de CI_PROJECT_DIR. La copie de
+    # release exclut explicitement ce répertoire temporaire.
+    - export TMPDIR="$CI_PROJECT_DIR/.docker-test-tmp-$CI_JOB_ID"
+    - mkdir -p "$TMPDIR"
+  after_script:
+    - rmdir "$CI_PROJECT_DIR/.docker-test-tmp-$CI_JOB_ID" 2>/dev/null || true
 
 validate:compose:
   stage: validate
@@ -35,6 +81,29 @@ validate:shell:
     - if: '$CI_COMMIT_BRANCH'
     - if: '$CI_COMMIT_TAG'
 
+# Exercices destructifs confinés dans un daemon Docker jetable : mode
+# maintenance Nginx, promotion immuable et restauration d'une sauvegarde.
+validate:docker-integration:
+  extends: .docker-test-job
+  stage: validate
+  script:
+    - ./tests/nginx-maintenance-test.sh
+    - ./tests/release-deploy-integration.sh
+    - ./tests/backup-restore-integration.sh
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_TAG'
+
+# Qualification du conteneur réellement candidat à la promotion. Les images
+# doivent être immuables et sont fournies par le pipeline de release.
+qualify:runtime-hardening:
+  extends: .docker-test-job
+  stage: validate
+  script:
+    - ./tests/production-hardening-test.sh
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/ && $BACKEND_IMAGE && $FRONTEND_IMAGE'
+
 # A release bundle contains no secret. It binds the three source commits, both
 # immutable application images, the exact DB schema and the API contract hash.
 package:release:
@@ -43,6 +112,8 @@ package:release:
   needs:
     - validate:compose
     - validate:shell
+    - validate:docker-integration
+    - qualify:runtime-hardening
   before_script:
     - apk add --no-cache bash coreutils tar
     - 'test -n "$BACKEND_IMAGE" && test -n "$FRONTEND_IMAGE" && test -n "$BACKEND_COMMIT" && test -n "$FRONTEND_COMMIT"'

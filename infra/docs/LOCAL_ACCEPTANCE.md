@@ -31,11 +31,25 @@ production de référence.
 Les mots de passe du seed sont exclusivement des fixtures locales. La recette
 n'envoie aucun email Internet et ne contacte jamais le VPS de production.
 
+## Comptes de recette locaux
+
+- Client propriétaire : `owner@sovrack.test` / `Local-Client-2026!`.
+- Administrateur back-office : `admin.staff@sovrack.test` /
+  `Local-Admin-2026!`.
+- Le secret TOTP de recette pour ROOT et ADMIN est
+  `JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP`. Il peut être ajouté manuellement dans
+  une application d'authentification compatible TOTP.
+
+Ces identifiants sont fixes afin que la recette navigateur soit reproductible.
+Ils ne doivent jamais être copiés dans un environnement distant ou de
+production. `make local-up` réinitialise uniquement les comptes fixtures avec
+ces valeurs et remet leur compteur TOTP local à zéro.
+
 La recette réussie autorise la création d'un tag candidat, pas la production.
 La promotion stable exige encore la checklist, les sauvegardes hors site et une
 décision humaine dans GitLab.
 
 Le périmètre fonctionnel accepté est figé dans
-[`PRIVATE_BETA_SCOPE.md`](PRIVATE_BETA_SCOPE.md). Les pages tarifs,
-documentation et juridique doivent conserver leur écran neutralisé pendant
-toute cette recette.
+[`V1_PRODUCT_SCOPE.md`](V1_PRODUCT_SCOPE.md). Les pages publiques (tarifs,
+documentation, statut, sécurité et juridique) doivent être accessibles sur le
+domaine public, tandis que les consoles client et staff restent non indexables.

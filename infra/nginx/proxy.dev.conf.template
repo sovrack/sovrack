@@ -37,6 +37,55 @@ server {
     }
 
     location /backend-api/ {
+        return 404;
+    }
+
+    location / {
+        proxy_pass http://frontend:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+server {
+    listen 80;
+    server_name ${APP_DOMAIN};
+    add_header X-Robots-Tag "noindex, nofollow, noarchive" always;
+    server_tokens off;
+    client_max_body_size 15m;
+    include /etc/nginx/conf.d/security-headers.conf;
+    limit_req_status 429;
+    limit_conn_status 429;
+    limit_conn sovrack_local_connections 50;
+
+    location ~ ^/backend-api/health(?:/live|/ready)?/?$ {
+        rewrite ^/backend-api/(.*)$ /$1 break;
+        proxy_pass http://backend:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location = /backend-api/staff/impersonation/exchange {
+        limit_req zone=sovrack_local_auth burst=5 nodelay;
+        rewrite ^/backend-api/(.*)$ /$1 break;
+        proxy_pass http://backend:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ^~ /backend-api/staff/ {
+        return 404;
+    }
+
+    location /backend-api/ {
         limit_req zone=sovrack_local_api burst=40 nodelay;
         limit_req zone=sovrack_local_auth burst=5 nodelay;
         rewrite ^/backend-api/(.*)$ /$1 break;
@@ -50,6 +99,55 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_read_timeout 3600s;
+    }
+
+    location / {
+        proxy_pass http://frontend:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+server {
+    listen 80;
+    server_name ${STAFF_DOMAIN};
+    add_header X-Robots-Tag "noindex, nofollow, noarchive" always;
+    server_tokens off;
+    client_max_body_size 15m;
+    include /etc/nginx/conf.d/security-headers.conf;
+    limit_req_status 429;
+    limit_conn_status 429;
+    limit_conn sovrack_local_connections 50;
+
+    location ~ ^/backend-api/health(?:/live|/ready)?/?$ {
+        rewrite ^/backend-api/(.*)$ /$1 break;
+        proxy_pass http://backend:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ^~ /backend-api/staff/ {
+        limit_req zone=sovrack_local_api burst=40 nodelay;
+        limit_req zone=sovrack_local_auth burst=5 nodelay;
+        rewrite ^/backend-api/(.*)$ /$1 break;
+        proxy_pass http://backend:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /backend-api/ {
+        return 404;
     }
 
     location / {

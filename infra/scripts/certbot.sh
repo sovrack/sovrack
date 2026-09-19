@@ -34,7 +34,7 @@ env_value() {
 
 DOMAIN="${DOMAIN:-$(env_value DOMAIN)}"
 EMAIL="${CERTBOT_EMAIL:-$(env_value CERTBOT_EMAIL)}"
-EMAIL="${EMAIL:-admin@sovrack.tech}"
+EMAIL="${EMAIL:-contact@sovrack.tech}"
 CERTBOT_IMAGE="${CERTBOT_IMAGE:-$(env_value CERTBOT_IMAGE)}"
 CERTBOT_IMAGE="${CERTBOT_IMAGE:-certbot/certbot@sha256:34ee91d2f43008eb78a007d22f23ed4b2eaa9a454cb27ca2c042b49527a695b4}"
 CERTBOT_DOMAINS="${CERTBOT_DOMAINS:-$(env_value CERTBOT_DOMAINS)}"

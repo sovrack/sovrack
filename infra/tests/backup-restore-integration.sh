@@ -16,8 +16,10 @@ if docker ps -a --filter "label=com.docker.compose.project=$TEST_PROJECT" \
 fi
 
 TEST_BACKUP_DIR="$(mktemp -d)"
+EXPECTED_TMP_ROOT="${TMPDIR:-/tmp}"
+EXPECTED_TMP_ROOT="${EXPECTED_TMP_ROOT%/}"
 case "$TEST_BACKUP_DIR" in
-  /tmp/tmp.*) ;;
+  "$EXPECTED_TMP_ROOT"/tmp.*) ;;
   *) echo "Répertoire temporaire inattendu : $TEST_BACKUP_DIR"; exit 1 ;;
 esac
 
