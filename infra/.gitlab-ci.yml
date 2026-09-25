@@ -12,14 +12,18 @@ variables:
   NGINX_IMAGE: nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
   POSTGRES_IMAGE: postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
   REDIS_IMAGE: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
-  DOCKER_COMPOSE_VERSION: v2.40.3
-  DOCKER_COMPOSE_SHA256_AMD64: dba9d98e1ba5bfe11d88c99b9bd32fc4a0624a30fafe68eea34d61a3e42fd372
-  DOCKER_COMPOSE_SHA256_ARM64: d26373b19e89160546d15407516cc59f453030d9bc5b43ba7faf16f7b4980137
+  DOCKER_CLI_VERSION: '27.5.1'
+  DOCKER_CLI_SHA256_AMD64: 4f798b3ee1e0140eab5bf30b0edc4e84f4cdb53255a429dc3bbae9524845d640
+  DOCKER_CLI_SHA256_ARM64: e6b53725a73763ab3f988c73f8772eaed429754c1a579db5ff11f21990fd1817
+  DOCKER_COMPOSE_PACKAGE_VERSION: '2.40.3-1~debian.12~bookworm'
+  DOCKER_COMPOSE_SHA256_AMD64: 8e631e31b602ee93eed88d7df477781e43bb8d78a8ad3429531f594029034c2c
+  DOCKER_COMPOSE_SHA256_ARM64: 6fc02051772acbb061b2e5dbcbe15963576edd23517c73cea395305873d69aa8
 
 # Le runner Docker-tests conserve une allowlist minimale `node:*`. Le client
-# Docker provient de Debian et le plugin Compose officiel est téléchargé à une
-# version immuable puis vérifié avant sa première exécution. Seul le service
-# DinD rootless reçoit le privilège du runner dédié.
+# Docker CLI et le plugin Compose sont téléchargés depuis leurs distributions
+# officielles, à des versions immuables vérifiées avant leur première
+# exécution. Le job n'installe aucun daemon ; seul le service DinD rootless
+# reçoit le privilège du runner dédié.
 .docker-test-job:
   image: node:22@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
   tags:
@@ -34,22 +38,39 @@ variables:
     DIND_SHARED_UID: '1000'
     DIND_SHARED_GID: '1000'
   before_script:
-    - apt-get update
-    - apt-get install -y --no-install-recommends ca-certificates curl docker.io git openssl
     - git config --global --add safe.directory "$CI_PROJECT_DIR"
+    - |
+      case "$(uname -m)" in
+        x86_64) docker_arch=x86_64; docker_sha="$DOCKER_CLI_SHA256_AMD64" ;;
+        aarch64|arm64) docker_arch=aarch64; docker_sha="$DOCKER_CLI_SHA256_ARM64" ;;
+        *) echo "Architecture non prise en charge pour Docker CLI : $(uname -m)"; exit 1 ;;
+      esac
+      docker_archive="$(mktemp -p /tmp docker-cli.XXXXXX.tgz)"
+      curl --fail --location --silent --show-error --retry 3 \
+        "https://download.docker.com/linux/static/stable/$docker_arch/docker-$DOCKER_CLI_VERSION.tgz" \
+        --output "$docker_archive"
+      printf '%s  %s\n' "$docker_sha" "$docker_archive" | sha256sum --check --strict -
+      tar -xzf "$docker_archive" -C /tmp docker/docker
+      install -m 0755 /tmp/docker/docker /usr/local/bin/docker
+      docker --version
     - mkdir -p /usr/local/lib/docker/cli-plugins
     - |
       case "$(uname -m)" in
-        x86_64) compose_arch=x86_64; compose_sha="$DOCKER_COMPOSE_SHA256_AMD64" ;;
-        aarch64|arm64) compose_arch=aarch64; compose_sha="$DOCKER_COMPOSE_SHA256_ARM64" ;;
+        x86_64) compose_arch=amd64; compose_sha="$DOCKER_COMPOSE_SHA256_AMD64" ;;
+        aarch64|arm64) compose_arch=arm64; compose_sha="$DOCKER_COMPOSE_SHA256_ARM64" ;;
         *) echo "Architecture non prise en charge pour Docker Compose : $(uname -m)"; exit 1 ;;
       esac
+      compose_package="$(mktemp -p /tmp docker-compose.XXXXXX.deb)"
+      compose_extract="$(mktemp -d -p /tmp docker-compose.XXXXXX)"
       compose_path=/usr/local/lib/docker/cli-plugins/docker-compose
       curl --fail --location --silent --show-error --retry 3 \
-        "https://github.com/docker/compose/releases/download/$DOCKER_COMPOSE_VERSION/docker-compose-linux-$compose_arch" \
-        --output "$compose_path"
-      printf '%s  %s\n' "$compose_sha" "$compose_path" | sha256sum --check --strict -
-      chmod 0755 "$compose_path"
+        "https://download.docker.com/linux/debian/dists/bookworm/pool/stable/$compose_arch/docker-compose-plugin_${DOCKER_COMPOSE_PACKAGE_VERSION}_${compose_arch}.deb" \
+        --output "$compose_package"
+      printf '%s  %s\n' "$compose_sha" "$compose_package" | sha256sum --check --strict -
+      dpkg-deb -x "$compose_package" "$compose_extract"
+      install -m 0755 \
+        "$compose_extract/usr/libexec/docker/cli-plugins/docker-compose" \
+        "$compose_path"
       docker compose version
     # Le daemon DinD rootless ne voit en écriture que le volume exact du projet,
     # contrairement au /tmp du job et au parent de CI_PROJECT_DIR. La copie de
