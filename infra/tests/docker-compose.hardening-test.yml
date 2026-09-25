@@ -4,8 +4,8 @@ services:
   nginx:
     container_name: sovrack-hardening-nginx
     ports: !override
-      - "127.0.0.1:18080:80"
-      - "127.0.0.1:18443:443"
+      - "${HARDENING_BIND_ADDRESS:-127.0.0.1}:18080:80"
+      - "${HARDENING_BIND_ADDRESS:-127.0.0.1}:18443:443"
     volumes: !override
       # Compose résout les chemins relatifs depuis le premier fichier (-f),
       # c'est-à-dire la racine du dépôt et non le dossier tests/.

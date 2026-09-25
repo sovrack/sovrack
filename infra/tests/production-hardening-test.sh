@@ -11,6 +11,17 @@ TEMP_DIR="$(mktemp -d)"
 ENV_FILE="$TEMP_DIR/test.env"
 CERT_DIR="$TEMP_DIR/certs"
 MAINTENANCE_DIR="$TEMP_DIR/maintenance"
+HARDENING_BIND_ADDRESS="127.0.0.1"
+HARDENING_PROBE_HOST="127.0.0.1"
+
+# Avec un daemon distant (DinD), le port publié appartient au service Docker et
+# non au conteneur du job. Le bind 0.0.0.0 reste confiné au réseau jetable du
+# job, et la sonde vise le nom d'hôte extrait de DOCKER_HOST.
+if [[ "${DOCKER_HOST:-}" == tcp://* ]]; then
+  docker_host_authority="${DOCKER_HOST#tcp://}"
+  HARDENING_BIND_ADDRESS="0.0.0.0"
+  HARDENING_PROBE_HOST="${docker_host_authority%%:*}"
+fi
 
 cleanup() {
   if [ "${KEEP_HARDENING_STACK:-false}" = "true" ]; then
@@ -72,6 +83,7 @@ POSTGRES_IMAGE=$POSTGRES_IMAGE
 REDIS_IMAGE=$REDIS_IMAGE
 HARDENING_CERT_DIR=$CERT_DIR
 HARDENING_MAINTENANCE_DIR=$MAINTENANCE_DIR
+HARDENING_BIND_ADDRESS=$HARDENING_BIND_ADDRESS
 EOF
 
 compose=(docker compose --env-file "$ENV_FILE" -p "$TEST_PROJECT" \
@@ -95,7 +107,7 @@ for container in \
 done
 
 headers="$(curl -ksS -D - -o /dev/null \
-  -H 'Host: hardening.test' https://127.0.0.1:18443/backend-api/health)"
+  -H 'Host: hardening.test' "https://$HARDENING_PROBE_HOST:18443/backend-api/health")"
 for header in x-content-type-options x-frame-options referrer-policy \
   permissions-policy strict-transport-security; do
   [ "$(printf '%s\n' "$headers" | grep -ci "^${header}:")" -eq 1 ] || {
@@ -108,7 +120,7 @@ rate_limited=false
 for _attempt in $(seq 1 12); do
   status="$(curl -ksS -o /dev/null -w '%{http_code}' \
     -H 'Host: app.hardening.test' -H 'Content-Type: application/json' \
-    -d '{}' https://127.0.0.1:18443/backend-api/auth/login)"
+    -d '{}' "https://$HARDENING_PROBE_HOST:18443/backend-api/auth/login")"
   if [ "$status" = "429" ]; then
     rate_limited=true
     break

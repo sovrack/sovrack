@@ -111,9 +111,11 @@ bout. Ce contrôle exige l'accès réel à la boîte `contact@sovrack.tech`.
 4. Exécuter sur la VM la qualification de capacité/topologie `compact`, le
    test de charge, le renouvellement TLS en dry-run et la restauration d'une
    sauvegarde chiffrée hors VPS.
-5. `v3.1.0-rc.1` a été rejetée : le daemon de qualification jetable ne
-   recevait pas l'authentification du registre privé. Produire et qualifier
-   `v3.1.0-rc.2` après correction, sans remplacer le tag RC rejeté.
+5. `v3.1.0-rc.1` a été rejetée car le daemon de qualification ne recevait
+   pas l'authentification du registre privé. `v3.1.0-rc.2` a ensuite validé
+   le pull, les migrations et les healthchecks, mais sa sonde HTTPS visait le
+   loopback du job au lieu du daemon DinD. Produire et qualifier
+   `v3.1.0-rc.3` après correction, sans remplacer les tags RC rejetés.
 6. Créer `v3.1.0` seulement après validation de la RC, puis approuver le job
    GitLab manuel `deploy:production`.
 7. Exécuter les smoke tests et archiver le compte-rendu post-release prévu par
