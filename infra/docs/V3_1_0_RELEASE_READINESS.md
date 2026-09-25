@@ -20,7 +20,7 @@ la checklist de production ni l'approbation explicite du job de promotion.
   `registry.gitlab.com/deploy-automation/deploy-automation-frontend:1918b9c0e3ac5d6841566159fcacba7be1105938` ;
 - digest observé de l'image frontend :
   `sha256:004ea48112c20b3da628cbffa39a53a784cb6961ffb97e76b3c079f68451a544` ;
-- infrastructure `main` qualifiée :
+- baseline technique infrastructure qualifiée avant le gel documentaire :
   `5d26f8b2ef900901c9a29833d3ea0ed314566136` ;
 - dernière migration attendue :
   `20260918130000_disable_unsigned_legacy_webhooks` ;
@@ -111,8 +111,9 @@ bout. Ce contrôle exige l'accès réel à la boîte `contact@sovrack.tech`.
 4. Exécuter sur la VM la qualification de capacité/topologie `compact`, le
    test de charge, le renouvellement TLS en dry-run et la restauration d'une
    sauvegarde chiffrée hors VPS.
-5. Produire et qualifier `v3.1.0-rc.1` avec les images SHA exactes. Corriger par
-   une nouvelle RC en cas d'échec ; ne jamais remplacer une RC existante.
+5. `v3.1.0-rc.1` a été rejetée : le daemon de qualification jetable ne
+   recevait pas l'authentification du registre privé. Produire et qualifier
+   `v3.1.0-rc.2` après correction, sans remplacer le tag RC rejeté.
 6. Créer `v3.1.0` seulement après validation de la RC, puis approuver le job
    GitLab manuel `deploy:production`.
 7. Exécuter les smoke tests et archiver le compte-rendu post-release prévu par

@@ -72,12 +72,21 @@ variables:
         "$compose_extract/usr/libexec/docker/cli-plugins/docker-compose" \
         "$compose_path"
       docker compose version
+    - |
+      if [ -n "${REGISTRY_DEPLOY_USER:-}" ] && [ -n "${REGISTRY_DEPLOY_TOKEN:-}" ]; then
+        printf '%s' "$REGISTRY_DEPLOY_TOKEN" |
+          docker login "$CI_REGISTRY" --username "$REGISTRY_DEPLOY_USER" --password-stdin >/dev/null
+      fi
     # Le daemon DinD rootless ne voit en écriture que le volume exact du projet,
     # contrairement au /tmp du job et au parent de CI_PROJECT_DIR. La copie de
     # release exclut explicitement ce répertoire temporaire.
     - export TMPDIR="$CI_PROJECT_DIR/.docker-test-tmp-$CI_JOB_ID"
     - mkdir -p "$TMPDIR"
   after_script:
+    - |
+      if [ -n "${REGISTRY_DEPLOY_USER:-}" ] && [ -n "${CI_REGISTRY:-}" ]; then
+        docker logout "$CI_REGISTRY" >/dev/null 2>&1 || true
+      fi
     - rmdir "$CI_PROJECT_DIR/.docker-test-tmp-$CI_JOB_ID" 2>/dev/null || true
 
 validate:compose:
@@ -120,7 +129,11 @@ validate:docker-integration:
 qualify:runtime-hardening:
   extends: .docker-test-job
   stage: validate
+  environment:
+    name: release-candidate
+    action: verify
   script:
+    - 'test -n "$REGISTRY_DEPLOY_USER" && test -n "$REGISTRY_DEPLOY_TOKEN"'
     - ./tests/production-hardening-test.sh
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/ && $BACKEND_IMAGE && $FRONTEND_IMAGE'
