@@ -4,9 +4,9 @@ Qualification locale initiale : 19 septembre 2026.
 
 État GitLab, DNS et artefacts revérifié : 29 septembre 2026.
 
-Ce document distingue les preuves reproductibles déjà obtenues des contrôles
-qui nécessitent encore la messagerie ou la VM de production. Il ne remplace ni
-la checklist de production ni l'approbation explicite du job de promotion.
+Ce document distingue les preuves reproductibles obtenues avant la release, la
+promotion effectivement réalisée et les contrôles externes qui nécessitent
+encore la messagerie, l'identité légale ou la VM de sauvegarde hors VPS.
 
 ## Sources et artefacts immuables
 
@@ -45,6 +45,12 @@ images locales ne sont jamais promues.
 - bundle du job `16742819241` : SHA-256
   `840a5811cd23938b6a0a8ecd7bd97828089686f94b4062c6d282d7c8d0677053`,
   manifeste extrait et revérifié ;
+- tag final protégé `v3.1.0` : commit infrastructure
+  `d3a4deea1ca964a204b6b86eec947c2783ecd05d` ;
+- pipeline finale `2893047256` : qualification et packaging réussis ;
+- bundle final du job `16805633719` : SHA-256
+  `661e43aa1913d005011b22c5bcb4061d1520d66aba2550c95b0c3ffc5171eedb`,
+  manifeste extrait et vérifié ;
 - OpenAPI : artefact du job backend `16603956114`, hash identique à celui du
   manifeste ;
 - SBOM backend CycloneDX 1.7 : artefact du job `16603956117`, 429 composants,
@@ -101,12 +107,35 @@ de données conteneurisées et l'absence d'Automation dans la V1 publique.
   Cloudflare et Google avec la politique de surveillance suivante :
   `v=DMARC1; p=none; rua=mailto:contact@sovrack.tech; adkim=s; aspf=s; pct=100` ;
 - les MX OVH `mx0`, `mx1`, `mx2` et `mx3` sont résolus ;
-- la version actuellement servie n'est pas encore v3.1.0.
+- la version servie est `v3.1.0` depuis le 29 septembre 2026.
 
 La présence de DNS valides ne prouve pas un envoi et une réception de bout en
 bout. Ce contrôle exige l'accès réel à la boîte `contact@sovrack.tech`.
 
-## Contrôles restant avant production
+## Promotion de production du 29 septembre 2026
+
+- job protégé `deploy:production` `16805888615` réussi ;
+- préflight réel : manifeste strict, secrets présents, distincts et
+  suffisamment longs, Docker valide, 3 819 MiB de RAM et 23 991 MiB de disque
+  disponibles ;
+- sauvegarde pré-release
+  `sovrack-20260929-113616Z-08HcRa.sql.gz` validée par checksum et test gzip ;
+- migrations appliquées jusqu'à
+  `20260918130000_disable_unsigned_legacy_webhooks` ;
+- backend, frontend, Nginx, PostgreSQL et Redis healthy, avec zéro redémarrage
+  et une racine en lecture seule ;
+- maintenance retirée et release `v3.1.0` activée atomiquement ;
+- dry-run Let's Encrypt réussi pour `sovrack.tech`, `www`, `app` et `staff`,
+  puis Nginx revenu healthy ;
+- smoke tests HTTP/TLS réussis sur les trois domaines et l'API ;
+- trois parcours Playwright de production réussis : site public, isolation des
+  trois hôtes et contrat d'inscription Personnel/Organisation ;
+- charge post-release bornée : 60/60 requêtes publiques réussies (p95 605 ms)
+  et 60/60 healthchecks réussis (p95 235 ms), concurrence 5 ;
+- timers locaux de sauvegarde PostgreSQL et de renouvellement TLS actifs ;
+- release GitLab `Sovrack v3.1.0` publiée.
+
+## Contrôles externes restant à clôturer
 
 1. Tester réellement `contact@sovrack.tech` : réception externe, envoi SMTP,
    vérification d'adresse et récupération du compte ROOT. Conserver les
@@ -114,16 +143,12 @@ bout. Ce contrôle exige l'accès réel à la boîte `contact@sovrack.tech`.
 2. Fournir et valider le nom légal complet de l'éditeur, son adresse, son
    identifiant légal éventuel et l'identité/adresse de l'hébergeur. Ces données
    doivent remplacer les mentions génériques sans être inventées.
-3. Confirmer sur la VM que les cinq secrets de production sont présents,
-   suffisamment longs et distincts, sans afficher leurs valeurs. Les runners
-   et deploy tokens séparés sont déjà opérationnels dans les pipelines.
-4. Exécuter sur la VM la qualification de capacité/topologie `compact`, le
-   test de charge, le renouvellement TLS en dry-run et la restauration d'une
-   sauvegarde chiffrée hors VPS.
-5. Créer `v3.1.0` depuis la RC3 qualifiée, puis approuver le job
-   GitLab manuel `deploy:production`.
-6. Exécuter les smoke tests et archiver le compte-rendu post-release prévu par
-   `PRODUCTION_CHECKLIST.md`.
+3. Exécuter et archiver depuis la VM d'exploitation distincte la copie Restic
+   chiffrée hors VPS, `restic check` et la restauration isolée. Ce timer ne doit
+   pas être installé sur le VPS applicatif lui-même.
+4. Compléter la mesure courte par un test d'endurance planifié avec seuils
+   d'alerte, sans utiliser de comptes ou données clients.
 
-Tant que les contrôles 1 à 4 ne sont pas clos, la RC peut être construite et
-qualifiée, mais la promotion de production ne doit pas être lancée.
+Ces points ne modifient pas l'identité du bundle promu. Les points 1 et 2
+exigent des informations humaines qui ne peuvent pas être inventées ; le point
+3 exige l'accès à une machine physiquement distincte du VPS applicatif.
