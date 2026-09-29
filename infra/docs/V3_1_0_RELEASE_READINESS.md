@@ -2,7 +2,7 @@
 
 Qualification locale initiale : 19 septembre 2026.
 
-État GitLab, DNS et artefacts revérifié : 25 septembre 2026.
+État GitLab, DNS et artefacts revérifié : 29 septembre 2026.
 
 Ce document distingue les preuves reproductibles déjà obtenues des contrôles
 qui nécessitent encore la messagerie ou la VM de production. Il ne remplace ni
@@ -20,8 +20,8 @@ la checklist de production ni l'approbation explicite du job de promotion.
   `registry.gitlab.com/deploy-automation/deploy-automation-frontend:1918b9c0e3ac5d6841566159fcacba7be1105938` ;
 - digest observé de l'image frontend :
   `sha256:004ea48112c20b3da628cbffa39a53a784cb6961ffb97e76b3c079f68451a544` ;
-- baseline technique infrastructure qualifiée avant le gel documentaire :
-  `5d26f8b2ef900901c9a29833d3ea0ed314566136` ;
+- infrastructure qualifiée par la release candidate :
+  `4acc4697d25a9b458f2ef0ce8838b7579884affc` ;
 - dernière migration attendue :
   `20260918130000_disable_unsigned_legacy_webhooks` ;
 - SHA-256 du contrat OpenAPI :
@@ -38,7 +38,13 @@ images locales ne sont jamais promues.
 
 - backend pipeline `2863795382` : réussi sur le commit exact ;
 - frontend pipeline `2863710629` : réussi sur le commit exact ;
-- infrastructure pipeline `2864093335` : réussi sur `main` ;
+- infrastructure pipeline `2883384969` : réussi sur `main` ;
+- release candidate `v3.1.0-rc.3`, pipeline `2883393015` : les cinq jobs
+  Compose, shell, intégration Docker, qualification runtime et packaging ont
+  réussi sur le commit exact ;
+- bundle du job `16742819241` : SHA-256
+  `840a5811cd23938b6a0a8ecd7bd97828089686f94b4062c6d282d7c8d0677053`,
+  manifeste extrait et revérifié ;
 - OpenAPI : artefact du job backend `16603956114`, hash identique à celui du
   manifeste ;
 - SBOM backend CycloneDX 1.7 : artefact du job `16603956117`, 429 composants,
@@ -74,8 +80,11 @@ images locales ne sont jamais promues.
 - dépendances et images : audits npm et scans Trivy HIGH/CRITICAL réussis ;
 - infrastructure : syntaxe, manifeste, maintenance Nginx, promotion immuable,
   durcissement des conteneurs et sauvegarde/restauration jetables réussis ;
-- les Merge Requests backend `!9`, frontend `!6` et infrastructure `!13` sont
-  fusionnées dans leurs branches `main` protégées.
+- les Merge Requests backend `!9`, frontend `!6` et infrastructure `!13`,
+  `!14`, `!15` et `!16` sont fusionnées dans leurs branches `main`
+  protégées ;
+- `v3.1.0-rc.1` et `v3.1.0-rc.2` restent conservées comme RC rejetées ;
+  `v3.1.0-rc.3` corrige leurs deux causes d'échec sans remplacer leurs tags.
 
 Les parcours navigateur confirment notamment la séparation des trois domaines,
 les cookies client/staff host-only, les espaces personnels et organisations,
@@ -111,14 +120,9 @@ bout. Ce contrôle exige l'accès réel à la boîte `contact@sovrack.tech`.
 4. Exécuter sur la VM la qualification de capacité/topologie `compact`, le
    test de charge, le renouvellement TLS en dry-run et la restauration d'une
    sauvegarde chiffrée hors VPS.
-5. `v3.1.0-rc.1` a été rejetée car le daemon de qualification ne recevait
-   pas l'authentification du registre privé. `v3.1.0-rc.2` a ensuite validé
-   le pull, les migrations et les healthchecks, mais sa sonde HTTPS visait le
-   loopback du job au lieu du daemon DinD. Produire et qualifier
-   `v3.1.0-rc.3` après correction, sans remplacer les tags RC rejetés.
-6. Créer `v3.1.0` seulement après validation de la RC, puis approuver le job
+5. Créer `v3.1.0` depuis la RC3 qualifiée, puis approuver le job
    GitLab manuel `deploy:production`.
-7. Exécuter les smoke tests et archiver le compte-rendu post-release prévu par
+6. Exécuter les smoke tests et archiver le compte-rendu post-release prévu par
    `PRODUCTION_CHECKLIST.md`.
 
 Tant que les contrôles 1 à 4 ne sont pas clos, la RC peut être construite et
