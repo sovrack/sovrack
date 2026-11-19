@@ -1,0 +1,17 @@
+# Configuration de bootstrap : aucun faux certificat n'est généré. Tant que
+# Let's Encrypt n'a pas délivré le certificat, seul le challenge ACME répond.
+server {
+    listen 80;
+    server_name ${DOMAIN} www.${DOMAIN} ${APP_DOMAIN} ${STAFF_DOMAIN};
+    server_tokens off;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        try_files $uri =404;
+    }
+
+    location / {
+        add_header Retry-After 120 always;
+        return 503 "TLS initialization in progress\n";
+    }
+}

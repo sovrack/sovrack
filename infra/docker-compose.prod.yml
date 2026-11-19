@@ -1,0 +1,401 @@
+# =============================================================================
+# Sovrack — Stack de PRODUCTION (projet compose unique "sovrack")
+# -----------------------------------------------------------------------------
+# Ce fichier est le SEUL point d'orchestration de production. Il décrit
+# uniquement le déploiement (image + réseau + volume), jamais le code.
+#
+# Règles de bonnes pratiques appliquées :
+#   * Un seul projet, un seul stack. Pas de multi-instances.
+#   * postgres / redis exposés UNIQUEMENT sur 127.0.0.1 (jamais publique).
+#   * nginx = la seule porte publique (80/443) qui route puis frontend/backend.
+#   * Données sur un volume nommé persistant (hors /tmp, pas perdu au reboot).
+#   * Imagerie = registry GitLab (produite par la CI des repos app).
+# =============================================================================
+
+name: sovrack
+
+x-sovrack-common: &common
+  restart: unless-stopped
+  init: true
+  networks:
+    - sovrack-net
+  security_opt:
+    - no-new-privileges:true
+  logging:
+    driver: json-file
+    options:
+      max-size: ${DOCKER_LOG_MAX_SIZE:-10m}
+      max-file: ${DOCKER_LOG_MAX_FILES:-5}
+
+services:
+  # ─────────────────────────── REVERSE-PROXY / TLS ───────────────────────────
+  nginx:
+    image: ${NGINX_IMAGE:?NGINX_IMAGE must be an immutable digest}
+    container_name: sovrack-proxy
+    <<: *common
+    environment:
+      DOMAIN: ${DOMAIN}
+      APP_DOMAIN: ${APP_DOMAIN:-}
+      STAFF_DOMAIN: ${STAFF_DOMAIN:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - NET_BIND_SERVICE
+      - SETGID
+      - SETUID
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
+      - /var/cache/nginx:rw,noexec,nosuid,size=32m,uid=101,gid=101,mode=0750
+      - /var/run:rw,noexec,nosuid,size=8m,mode=0755
+      # L'entrypoint génère default.conf au démarrage ; le reste de la racine
+      # du conteneur demeure immuable.
+      - /etc/nginx/conf.d:rw,noexec,nosuid,size=4m,mode=0755
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - ./nginx/proxy.conf.template:/etc/nginx/proxy.conf.template:ro
+      - ./nginx/acme-http.conf.template:/etc/nginx/acme-http.conf.template:ro
+      - ./nginx/entrypoint.sh:/opt/sovrack/nginx-entrypoint.sh:ro
+      - ./nginx/security-headers.conf:/etc/nginx/conf.d/security-headers.conf:ro
+      - certbot-webroot:/var/www/certbot:ro
+      - certbot-certs:/etc/letsencrypt:ro
+      - ${SOVRACK_MAINTENANCE_DIR:-./maintenance}:/var/run/sovrack-maintenance:ro
+    # L'entrypoint démarre en HTTP/ACME si le certificat n'existe pas encore,
+    # puis utilise automatiquement la configuration TLS aux démarrages suivants.
+    entrypoint: ["/bin/sh", "/opt/sovrack/nginx-entrypoint.sh"]
+    deploy:
+      resources:
+        limits:
+          memory: ${NGINX_MEMORY_LIMIT:-128M}
+          cpus: "${NGINX_CPU_LIMIT:-0.25}"
+          pids: 256
+
+  # ──────────────────────────── FRONTEND (Next.js) ───────────────────────────
+  frontend:
+    <<: *common
+    image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE must be an immutable release tag or digest}
+    container_name: sovrack-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    read_only: true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,uid=100,gid=101,mode=1777
+      # Next.js peut alimenter ce cache lors de l'optimisation d'images.
+      - /app/.next/cache:rw,noexec,nosuid,size=128m,uid=100,gid=101,mode=0750
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    environment:
+      NODE_ENV: production
+      # Nom réseau interne pour le rewrite /backend-api
+      BACKEND_INTERNAL_URL: http://backend:3001
+      # Vars publiques déjà "baked" au build de l'image ; fournies de nouveau
+      # pour la clarté (l'image doit déjà exposer les bonnes valeurs).
+      NEXT_PUBLIC_API_URL: ${FRONTEND_PUBLIC_URL:-https://app.sovrack.tech}
+      NEXT_PUBLIC_WS_URL: ${FRONTEND_WS_PUBLIC_URL:-wss://sovrack.tech}
+      NEXT_PUBLIC_APP_NAME: ${APP_NAME:-Sovrack}
+      NEXT_PUBLIC_APP_VERSION: ${APP_VERSION:-3.1.0}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://sovrack.tech}
+      CUSTOMER_APP_URL: ${CUSTOMER_APP_URL:-https://app.sovrack.tech}
+      STAFF_APP_URL: ${STAFF_APP_URL:-https://staff.sovrack.tech}
+      NEXT_PUBLIC_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://sovrack.tech}
+      NEXT_PUBLIC_CUSTOMER_APP_URL: ${CUSTOMER_APP_URL:-https://app.sovrack.tech}
+      NEXT_PUBLIC_STAFF_APP_URL: ${STAFF_APP_URL:-https://staff.sovrack.tech}
+    deploy:
+      resources:
+        limits:
+          memory: ${FRONTEND_MEMORY_LIMIT:-512M}
+          cpus: "${FRONTEND_CPU_LIMIT:-0.75}"
+          pids: 256
+        reservations:
+          memory: ${FRONTEND_MEMORY_RESERVATION:-256M}
+          cpus: "${FRONTEND_CPU_RESERVATION:-0.2}"
+    stop_grace_period: 30s
+
+  # ──────────────────────────── BACKEND (NestJS) ─────────────────────────────
+  backend:
+    <<: *common
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be an immutable release tag or digest}
+    container_name: sovrack-backend
+    environment: &backend-environment
+      NODE_ENV: production
+      PORT: "3001"
+      PROCESS_ROLE: ${BACKEND_PROCESS_ROLE:-api}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      # Base de données (redis/chemin via le réseau docker)
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # Redis (avec mot de passe)
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      # Secrets JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      STAFF_JWT_SECRET: ${STAFF_JWT_SECRET}
+      STAFF_JWT_EXPIRES_IN: ${STAFF_JWT_EXPIRES_IN:-12h}
+      STAFF_OTP_SECRET: ${STAFF_OTP_SECRET}
+      CUSTOMER_MFA_SECRET: ${CUSTOMER_MFA_SECRET}
+      STAFF_MFA_REQUIRED_ROLES: ${STAFF_MFA_REQUIRED_ROLES:-ROOT,ADMIN}
+      # Chiffrement config
+      CONFIG_SECRET: ${CONFIG_SECRET}
+      # CORS : URL publique du frontend
+      FRONTEND_URL: ${CUSTOMER_APP_URL:-https://app.sovrack.tech}
+      FRONTEND_URLS: ${CUSTOMER_APP_URL:-https://app.sovrack.tech},${STAFF_APP_URL:-https://staff.sovrack.tech}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://sovrack.tech}
+      CUSTOMER_APP_URL: ${CUSTOMER_APP_URL:-https://app.sovrack.tech}
+      STAFF_APP_URL: ${STAFF_APP_URL:-https://staff.sovrack.tech}
+      HOST_PLANE_ENFORCEMENT: "true"
+      OUTBOUND_PRIVATE_HOST_ALLOWLIST: ${OUTBOUND_PRIVATE_HOST_ALLOWLIST:-}
+      # Cookies sécurisés
+      AUTH_COOKIE_SECURE: "true"
+      AUTH_COOKIE_SAME_SITE: ${AUTH_COOKIE_SAME_SITE:-lax}
+      STAFF_AUTH_COOKIE_SECURE: "true"
+      STAFF_AUTH_COOKIE_SAME_SITE: ${STAFF_AUTH_COOKIE_SAME_SITE:-strict}
+      # Ansible (joubbook embarqués)
+      ANSIBLE_PLAYBOOKS_PATH: /app/ansible/playbooks
+      ANSIBLE_COLLECTIONS_PATH: /usr/share/ansible/collections
+      ANSIBLE_HOST_KEY_TRUST_ON_FIRST_USE: "false"
+      ANSIBLE_STRICT_HOST_KEY_CHECKING: ${ANSIBLE_STRICT_HOST_KEY_CHECKING:-accept-new}
+      # SMTP peut venir de l'environnement ou, après configuration par ROOT,
+      # d'un snapshot chiffré en base. Aucun secret n'est exposé au frontend.
+      SMTP_CONFIG_SOURCE: ${SMTP_CONFIG_SOURCE:-environment}
+      SMTP_ENABLED: ${SMTP_ENABLED:-false}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_TO: ${SMTP_TO:-}
+      SMTP_ALLOWED_HOSTS: ${SMTP_ALLOWED_HOSTS:-}
+      # Google OAuth ("Se connecter avec Google")
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://app.sovrack.tech/backend-api/auth/google/callback}
+    expose:
+      - "3001"
+    read_only: true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,uid=100,gid=101,mode=1777
+      # SSH/Ansible conservent uniquement un état éphémère dans le home.
+      - /home/appuser:rw,noexec,nosuid,size=32m,uid=100,gid=101,mode=0700
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3001/health/ready').then(r=>process.exit(r&&r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: ${BACKEND_MEMORY_LIMIT:-768M}
+          cpus: "${BACKEND_CPU_LIMIT:-1.0}"
+          pids: 256
+        reservations:
+          memory: ${BACKEND_MEMORY_RESERVATION:-384M}
+          cpus: "${BACKEND_CPU_RESERVATION:-0.35}"
+    stop_grace_period: 45s
+
+  # One-shot release gate. Ordinary API/worker restarts never run migrations.
+  migrator:
+    <<: *common
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be an immutable release tag or digest}
+    container_name: sovrack-migrator
+    restart: "no"
+    pids_limit: 256
+    read_only: true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,uid=100,gid=101,mode=1777
+      - /home/appuser:rw,noexec,nosuid,size=32m,uid=100,gid=101,mode=0700
+    environment:
+      <<: *backend-environment
+      PROCESS_ROLE: migrator
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -c
+      - >-
+        node dist/scripts/backfill-database-credentials.js &&
+        node dist/scripts/pre-migrate-check.js &&
+        ./node_modules/.bin/prisma migrate deploy
+
+  # Création initiale du ROOT uniquement. Ce profil n'est jamais démarré par
+  # deploy.sh. Il envoie un code d'activation à usage unique par SMTP ; aucun
+  # mot de passe initial n'est créé ou transmis par l'opérateur.
+  staff-bootstrap:
+    <<: *common
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be an immutable tag or digest}
+    profiles:
+      - bootstrap
+    restart: "no"
+    pids_limit: 256
+    read_only: true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,uid=100,gid=101,mode=1777
+    environment:
+      <<: *backend-environment
+      PROCESS_ROLE: bootstrap
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["node", "prisma/seed-staff.js"]
+
+  # Dedicated consumers/crons. No public port; WebSocket events are relayed
+  # to the API process through the Redis adapter.
+  worker:
+    <<: *common
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be an immutable release tag or digest}
+    container_name: sovrack-worker
+    profiles:
+      - split-runtime
+    read_only: true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,uid=100,gid=101,mode=1777
+      - /home/appuser:rw,noexec,nosuid,size=32m,uid=100,gid=101,mode=0700
+    environment:
+      <<: *backend-environment
+      PORT: "3002"
+      PROCESS_ROLE: worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3002/health/live').then(r=>process.exit(r&&r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: ${WORKER_MEMORY_LIMIT:-1G}
+          cpus: "${WORKER_CPU_LIMIT:-1.0}"
+          pids: 256
+        reservations:
+          memory: ${WORKER_MEMORY_RESERVATION:-384M}
+          cpus: "${WORKER_CPU_RESERVATION:-0.35}"
+    stop_grace_period: 60s
+
+  # ──────────────────────────── POSTGRES (DB) ────────────────────────────────
+  postgres:
+    <<: *common
+    image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE must be an immutable digest}
+    container_name: sovrack-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,uid=70,gid=70,mode=1777
+      - /var/run/postgresql:rw,noexec,nosuid,size=16m,uid=70,gid=70,mode=0775
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # Accessible uniquement depuis la machine hôte (opérations/backups).
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: ${POSTGRES_MEMORY_LIMIT:-768M}
+          cpus: "${POSTGRES_CPU_LIMIT:-0.75}"
+          pids: 256
+        reservations:
+          memory: ${POSTGRES_MEMORY_RESERVATION:-384M}
+          cpus: "${POSTGRES_CPU_RESERVATION:-0.25}"
+    stop_grace_period: 60s
+
+  # ────────────────────────────── REDIS ──────────────────────────────────────
+  redis:
+    <<: *common
+    image: ${REDIS_IMAGE:?REDIS_IMAGE must be an immutable digest}
+    container_name: sovrack-redis
+    command: >
+      redis-server
+        --requirepass ${REDIS_PASSWORD}
+        --appendonly yes
+        --save 900 1
+        --save 300 10
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,uid=999,gid=1000,mode=1777
+    volumes:
+      - redisdata:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits: { memory: 256M, cpus: "0.3", pids: 256 }
+        reservations: { memory: 128M, cpus: "0.1" }
+
+# ────────────────────────────── RÉSEAU ─────────────────────────────
+networks:
+  sovrack-net:
+    driver: bridge
+
+# ──────────────────────────── VOLUMES persistants ──────────────────────────
+volumes:
+  pgdata:
+  redisdata:
+  certbot-webroot:
+    name: sovrack-certbot-webroot
+  certbot-certs:
+    name: sovrack-certbot-certs

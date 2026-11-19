@@ -1,0 +1,12 @@
+---
+sovrack_operator_user: sovrack
+sovrack_operator_group: sovrack
+sovrack_operator_public_key: ""
+sovrack_base_dir: /srv/sovrack
+sovrack_ssh_port: 22
+sovrack_swap_size_mb: 2048
+sovrack_enable_swap: true
+sovrack_enable_ufw: true
+sovrack_disable_ssh_password_auth: false
+sovrack_unattended_reboot: false
+sovrack_unattended_reboot_time: "04:30"

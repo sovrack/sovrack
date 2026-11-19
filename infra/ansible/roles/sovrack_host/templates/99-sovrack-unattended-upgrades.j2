@@ -1,0 +1,2 @@
+Unattended-Upgrade::Automatic-Reboot "{{ sovrack_unattended_reboot | ternary('true', 'false') }}";
+Unattended-Upgrade::Automatic-Reboot-Time "{{ sovrack_unattended_reboot_time }}";

@@ -1,0 +1,232 @@
+---
+- name: Refuse unsupported operating systems
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == "Ubuntu"
+      - ansible_distribution_major_version | int >= 22
+    fail_msg: "Sovrack requires Ubuntu 22.04 or newer."
+
+- name: Install host security and repository prerequisites
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - fail2ban
+      - gnupg
+      - jq
+      - unattended-upgrades
+      - ufw
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create APT keyring directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install Docker repository signing key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Configure the official Docker repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [signed-by=/etc/apt/keyrings/docker.asc]
+      https://download.docker.com/linux/ubuntu
+      {{ ansible_distribution_release }} stable
+    filename: docker
+    state: present
+
+- name: Install Docker Engine and Compose plugin
+  ansible.builtin.apt:
+    name:
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-ce
+      - docker-ce-cli
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+
+- name: Create the deployment operator group
+  ansible.builtin.group:
+    name: "{{ sovrack_operator_group }}"
+    state: present
+
+- name: Create the deployment operator
+  ansible.builtin.user:
+    name: "{{ sovrack_operator_user }}"
+    group: "{{ sovrack_operator_group }}"
+    groups: docker
+    append: true
+    create_home: true
+    shell: /bin/bash
+    password_lock: true
+
+- name: Install the deployment SSH key when explicitly supplied
+  ansible.posix.authorized_key:
+    user: "{{ sovrack_operator_user }}"
+    key: "{{ sovrack_operator_public_key }}"
+    state: present
+  when: sovrack_operator_public_key | length > 0
+
+- name: Create the immutable-release directory structure
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ sovrack_operator_user }}"
+    group: "{{ sovrack_operator_group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ sovrack_base_dir }}", mode: "0750" }
+    - { path: "{{ sovrack_base_dir }}/incoming", mode: "0750" }
+    - { path: "{{ sovrack_base_dir }}/releases", mode: "0750" }
+    - { path: "{{ sovrack_base_dir }}/shared", mode: "0750" }
+    - { path: "{{ sovrack_base_dir }}/shared/backups", mode: "0700" }
+    - { path: "{{ sovrack_base_dir }}/shared/maintenance", mode: "0755" }
+
+- name: Configure bounded Docker logging and live restore
+  ansible.builtin.template:
+    src: docker-daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Docker
+
+- name: Enable and start Docker
+  ansible.builtin.service:
+    name: docker
+    enabled: true
+    state: started
+
+- name: Configure fail2ban for SSH
+  ansible.builtin.template:
+    src: fail2ban-sshd.local.j2
+    dest: /etc/fail2ban/jail.d/sovrack-sshd.local
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+
+- name: Enable and start fail2ban
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+    state: started
+
+- name: Configure automatic security updates
+  ansible.builtin.template:
+    src: 99-sovrack-unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/99-sovrack-unattended-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable unattended package refresh and upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+
+- name: Allocate the swap file once
+  ansible.builtin.command:
+    argv:
+      - fallocate
+      - -l
+      - "{{ sovrack_swap_size_mb }}M"
+      - /swapfile
+    creates: /swapfile
+  register: sovrack_swap_created
+  when: sovrack_enable_swap
+
+- name: Protect the swap file
+  ansible.builtin.file:
+    path: /swapfile
+    owner: root
+    group: root
+    mode: "0600"
+  when: sovrack_enable_swap
+
+- name: Format a newly allocated swap file
+  ansible.builtin.command: mkswap /swapfile
+  when:
+    - sovrack_enable_swap
+    - sovrack_swap_created is changed
+
+- name: Persist the swap file
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: '^/swapfile\s'
+    line: '/swapfile none swap sw 0 0'
+    state: present
+  when: sovrack_enable_swap
+
+- name: Enable swap when currently absent
+  ansible.builtin.command: swapon /swapfile
+  when:
+    - sovrack_enable_swap
+    - ansible_swaptotal_mb | int < 1
+  changed_when: true
+
+- name: Keep SSH root login disabled
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin\s'
+    line: 'PermitRootLogin no'
+    validate: '/usr/sbin/sshd -t -f %s'
+  notify: Restart SSH
+
+- name: Configure SSH password authentication only after key validation
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication\s'
+    line: "PasswordAuthentication {{ sovrack_disable_ssh_password_auth | ternary('no', 'yes') }}"
+    validate: '/usr/sbin/sshd -t -f %s'
+  notify: Restart SSH
+
+- name: Allow the configured SSH port through UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ sovrack_ssh_port }}"
+    proto: tcp
+  when: sovrack_enable_ufw
+
+- name: Allow HTTP and HTTPS through UFW
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "80"
+    - "443"
+  when: sovrack_enable_ufw
+
+- name: Enable UFW with deny-by-default inbound policy
+  community.general.ufw:
+    state: enabled
+    direction: incoming
+    policy: deny
+  when: sovrack_enable_ufw
+
+- name: Flush service handlers before validation
+  ansible.builtin.meta: flush_handlers
+
+- name: Verify Docker and Compose are operational
+  ansible.builtin.command: "{{ item }}"
+  loop:
+    - docker version
+    - docker compose version
+  changed_when: false

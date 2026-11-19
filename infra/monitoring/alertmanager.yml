@@ -1,0 +1,13 @@
+route:
+  receiver: local-operations
+  group_by:
+    - alertname
+    - instance
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  # Alerts are retained and visible in Alertmanager/Grafana. Add an approved
+  # outbound receiver here once its SMTP or webhook destination is supplied.
+  - name: local-operations
