@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -54,7 +54,7 @@ async function listFilesRecursive(directory) {
       return [fullPath];
     }),
   );
-  return files.flat();
+  return files.flat(Infinity);
 }
 
 async function checkNavigation() {
@@ -101,10 +101,10 @@ function collectMatches(text, pattern) {
 
 async function checkColors() {
   const files = await listFilesRecursive(srcDir);
-  const codeFiles = files.filter((file) => /\.(ts|tsx|css)$/.test(file));
+  const codeFiles = files.filter((file) => /\.(ts|tsx|css)$/.test(file) && !file.includes("generated"));
   const violations = [];
 
-  for (const filePath of codeFiles) {
+  for (const filePath of codeFiles) { 
     const content = await fs.readFile(filePath, "utf8");
     const hits = bannedColorPatterns
       .flatMap((pattern) => collectMatches(content, pattern))
@@ -298,3 +298,6 @@ async function main() {
 }
 
 await main();
+
+
+

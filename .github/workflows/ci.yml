@@ -11,6 +11,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  security-scan:
+    name: Secret Scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   validate:
     name: Lint, Types & Tests
     runs-on: ubuntu-latest
@@ -44,7 +58,7 @@ jobs:
         run: npm --workspace=@sovrack/web run test
 
       - name: Run Server Core Tests (Jest)
-        run: npm --workspace=@sovrack/server run test -- git-provider-config.service.spec.ts source-providers.controller.spec.ts traefik-route.service.spec.ts
+        run: npm --workspace=@sovrack/server run test -- --testPathPatterns="auth-cookie|image-resolver|service-templates|automation.gateway|deployments.gateway|server-setup.gateway|git-provider-config|traefik-route|database-s3-backup|enterprise-license"
 
       - name: Build Applications
         run: |
@@ -66,7 +80,7 @@ jobs:
 
   build-and-push-images:
     name: Build & Package Docker Images (ghcr.io)
-    needs: [validate, infra-check]
+    needs: [security-scan, validate, infra-check]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -103,4 +117,3 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/web:${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/web:latest
-
