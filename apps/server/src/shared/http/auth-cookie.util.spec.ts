@@ -27,7 +27,7 @@ describe('auth-cookie.util', () => {
   });
 
   describe('extractTokenFromCookieHeader', () => {
-    const NAME = 'deploy_automation_token';
+    const NAME = 'sovrack_token';
     it('returns null when no header', () => {
       expect(extractTokenFromCookieHeader(undefined, NAME)).toBeNull();
     });
@@ -38,6 +38,14 @@ describe('auth-cookie.util', () => {
           NAME,
         ),
       ).toBe('abc.def');
+    });
+    it('falls back to legacy cookie when sovrack_token is absent', () => {
+      expect(
+        extractTokenFromCookieHeader(
+          'theme=dark; deploy_automation_token=legacy.jwt.token; lang=fr',
+          NAME,
+        ),
+      ).toBe('legacy.jwt.token');
     });
     it('URL-decodes the value', () => {
       expect(extractTokenFromCookieHeader(`${NAME}=a%2Bb`, NAME)).toBe('a+b');

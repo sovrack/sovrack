@@ -15,6 +15,7 @@ describe('SourceProvidersController', () => {
       setDefaultGitlabProvider: jest.fn().mockResolvedValue({ id: 'g1' }),
       testGitlab: jest.fn().mockResolvedValue({ ok: true }),
       listGithubProviders: jest.fn().mockResolvedValue([]),
+      listGitlabRepos: jest.fn().mockResolvedValue([]),
       createGithubProvider: jest.fn().mockResolvedValue({ id: 'h1' }),
       updateGithubProvider: jest.fn().mockResolvedValue({ id: 'h1' }),
       deleteGithubProvider: jest.fn().mockResolvedValue(undefined),
@@ -50,6 +51,8 @@ describe('SourceProvidersController', () => {
     await ctrl.setDefaultGitlabProvider('g1', workspaceId);
     await ctrl.testGitlabProvider('g1', workspaceId);
     await ctrl.testGitlab(workspaceId);
+    await ctrl.listGitlabRepos('g1', workspaceId);
+    expect(gitProviders.listGitlabRepos).toHaveBeenCalledWith('g1', workspaceId);
     expect(gitProviders.listGitlabProviders).toHaveBeenCalledWith(workspaceId);
     expect(gitProviders.createGitlabProvider).toHaveBeenCalledWith(
       { name: 'n', providerUrl: 'u' },

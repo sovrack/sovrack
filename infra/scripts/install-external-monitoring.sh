@@ -21,7 +21,7 @@ else
   runtime_gid="$host_gid"
 fi
 MONITORING_DIR="${MONITORING_DIR:-$default_monitoring_dir}"
-NETWORK="${MONITORING_NETWORK:-platform_monitoring}"
+NETWORK="${MONITORING_NETWORK:-vayetek_monitoring}"
 PROMETHEUS_IMAGE="${PROMETHEUS_IMAGE:-prom/prometheus@sha256:f6639335d34a77d9d9db382b92eeb7fc00934be8eae81dbc03b31cfe90411a94}"
 ALERTMANAGER_IMAGE="${ALERTMANAGER_IMAGE:-prom/alertmanager@sha256:e13b6ed5cb929eeaee733479dce55e10eb3bc2e9c4586c705a4e8da41e5eacf5}"
 BLACKBOX_IMAGE="${BLACKBOX_IMAGE:-quay.io/prometheus/blackbox-exporter@sha256:e753ff9f3fc458d02cca5eddab5a77e1c175eee484a8925ac7d524f04366c2fc}"

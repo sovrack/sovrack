@@ -11,7 +11,7 @@ export class AddMemberDto {
   @IsString({ message: "L'identifiant utilisateur doit être une chaîne" })
   userId?: string;
 
-  @ApiPropertyOptional({ example: 'dev@deployautomation.local' })
+  @ApiPropertyOptional({ example: 'dev@sovrack.local' })
   @IsOptional()
   @IsEmail({}, { message: 'Email invalide' })
   email?: string;

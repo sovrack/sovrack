@@ -16,10 +16,22 @@ export type ProductCapability =
  * Planned capabilities stay unreachable even if a client calls the API
  * directly. Enabling one requires a reviewed backend change and tests.
  */
-export const ENABLED_PRODUCT_CAPABILITIES = new Set<ProductCapability>();
+export const ENABLED_PRODUCT_CAPABILITIES = new Set<ProductCapability>([
+  ProductCapabilities.SELF_SERVICE_BILLING,
+  ProductCapabilities.GOOGLE_AUTHENTICATION,
+  ProductCapabilities.SERVICE_TEMPLATES,
+]);
 
 export function isProductCapabilityEnabled(
   capability: ProductCapability,
 ): boolean {
+  if (capability === ProductCapabilities.SELF_SERVICE_BILLING) {
+    if (process.env.BILLING_ENABLED === 'false') return false;
+    return true;
+  }
+  if (capability === ProductCapabilities.GOOGLE_AUTHENTICATION) {
+    if (process.env.GOOGLE_AUTH_ENABLED === 'false') return false;
+    return true;
+  }
   return ENABLED_PRODUCT_CAPABILITIES.has(capability);
 }

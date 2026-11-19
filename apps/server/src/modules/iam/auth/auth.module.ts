@@ -8,6 +8,7 @@ import { GoogleOAuthService } from './google-oauth.service';
 import { GoogleStrategy } from './google.strategy';
 import { UsersModule } from '../users/users.module';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
+import { GoogleOAuthGuard } from './guards/google-auth.guard';
 import { AppJwtModule } from '../../../shared/jwt/jwt.module';
 import { AuditModule } from '../../audit';
 import { TeamsModule } from '../teams/teams.module';
@@ -33,6 +34,7 @@ import { UserMfaService } from './user-mfa.service';
   providers: [
     AuthService,
     LoginRateLimitGuard,
+    GoogleOAuthGuard,
     EmailVerificationService,
     GoogleOAuthService,
     ImpersonationSessionService,

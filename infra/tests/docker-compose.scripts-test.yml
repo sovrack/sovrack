@@ -30,10 +30,10 @@ services:
       postgres:
         condition: service_healthy
 
-  backend:
+  server:
     image: node:22-alpine
     environment:
-      PROCESS_ROLE: ${BACKEND_PROCESS_ROLE:-api}
+      PROCESS_ROLE: ${SERVER_PROCESS_ROLE:-${BACKEND_PROCESS_ROLE:-api}}
     command:
       - node
       - -e
@@ -51,7 +51,7 @@ services:
       migrator:
         condition: service_completed_successfully
 
-  frontend:
+  web:
     image: node:22-alpine
     command:
       - node

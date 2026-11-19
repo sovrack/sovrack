@@ -34,7 +34,9 @@ export class TraefikRouteService {
   private async getPlatformConfig(key: string): Promise<string | null> {
     const row = await this.prisma.platformConfig.findUnique({ where: { key } });
     const v = row?.value?.trim();
-    return v ? v : null;
+    if (v) return v;
+    const envVal = process.env[key]?.trim();
+    return envVal ? envVal : null;
   }
 
   /**

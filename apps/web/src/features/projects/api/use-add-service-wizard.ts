@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useReducer } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { projectsService } from "@/features/projects/api/projects.service";
 import { servicesService } from "@/features/projects/api/services.service";
+import { platformConfigService, type GitRepoItem } from "@/features/platform";
 import type {
   CreateServicePayload,
   ManagedServiceType,
@@ -134,6 +135,44 @@ export function useAddServiceWizard({
   const selectedProvider = useMemo(
     () => providers.find((p) => p.id === providerId) ?? null,
     [providers, providerId],
+  );
+
+  const [providerRepos, setProviderRepos] = useState<GitRepoItem[]>([]);
+  const [loadingRepos, setLoadingRepos] = useState(false);
+  const [repoMode, setRepoMode] = useState<"list" | "manual">("list");
+  const [repoSearch, setRepoSearch] = useState("");
+
+  useEffect(() => {
+    if (!providerId || !platform) {
+      setProviderRepos([]);
+      return;
+    }
+    let active = true;
+    setLoadingRepos(true);
+    platformConfigService
+      .listProviderRepos(providerId, platform)
+      .then((repos) => {
+        if (!active) return;
+        setProviderRepos(repos);
+        setLoadingRepos(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setProviderRepos([]);
+        setLoadingRepos(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [providerId, platform]);
+
+  const pickRepo = useCallback(
+    (repo: GitRepoItem) => {
+      setRepoPath(repo.fullName);
+      setName(repo.name);
+      setBranch(repo.defaultBranch || "main");
+    },
+    [setRepoPath, setName, setBranch],
   );
 
   useEffect(() => {
@@ -415,6 +454,13 @@ export function useAddServiceWizard({
     discover,
     toggleRepo,
     submit,
+    providerRepos,
+    loadingRepos,
+    repoMode,
+    setRepoMode,
+    repoSearch,
+    setRepoSearch,
+    pickRepo,
   };
 }
 

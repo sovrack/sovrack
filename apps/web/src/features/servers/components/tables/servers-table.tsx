@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Server as ServerIcon, X } from "lucide-react";
+import { useState } from "react";
+import { Check, Copy, Server as ServerIcon, X } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import { getServerOverallStatus } from "@/features/servers/components/shared/server-status-badges";
 import { ServerRowActionsMenu } from "@/features/servers/components/shared/server-row-actions-menu";
@@ -88,9 +89,133 @@ export function ServersTable({
   onDelete,
   onValidateSsh,
 }: ServersTableProps) {
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyIp = (id: string, host: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(host);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+    }
+  };
+
   return (
-    <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]">
-      <table className="w-full min-w-[860px] border-collapse text-sm">
+    <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-sm touch-pan-x">
+      <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--hover)]/40 px-3.5 py-1.5 text-[11px] text-[var(--text-muted)] md:hidden">
+        <span>↔ {viewMode === "table" ? "Faites défiler horizontalement" : "Vue en cartes activée"}</span>
+        <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--bg-app)] p-0.5">
+          <button
+            type="button"
+            onClick={() => setViewMode("table")}
+            className={`rounded px-2 py-0.5 text-[10px] font-medium transition ${
+              viewMode === "table"
+                ? "bg-[var(--text-primary)] text-[var(--bg-app)] shadow-xs"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Table
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("cards")}
+            className={`rounded px-2 py-0.5 text-[10px] font-medium transition ${
+              viewMode === "cards"
+                ? "bg-[var(--text-primary)] text-[var(--bg-app)] shadow-xs"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Cartes
+          </button>
+        </div>
+      </div>
+
+      {viewMode === "cards" ? (
+        <div className="space-y-3 p-3 md:hidden">
+          {servers.map((server) => {
+            const status = getServerOverallStatus(server);
+            return (
+              <div
+                key={server.id}
+                className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-3.5 shadow-sm"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <ReachabilityDot value={isReachable[server.id]} />
+                    <ServerIcon
+                      size={15}
+                      className="shrink-0 text-[var(--text-muted)]"
+                    />
+                    <span className="truncate font-semibold text-sm text-[var(--text-primary)]">
+                      {server.name}
+                    </span>
+                  </div>
+                  <Badge tone={status.tone} dot>
+                    {status.label}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center justify-between rounded-lg bg-[var(--hover)]/60 px-2.5 py-1.5">
+                    <span className="text-[var(--text-muted)]">IP</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyIp(server.id, server.host)}
+                      className="flex items-center gap-1 font-mono text-[var(--text-primary)] hover:underline"
+                      title="Copier l'adresse IP"
+                    >
+                      {server.host}
+                      {copiedId === server.id ? (
+                        <Check size={11} className="text-green-400" />
+                      ) : (
+                        <Copy size={11} className="text-[var(--text-muted)]" />
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg bg-[var(--hover)]/60 px-2.5 py-1.5">
+                    <span className="text-[var(--text-muted)]">Port</span>
+                    <span className="font-mono text-[var(--text-primary)]">
+                      {server.port}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg bg-[var(--hover)]/60 px-2.5 py-1.5">
+                    <span className="text-[var(--text-muted)]">User</span>
+                    <span className="font-mono text-[var(--text-primary)] truncate max-w-[80px]">
+                      {server.username}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg bg-[var(--hover)]/60 px-2.5 py-1.5">
+                    <span className="text-[var(--text-muted)]">SSH</span>
+                    <SshVerifiedBadge isVerified={server.isVerified} />
+                  </div>
+                </div>
+
+                {!readOnly && (
+                  <div className="flex items-center justify-end border-t border-[var(--border)] pt-2">
+                    <ServerRowActionsMenu
+                      server={server}
+                      disabled={getServerBusy(server)}
+                      onOpenTerminal={onOpenTerminal}
+                      onOpenSetup={onOpenSetup}
+                      onOpenMonitoring={onOpenMonitoring}
+                      onOpenDetails={onOpenDetails}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      onValidateSsh={onValidateSsh}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      <table
+        className={`w-full min-w-[860px] border-collapse text-sm ${
+          viewMode === "cards" ? "hidden md:table" : ""
+        }`}
+      >
         <thead>
           <tr className="border-b border-[var(--border)]">
             <th className={th}>Name</th>

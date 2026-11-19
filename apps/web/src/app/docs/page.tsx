@@ -27,22 +27,22 @@ const sections = [
   },
   {
     id: "serveur",
-    title: "3. Connecter un serveur",
+    title: "3. Connecter un serveur (VPS Global ou Tunisie)",
     steps: [
-      "Utilisez un VPS Ubuntu joignable en SSH avec un utilisateur disposant des droits nécessaires.",
-      "Ouvrez Serveurs, puis indiquez le nom, l'hôte, le port et l'utilisateur SSH.",
-      "Installez la clé publique indiquée par Sovrack sur le serveur cible.",
-      "Lancez la validation SSH, la détection des capacités et la préparation guidée.",
+      "Compatible avec tout VPS Ubuntu : hébergeurs locaux en Tunisie (OxaHost, NovaHoster, Safozi payables en Dinars TND) ou internationaux (Hetzner, OVH, DigitalOcean, AWS).",
+      "Ouvrez Serveurs, puis indiquez le nom, l'adresse IP, le port SSH et l'utilisateur disposant des droits sudo.",
+      "Installez la clé publique indiquée par Sovrack dans ~/.ssh/authorized_keys sur le serveur cible.",
+      "Lancez la validation SSH, la détection des capacités et la préparation guidée en 1 clic.",
     ],
   },
   {
     id: "git",
     title: "4. Connecter GitHub ou GitLab",
     steps: [
-      "Pour GitHub, créez un Personal Access Token limité aux dépôts nécessaires.",
-      "Pour GitLab, utilisez un jeton d'accès avec les permissions minimales requises.",
-      "Ajoutez le fournisseur depuis Fournisseurs Git et vérifiez la connexion.",
-      "Les jetons sont chiffrés ; révoquez-les directement chez le fournisseur lorsqu'ils ne sont plus utilisés.",
+      "Connectez votre compte GitHub ou GitLab en 1 clic pour lister et importer vos dépôts directement.",
+      "Vous pouvez également utiliser un Personal Access Token (PAT) ou un Deploy Token pour vos dépôts privés d'entreprise.",
+      "Ajoutez le fournisseur depuis Fournisseurs Git et vérifiez la connexion instantanément.",
+      "Les jetons sont chiffrés avec AES-256-GCM ; révoquez-les directement chez le fournisseur lorsqu'ils ne sont plus utilisés.",
     ],
   },
   {

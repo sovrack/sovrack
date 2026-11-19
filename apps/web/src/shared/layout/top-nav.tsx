@@ -114,7 +114,7 @@ function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl z-50">
+        <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl z-50">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
             <span className="text-sm font-semibold text-[var(--text-primary)]">
@@ -264,9 +264,7 @@ export function TopNav() {
             <Globe2 size={17} />
           </Link>
           <ThemeToggle />
-          <div className="hidden sm:block">
-            <NotificationBell />
-          </div>
+          <NotificationBell />
 
           <div ref={dropdownRef} className="relative">
             <button

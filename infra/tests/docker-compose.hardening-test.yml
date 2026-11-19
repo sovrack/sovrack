@@ -16,11 +16,11 @@ services:
       - ${HARDENING_CERT_DIR}:/etc/letsencrypt/live/hardening.test:ro
       - ${HARDENING_MAINTENANCE_DIR}:/var/run/sovrack-maintenance:ro
 
-  frontend:
-    container_name: sovrack-hardening-frontend
+  web:
+    container_name: sovrack-hardening-web
 
-  backend:
-    container_name: sovrack-hardening-backend
+  server:
+    container_name: sovrack-hardening-server
 
   migrator:
     container_name: sovrack-hardening-migrator

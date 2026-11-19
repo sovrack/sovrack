@@ -4,6 +4,7 @@ import { PrismaService } from '../../shared/database/prisma.service';
 import { NotificationsConfigService } from './notifications-config.service';
 import { NotificationsSmtpService } from './notifications-smtp.service';
 import { NotificationsSlackService } from './notifications-slack.service';
+import { NotificationsDiscordService } from './notifications-discord.service';
 import type { NotificationsSettings } from './notifications-config.service';
 import type {
   StaffEmailSettingsView,
@@ -30,6 +31,7 @@ export class NotificationsService {
     private readonly configService: NotificationsConfigService,
     private readonly smtp: NotificationsSmtpService,
     private readonly slack: NotificationsSlackService,
+    private readonly discord: NotificationsDiscordService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -49,6 +51,7 @@ export class NotificationsService {
 
     await Promise.allSettled([
       this.slack.sendDeploymentSlack(payload),
+      this.discord.sendDeploymentDiscord(payload),
       this.smtp.sendDeploymentEmail(payload),
     ]);
   }
@@ -58,6 +61,7 @@ export class NotificationsService {
   ): Promise<void> {
     await Promise.allSettled([
       this.slack.sendDockerConnectionSlack(payload, false),
+      this.discord.sendDockerConnectionDiscord(payload, false),
       this.smtp.sendDockerConnectionEmail(payload, false),
     ]);
   }
@@ -67,6 +71,7 @@ export class NotificationsService {
   ): Promise<void> {
     await Promise.allSettled([
       this.slack.sendDockerConnectionSlack(payload, true),
+      this.discord.sendDockerConnectionDiscord(payload, true),
       this.smtp.sendDockerConnectionEmail(payload, true),
     ]);
   }

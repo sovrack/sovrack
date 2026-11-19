@@ -62,7 +62,7 @@ describe('BuildController', () => {
       {
         overwriteDockerfile: true,
         overwriteGitlabCi: false,
-      } as never,
+      },
       workspaceId,
     );
     expect(buildService.generateBuildFiles).toHaveBeenCalledWith(
@@ -152,14 +152,7 @@ describe('BuildController', () => {
 
   it('listBuilds clamps the limit and forwards filters', async () => {
     const { ctrl, buildsService } = build();
-    await ctrl.listBuilds(
-      'p1',
-      user,
-      'SUCCESS' as never,
-      'main',
-      '999',
-      workspaceId,
-    );
+    await ctrl.listBuilds('p1', user, 'SUCCESS', 'main', '999', workspaceId);
     expect(buildsService.listForProject).toHaveBeenCalledWith('p1', {
       status: 'SUCCESS',
       branch: 'main',

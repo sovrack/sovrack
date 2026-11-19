@@ -21,7 +21,7 @@ type LanguageContextValue = {
   mounted: boolean;
 };
 
-const LANG_STORAGE_KEY = "deploy-automation-lang";
+const LANG_STORAGE_KEY = "sovrack-lang";
 const DEFAULT_LANG: Language = "fr";
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(
@@ -33,19 +33,29 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // La V1 publique est livrée en français. Le moteur reste prêt pour un
-    // futur catalogue anglais complet, mais aucun sélecteur incomplet n'est
-    // exposé aux clients.
-    setLangState(DEFAULT_LANG);
-    localStorage.setItem(LANG_STORAGE_KEY, DEFAULT_LANG);
-    document.documentElement.lang = DEFAULT_LANG;
+    try {
+      const stored = localStorage.getItem(LANG_STORAGE_KEY) as Language | null;
+      if (stored === "en" || stored === "fr") {
+        setLangState(stored);
+        document.documentElement.lang = stored;
+      } else {
+        localStorage.setItem(LANG_STORAGE_KEY, DEFAULT_LANG);
+        document.documentElement.lang = DEFAULT_LANG;
+      }
+    } catch {
+      // Fallback in case localStorage is restricted
+    }
     setMounted(true);
   }, []);
 
   const setLang = useCallback((next: Language) => {
     setLangState(next);
-    localStorage.setItem(LANG_STORAGE_KEY, next);
-    document.documentElement.lang = next;
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, next);
+      document.documentElement.lang = next;
+    } catch {
+      // Ignore storage errors
+    }
   }, []);
 
   const t = useCallback(
@@ -78,3 +88,6 @@ const FALLBACK: LanguageContextValue = {
 export function useI18n() {
   return useContext(LanguageContext) ?? FALLBACK;
 }
+
+export const useLanguage = useI18n;
+

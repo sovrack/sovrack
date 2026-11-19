@@ -1,0 +1,29 @@
+{
+  "name": "sovrack",
+  "version": "3.1.0",
+  "private": true,
+  "description": "Modern multi-server deployment & infrastructure orchestration platform",
+  "author": "Habib Drira <contact@sovrack.tech>",
+  "license": "BSL-1.1",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:server": "npm --workspace=@sovrack/server run start:dev",
+    "dev:web": "npm --workspace=@sovrack/web run dev",
+    "build:server": "npm --workspace=@sovrack/server run build",
+    "build:web": "npm --workspace=@sovrack/web run build",
+    "build": "npm run build:server && npm run build:web",
+    "lint": "npm run --workspaces lint",
+    "test": "npm run --workspaces test",
+    "type-check": "npm --workspace=@sovrack/server run check:all && npm --workspace=@sovrack/web run type-check",
+    "contract:generate": "npm --workspace=@sovrack/web run contract:generate",
+    "prisma:generate": "npm --workspace=@sovrack/server run prisma:generate",
+    "prisma:migrate": "npm --workspace=@sovrack/server run prisma:migrate",
+    "prisma:studio": "npm --workspace=@sovrack/server run prisma:studio"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

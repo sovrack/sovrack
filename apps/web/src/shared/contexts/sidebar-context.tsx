@@ -9,7 +9,8 @@ import {
   type ReactNode,
 } from "react";
 
-const SIDEBAR_COLLAPSED_KEY = "deploy-automation-sidebar-collapsed";
+const SIDEBAR_COLLAPSED_KEY = "sovrack-sidebar-collapsed";
+const LEGACY_SIDEBAR_COLLAPSED_KEY = "deploy-automation-sidebar-collapsed";
 
 type SidebarContextValue = {
   collapsed: boolean;
@@ -30,7 +31,10 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+    return (
+      window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1" ||
+      window.localStorage.getItem(LEGACY_SIDEBAR_COLLAPSED_KEY) === "1"
+    );
   });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 

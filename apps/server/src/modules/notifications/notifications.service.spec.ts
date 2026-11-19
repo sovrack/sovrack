@@ -43,6 +43,11 @@ describe('NotificationsService (dispatcher)', () => {
       sendSimpleSlack: jest.fn().mockResolvedValue(undefined),
       sendDockerConnectionSlack: jest.fn().mockResolvedValue(undefined),
     };
+    const discord = {
+      sendDeploymentDiscord: jest.fn().mockResolvedValue(undefined),
+      sendSimpleDiscord: jest.fn().mockResolvedValue(undefined),
+      sendDockerConnectionDiscord: jest.fn().mockResolvedValue(undefined),
+    };
     prisma = {
       project: { findUnique: jest.fn().mockResolvedValue({ name: 'P' }) },
     };
@@ -51,6 +56,7 @@ describe('NotificationsService (dispatcher)', () => {
       config as unknown as NotificationsConfigService,
       smtp as unknown as NotificationsSmtpService,
       slack as unknown as NotificationsSlackService,
+      discord as unknown as any,
       prisma as unknown as PrismaService,
     );
   });

@@ -1,7 +1,8 @@
 import { ConfigService } from '@nestjs/config';
 import type { CookieOptions } from 'express';
 
-export const AUTH_COOKIE_NAME_DEFAULT = 'deploy_automation_token';
+export const AUTH_COOKIE_NAME_DEFAULT = 'sovrack_token';
+export const AUTH_COOKIE_NAME_LEGACY = 'deploy_automation_token';
 const AUTH_COOKIE_MAX_AGE_MS_DEFAULT = 24 * 60 * 60 * 1000;
 
 type SameSiteValue = 'lax' | 'strict' | 'none';
@@ -111,6 +112,7 @@ export function extractTokenFromCookieHeader(
     : cookieHeader;
 
   const pairs = source.split(';');
+  let legacyValue: string | null = null;
   for (const pair of pairs) {
     const separatorIndex = pair.indexOf('=');
     if (separatorIndex <= 0) {
@@ -118,21 +120,32 @@ export function extractTokenFromCookieHeader(
     }
 
     const key = pair.slice(0, separatorIndex).trim();
-    if (key !== cookieName) {
-      continue;
+    if (key === cookieName) {
+      const value = pair.slice(separatorIndex + 1).trim();
+      if (!value) {
+        return null;
+      }
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        return value;
+      }
     }
 
-    const value = pair.slice(separatorIndex + 1).trim();
-    if (!value) {
-      return null;
-    }
-
-    try {
-      return decodeURIComponent(value);
-    } catch {
-      return value;
+    if (
+      cookieName === AUTH_COOKIE_NAME_DEFAULT &&
+      key === AUTH_COOKIE_NAME_LEGACY
+    ) {
+      const value = pair.slice(separatorIndex + 1).trim();
+      if (value) {
+        try {
+          legacyValue = decodeURIComponent(value);
+        } catch {
+          legacyValue = value;
+        }
+      }
     }
   }
 
-  return null;
+  return legacyValue;
 }

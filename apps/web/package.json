@@ -1,8 +1,10 @@
 {
-  "name": "deploy-automation-frontend",
-  "version": "1.0.0",
-  "description": "Deploy Automation Frontend",
+  "name": "@sovrack/web",
+  "version": "3.1.0",
+  "description": "Sovrack Multi-tenant Web App & Dashboard",
+  "author": "Habib Drira <contact@sovrack.tech>",
   "private": true,
+  "license": "BSL-1.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -19,11 +21,12 @@
     "scaffold:page": "node scripts/scaffold-page.mjs",
     "scaffold:feature": "node scripts/scaffold-feature.mjs",
     "check:architecture": "node scripts/quality-gates.mjs all",
+    "check:web": "npm run check:architecture && npm run lint -- --max-warnings=0 && npx tsc --noEmit",
     "check:frontend": "npm run check:architecture && npm run lint -- --max-warnings=0 && npx tsc --noEmit",
-    "contract:export-openapi": "cd ../backend && npm run openapi:export",
+    "contract:export-openapi": "cd ../server && npm run openapi:export",
     "contract:types": "openapi-typescript --default-non-nullable=false src/generated/api-contract.openapi.json -o src/generated/api-contract.ts",
     "contract:generate": "npm run contract:export-openapi && npm run contract:types",
-    "contract:generate:help": "echo 'contract:generate requires the backend repo at ../backend. In CI use contract:types only (reads committed openapi.json).'"
+    "contract:generate:help": "echo 'contract:generate requires the server at ../server. In CI use contract:types only (reads committed openapi.json).'"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.99.2",

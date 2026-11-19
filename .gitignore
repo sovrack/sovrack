@@ -1,0 +1,80 @@
+﻿# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+/build/
+.next/
+out/
+storybook-static/
+
+# Environment files and credentials
+*.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+.env*.local
+*.pem
+*.key
+id_rsa*
+*.crt
+
+# Keep example files
+!.env.example
+!.env.*.example
+!ansible/.env-example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test coverage & reports
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Cache directories
+.turbo/
+.cache/
+.eslintcache
+.stylelintcache
+
+# Prisma generated artifacts
+prisma/migrations/dev.db*
+
+# OS specific files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE files
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Ansible retry files
+*.retry
+ansible/.vault-pass*
+
+# Secrets & release archives
+backup-*.tar.gz
+*.tar.gz
+*.dump
+backup-*.sql
+*.dump
+

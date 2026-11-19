@@ -149,8 +149,12 @@ validate_release_manifest() {
   esac
 
   export RELEASE_ID BACKEND_IMAGE FRONTEND_IMAGE NGINX_IMAGE POSTGRES_IMAGE REDIS_IMAGE
+  export SERVER_IMAGE="${SERVER_IMAGE:-$BACKEND_IMAGE}"
+  export WEB_IMAGE="${WEB_IMAGE:-$FRONTEND_IMAGE}"
   export BACKEND_COMMIT
   export FRONTEND_COMMIT INFRA_COMMIT RUNTIME_TOPOLOGY SCHEMA_MIGRATION OPENAPI_SHA256
+  export SERVER_COMMIT="${SERVER_COMMIT:-$BACKEND_COMMIT}"
+  export WEB_COMMIT="${WEB_COMMIT:-$FRONTEND_COMMIT}"
 }
 
 configure_runtime_topology() {
@@ -158,10 +162,12 @@ configure_runtime_topology() {
     split)
       export COMPOSE_PROFILES=split-runtime
       export BACKEND_PROCESS_ROLE=api
+      export SERVER_PROCESS_ROLE=api
       ;;
     compact|legacy-single)
       unset COMPOSE_PROFILES || true
       export BACKEND_PROCESS_ROLE=all
+      export SERVER_PROCESS_ROLE=all
       ;;
     *)
       echo "ERROR: topologie runtime invalide : $RUNTIME_TOPOLOGY" >&2

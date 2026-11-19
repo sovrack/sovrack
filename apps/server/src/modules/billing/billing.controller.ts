@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Headers, HttpCode, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { BillingService } from './billing.service';
-import { SubscribeDto } from './dto/billing.dto';
+import { CheckoutSessionDto, SubscribeDto } from './dto/billing.dto';
 import { GetUser } from '../../shared/decorators/get-user.decorator';
 import type { JwtPayload } from '../../shared/jwt/dto/jwt-payload.dto';
 import { RequiresProductCapability } from '../../shared/product-capabilities/requires-product-capability.decorator';
@@ -33,6 +33,26 @@ export class BillingController {
       WorkspaceActions.READ_BILLING,
     );
     return this.billingService.getMyBilling(workspaceId);
+  }
+
+  @Post('checkout')
+  @HttpCode(200)
+  async checkout(
+    @GetUser() user: JwtPayload,
+    @Headers('x-workspace-id') requestedWorkspaceId: string | undefined,
+    @Body() dto: CheckoutSessionDto,
+  ) {
+    const workspaceId = await this.assertCanManageBilling(
+      user.id,
+      requestedWorkspaceId,
+    );
+    return this.billingService.createCheckoutSession(
+      workspaceId,
+      dto.plan,
+      dto.currency || 'USD',
+      dto.gateway || 'stripe',
+      user.id,
+    );
   }
 
   @Post('subscribe')

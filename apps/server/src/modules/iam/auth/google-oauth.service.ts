@@ -62,9 +62,7 @@ export class GoogleOAuthService {
         data: {
           googleId,
           provider: existing.provider === 'google' ? 'google' : 'email',
-          ...(existing.provider === 'google'
-            ? { emailVerifiedAt: existing.emailVerifiedAt ?? new Date() }
-            : {}),
+          emailVerifiedAt: existing.emailVerifiedAt ?? new Date(),
         },
       });
       this.logger.log(

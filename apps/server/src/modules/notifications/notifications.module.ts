@@ -7,6 +7,8 @@ import { NotificationsSlackService } from './notifications-slack.service';
 import { NotificationsService } from './notifications.service';
 import { DockerConnectionNotificationsListener } from './listeners/docker-connection.listener';
 
+import { NotificationsDiscordService } from './notifications-discord.service';
+
 @Module({
   imports: [PrismaModule, HttpModule],
   // Notification delivery remains internal. The former settings controller
@@ -16,12 +18,14 @@ import { DockerConnectionNotificationsListener } from './listeners/docker-connec
     NotificationsConfigService,
     NotificationsSmtpService,
     NotificationsSlackService,
+    NotificationsDiscordService,
     NotificationsService,
     DockerConnectionNotificationsListener,
   ],
   exports: [
     NotificationsService,
     NotificationsSmtpService,
+    NotificationsDiscordService,
     NotificationsConfigService,
   ],
 })

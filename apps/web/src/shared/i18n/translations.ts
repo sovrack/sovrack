@@ -163,4 +163,44 @@ export const FR: Record<string, string> = {
   Deployment: "Déploiement",
   "(changing the repository = create another service)":
     "(changer de dépôt = créer un autre service)",
+
+  // ── Pricing & Plans ────────────────────────────────────────────────────
+  Pricing: "Tarifs",
+  "Start for free.": "Commencez gratuitement.",
+  "Simple, transparent pricing for teams of all sizes.":
+    "Une tarification simple et transparente pour les développeurs et les équipes.",
+  "Free (Hobby)": "Gratuit (Hobby)",
+  Pro: "Pro",
+  Team: "Team",
+  Enterprise: "Entreprise",
+  "Free forever": "Gratuit pour toujours",
+  "1 server": "1 serveur",
+  "1 project": "1 projet",
+  "Unlimited servers": "Serveurs illimités",
+  "Unlimited projects": "Projets illimités",
+  "Unlimited team members": "Membres d'équipe illimités",
+  "Automated backups": "Sauvegardes automatiques",
+  "Priority support": "Support prioritaire",
+  "Custom domain & SSL": "Domaine personnalisé & SSL",
+  "Upgrade to Pro": "Passer au plan Pro",
+  "Upgrade to Team": "Passer au plan Team",
+  "Get Started": "Démarrer",
+  "Current plan": "Plan actuel",
+  "Billing": "Facturation",
+  "Payment Method": "Moyen de paiement",
+  "International (USD / EUR)": "International (USD / EUR)",
+  "Tunisia (Dinars TND)": "Tunisie (Dinars TND)",
+  "Pay with Card": "Payer par carte",
+  "Switch language": "Changer de langue",
+
+  // ── Authentication & OAuth ──────────────────────────────────────────────
+  "Continue with Google": "Continuer avec Google",
+  "Sign up with Google": "S'inscrire avec Google",
+  "or with your email": "ou avec votre email",
+  "Google authentication is not configured on this server.":
+    "L'authentification Google n'est pas configurée sur ce serveur.",
+  "Your account is disabled.": "Votre compte est désactivé.",
+  "Google authentication failed. Please try again.":
+    "Échec de l'authentification Google. Veuillez réessayer.",
+  "Google authentication cancelled.": "Connexion Google annulée.",
 };

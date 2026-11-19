@@ -20,8 +20,11 @@ import {
   type GitProviderStatus,
 } from './git-provider-config.util';
 import { assertSafeOutboundHttpsUrl } from '../../../../shared/http/outbound-url-policy.util';
+import type { GitRepoOption } from './git-provider.types';
 
 // ─── Public Types ────────────────────────────────────────────────────────────
+
+export type { GitRepoOption };
 
 // GitProviderStatus + GitlabProviderPublic now live in ./git-provider-config.util;
 // re-exported here so existing importers of this module keep working.
@@ -409,19 +412,16 @@ export class GitProviderConfigService {
     return this.github.test(id, teamId);
   }
 
-  listGithubRepos(
+  listGithubRepos(id: string, teamId: string): Promise<GitRepoOption[]> {
+    return this.github.listRepos(id, teamId);
+  }
+
+  async listGitlabRepos(
     id: string,
     teamId: string,
-  ): Promise<
-    {
-      id: number;
-      name: string;
-      fullName: string;
-      httpUrl: string;
-      defaultBranch: string;
-    }[]
-  > {
-    return this.github.listRepos(id, teamId);
+  ): Promise<GitRepoOption[]> {
+    const provider = await this.getGitlabProviderOrFail(id, teamId);
+    return this.tester.listRepos(provider);
   }
 
   // ─── Private helpers ──────────────────────────────────────────────────────

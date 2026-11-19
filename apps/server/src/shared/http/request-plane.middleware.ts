@@ -1,5 +1,8 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import { AUTH_COOKIE_NAME_DEFAULT } from './auth-cookie.util';
+import {
+  AUTH_COOKIE_NAME_DEFAULT,
+  AUTH_COOKIE_NAME_LEGACY,
+} from './auth-cookie.util';
 import { STAFF_AUTH_COOKIE_NAME_DEFAULT } from './staff-auth-cookie.util';
 
 export type RequestPlane = 'public' | 'customer' | 'staff' | 'unknown';
@@ -153,6 +156,7 @@ export function createCsrfOriginMiddleware(
     const cookieHeader = request.headers.cookie;
     const hasSessionCookie =
       cookieHeaderHas(cookieHeader, config.customerCookieName) ||
+      cookieHeaderHas(cookieHeader, AUTH_COOKIE_NAME_LEGACY) ||
       cookieHeaderHas(cookieHeader, config.staffCookieName);
     if (!hasSessionCookie) return next();
 

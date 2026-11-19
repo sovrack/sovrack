@@ -58,4 +58,25 @@ describe('BillingController workspace authorization', () => {
       'user-1',
     );
   });
+
+  it('requires independent billing management permission to checkout', async () => {
+    (billing as Record<string, unknown>).createCheckoutSession = jest
+      .fn()
+      .mockResolvedValue({ checkoutUrl: 'https://checkout.stripe.com/test' });
+
+    await controller.checkout(user, 'workspace-1', {
+      plan: Plan.PRO,
+      currency: 'USD',
+      gateway: 'stripe',
+    });
+
+    expect(workspaceAccess.assertWorkspaceAction).toHaveBeenCalledWith(
+      'workspace-1',
+      'user-1',
+      WorkspaceActions.MANAGE_BILLING,
+    );
+    expect(
+      (billing as Record<string, unknown>).createCheckoutSession,
+    ).toHaveBeenCalledWith('workspace-1', Plan.PRO, 'USD', 'stripe', 'user-1');
+  });
 });

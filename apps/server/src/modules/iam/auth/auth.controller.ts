@@ -28,8 +28,8 @@ import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { GetUser } from '../../../shared/decorators/get-user.decorator';
 import { Public } from '../../../shared/decorators/public.decorator';
 import { LoginRateLimitGuard } from './guards/login-rate-limit.guard';
+import { GoogleOAuthGuard } from './guards/google-auth.guard';
 import type { JwtPayload } from '../../../shared/jwt/dto/jwt-payload.dto';
-import { AuthGuard } from '@nestjs/passport';
 import type { SafeUser } from '../users/user-safe-view';
 import type { Response } from 'express';
 import { DeleteAccountDto } from './dto/delete-account.dto';
@@ -47,6 +47,27 @@ import {
 import { ImpersonationSessionService } from './impersonation-session.service';
 import { RequiresProductCapability } from '../../../shared/product-capabilities/requires-product-capability.decorator';
 import { ProductCapabilities } from '../../../shared/product-capabilities/product-capability';
+
+function parseSafeRedirectPath(stateQuery?: string): string {
+  if (!stateQuery) return '/dashboard';
+  try {
+    const raw = Buffer.from(stateQuery, 'base64url').toString('utf8');
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed === 'object' && parsed !== null && 'next' in parsed) {
+      const value = (parsed as Record<string, unknown>).next;
+      if (
+        typeof value === 'string' &&
+        value.startsWith('/') &&
+        !value.startsWith('//')
+      ) {
+        return value;
+      }
+    }
+  } catch {
+    // Retombe sur le tableau de bord si le state est absent ou invalide.
+  }
+  return '/dashboard';
+}
 
 /**
  * Contrôleur d'authentification
@@ -281,8 +302,32 @@ export class AuthController {
   }
 
   /**
+   * Retourne la liste des fournisseurs d'authentification tiers configurés.
+   * Permet à apps/web d'afficher ou masquer dynamiquement les boutons.
+   * GET /auth/providers
+   */
+  @Get('providers')
+  @Public()
+  @ApiOperation({
+    summary: 'List available third-party authentication providers',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Active authentication providers',
+  })
+  getAuthProviders(): { google: boolean } {
+    const googleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    const googleClientSecret = this.configService.get<string>(
+      'GOOGLE_CLIENT_SECRET',
+    );
+    return {
+      google: Boolean(googleClientId && googleClientSecret),
+    };
+  }
+
+  /**
    * Démarre la connexion via Google OAuth.
-   * GET /auth/google → redirige le navigateur vers accounts.google.com.
+   * GET /auth/google?next=/projects/new → redirige le navigateur vers accounts.google.com.
    */
   @Get('google')
   @Public()
@@ -292,16 +337,16 @@ export class AuthController {
     status: 302,
     description: 'Redirect to Google consent screen',
   })
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleOAuthGuard)
   googleLogin(): void {
-    // La redirection est gérée par la stratégie Passport Google.
+    // La redirection est gérée par la stratégie Passport Google et GoogleOAuthGuard.
   }
 
   /**
    * Callback Google OAuth : Google redirige ici après le consentement.
    * Le guard 'google' exécute la stratégie (find-or-create user), puis on pose
-   * le cookie de session JWT et on redirige vers le frontend (FRONTEND_URL).
-   * GET /auth/google/callback?code=...
+   * le cookie de session JWT et on redirige vers frontendUrl + next destination.
+   * GET /auth/google/callback?code=...&state=...
    */
   @Get('google/callback')
   @Public()
@@ -312,11 +357,15 @@ export class AuthController {
     description: 'Redirect to frontend with session',
   })
   @ApiResponse({ status: 401, description: 'Google authentication failed' })
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleOAuthGuard)
   async googleCallback(
-    @Req() req: { user: { id: string } },
+    @Req() req: { user: { id: string }; query?: Record<string, string> },
     @Res() res: Response,
   ): Promise<void> {
+    const frontendUrl = this.configService.get<string>(
+      'FRONTEND_URL',
+      'http://localhost:3000',
+    );
     try {
       const { access_token } = await this.authService.generateTokenForUserId(
         req.user.id,
@@ -326,20 +375,18 @@ export class AuthController {
         access_token,
         buildAuthCookieOptions(this.configService),
       );
-      const frontendUrl = this.configService.get<string>(
-        'FRONTEND_URL',
-        'http://localhost:3000',
-      );
-      res.redirect(frontendUrl);
+
+      // Récupérer la destination sécurisée depuis le paramètre state
+      const redirectPath = parseSafeRedirectPath(req.query?.state);
+
+      res.redirect(`${frontendUrl}${redirectPath}`);
     } catch (err) {
-      const frontendUrl = this.configService.get<string>(
-        'FRONTEND_URL',
-        'http://localhost:3000',
-      );
-      const message = encodeURIComponent(
-        err instanceof Error ? err.message : 'Authentication failed',
-      );
-      res.redirect(`${frontendUrl}/login?error=${message}`);
+      const isAccountDisabled =
+        err instanceof Error && err.message.includes('désactivé');
+      const errorCode = isAccountDisabled
+        ? 'account_disabled'
+        : 'oauth_callback_failed';
+      res.redirect(`${frontendUrl}/login?error=${errorCode}`);
     }
   }
 

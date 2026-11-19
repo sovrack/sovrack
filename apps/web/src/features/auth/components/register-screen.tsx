@@ -2,13 +2,16 @@
 
 import { FormEvent, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Building2, UserRound } from "lucide-react";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { resolveSafeInternalPath } from "@/shared/lib/safe-navigation";
+import { GoogleLoginButton } from "./google-login-button";
+import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
+import { useLanguage } from "@/shared/i18n/language-context";
 import {
   SOVRACK_PASSWORD_MAX_LENGTH,
   SOVRACK_PASSWORD_MESSAGE,
@@ -19,9 +22,9 @@ import {
 type Step = "form" | "verify";
 
 export function RegisterScreen() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { register, verifyEmail, resendCode } = useAuth();
+  const { t } = useLanguage();
 
   const [step, setStep] = useState<Step>("form");
   const [fullName, setFullName] = useState("");
@@ -103,7 +106,7 @@ export function RegisterScreen() {
         throw new Error("La tentative d'inscription a expiré. Recommencez.");
       }
       await verifyEmail(email, code, registrationId);
-      router.replace(
+      window.location.assign(
         resolveSafeInternalPath(searchParams.get("next"), "/dashboard"),
       );
     } catch (err: unknown) {
@@ -203,7 +206,23 @@ export function RegisterScreen() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="mt-10 space-y-5">
+              {isCapabilityEnabled("googleAuthentication") && (
+                <div className="mt-8 space-y-4">
+                  <GoogleLoginButton
+                    label={t("Sign up with Google")}
+                    nextPath={searchParams.get("next") || undefined}
+                  />
+                  <div className="relative flex items-center gap-3 py-1">
+                    <span className="h-px flex-1 bg-white/10" />
+                    <span className="text-xs uppercase tracking-wide text-slate-500">
+                      {t("or with your email")}
+                    </span>
+                    <span className="h-px flex-1 bg-white/10" />
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="mt-6 space-y-5">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="block text-sm font-medium text-slate-300">

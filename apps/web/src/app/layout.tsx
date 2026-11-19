@@ -56,8 +56,9 @@ export default function RootLayout({
   const themeScript = `
     (function () {
       try {
-        var key = 'deploy-automation-theme';
-        var saved = localStorage.getItem(key);
+        var key = 'sovrack-theme';
+        var legacyKey = 'deploy-automation-theme';
+        var saved = localStorage.getItem(key) || localStorage.getItem(legacyKey);
         var theme = saved === 'brand' || saved === 'light' || saved === 'dark' ? saved : 'brand';
         var root = document.documentElement;
         root.classList.remove('brand', 'light', 'dark');

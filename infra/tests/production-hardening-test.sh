@@ -92,11 +92,11 @@ compose=(docker compose --env-file "$ENV_FILE" -p "$TEST_PROJECT" \
 "${compose[@]}" config -q
 "${compose[@]}" up -d --wait postgres redis
 "${compose[@]}" run --rm migrator
-"${compose[@]}" up -d --wait backend frontend nginx
+"${compose[@]}" up -d --wait server web nginx
 
 for container in \
-  sovrack-hardening-nginx sovrack-hardening-frontend \
-  sovrack-hardening-backend sovrack-hardening-postgres \
+  sovrack-hardening-nginx sovrack-hardening-web \
+  sovrack-hardening-server sovrack-hardening-postgres \
   sovrack-hardening-redis; do
   [ "$(docker inspect "$container" --format '{{.HostConfig.ReadonlyRootfs}}')" = "true" ]
   docker inspect "$container" --format '{{json .HostConfig.SecurityOpt}}' \

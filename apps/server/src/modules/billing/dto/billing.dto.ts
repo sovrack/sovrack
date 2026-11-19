@@ -14,6 +14,22 @@ export class UpdateSubscriptionQuantityDto {
   serverQuantity?: number;
 }
 
+export class CheckoutSessionDto {
+  @ApiProperty({ enum: Plan, example: Plan.PRO })
+  @IsEnum(Plan)
+  plan: Plan;
+
+  @ApiPropertyOptional({ enum: ['USD', 'TND', 'EUR'], default: 'USD' })
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @ApiPropertyOptional({ enum: ['stripe', 'konnect'], default: 'stripe' })
+  @IsOptional()
+  @IsString()
+  gateway?: 'stripe' | 'konnect';
+}
+
 export class WebhookDto {
   @ApiProperty()
   @IsString()

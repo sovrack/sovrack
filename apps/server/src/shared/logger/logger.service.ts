@@ -58,7 +58,7 @@ export class LoggerService implements NestLoggerService {
             }),
           ),
       defaultMeta: {
-        service: 'deploy-automation-backend',
+        service: 'sovrack-server',
       },
       transports: [new winston.transports.Console()],
     });

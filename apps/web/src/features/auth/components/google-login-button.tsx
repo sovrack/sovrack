@@ -1,23 +1,32 @@
 "use client";
 
+import { useLanguage } from "@/shared/i18n/language-context";
+
 /**
- * Bouton "Se connecter avec Google" (OAuth).
+ * Bouton "Se connecter avec Google" (OAuth 2.0).
  *
- * Utilise une navigation navigateur complète (pas XHR) : le flux OAuth doit
- * rediriger l'utilisateur vers accounts.google.com puis revenir sur
- * /backend-api/auth/google/callback. Le backend pose alors le cookie de
- * session HttpOnly et redirige vers la page d'accueil.
+ * Utilise une navigation navigateur complète : le flux OAuth redirige l'utilisateur
+ * vers accounts.google.com puis revient sur /backend-api/auth/google/callback.
+ * Le backend pose alors le cookie de session HttpOnly et redirige vers la destination.
  */
 export function GoogleLoginButton({
-  label = "Se connecter avec Google",
+  label,
   className = "",
+  nextPath,
 }: {
   label?: string;
   className?: string;
+  nextPath?: string;
 }) {
+  const { t } = useLanguage();
+  const displayLabel = label || t("Continue with Google");
+  const href = nextPath
+    ? `/backend-api/auth/google?next=${encodeURIComponent(nextPath)}`
+    : "/backend-api/auth/google";
+
   return (
     <a
-      href="/backend-api/auth/google"
+      href={href}
       className={`flex w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-100 transition hover:bg-white/10 ${className}`}
     >
       <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -38,7 +47,7 @@ export function GoogleLoginButton({
           d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z"
         />
       </svg>
-      {label}
+      <span>{displayLabel}</span>
     </a>
   );
 }

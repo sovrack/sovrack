@@ -80,3 +80,11 @@ export type RegistryTestResult = {
   ok: boolean;
   message: string;
 };
+
+export type GitRepoItem = {
+  id: number;
+  name: string;
+  fullName: string;
+  httpUrl: string;
+  defaultBranch: string;
+};

@@ -49,6 +49,29 @@ describe('TraefikRouteService.resolveAutoSubdomain', () => {
     expect(upsert).toHaveBeenCalled();
   });
 
+  it('falls back to process.env.PLATFORM_BASE_DOMAIN when not present in DB', async () => {
+    const prev = process.env.PLATFORM_BASE_DOMAIN;
+    process.env.PLATFORM_BASE_DOMAIN = 'apps.sovrack.tech';
+    try {
+      const { service, upsert } = makeService({});
+      const domain = await service.resolveAutoSubdomain(
+        'p1',
+        'se1',
+        'My-Store',
+        'PROD',
+        '10.0.0.1',
+      );
+      expect(domain).toBe('my-store-prod.apps.sovrack.tech');
+      expect(upsert).toHaveBeenCalled();
+    } finally {
+      if (prev !== undefined) {
+        process.env.PLATFORM_BASE_DOMAIN = prev;
+      } else {
+        delete process.env.PLATFORM_BASE_DOMAIN;
+      }
+    }
+  });
+
   it('falls back to nip.io when PLATFORM_AUTO_SUBDOMAIN is true and host is an IP', async () => {
     const { service } = makeService({ PLATFORM_AUTO_SUBDOMAIN: 'true' });
     const domain = await service.resolveAutoSubdomain(

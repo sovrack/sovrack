@@ -253,7 +253,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
     }),
     {
-      name: "deploy-automation-auth",
+      name: "sovrack-auth",
       partialize: (state) => ({ user: state.user }),
     },
   ),

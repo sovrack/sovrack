@@ -8,6 +8,8 @@ import { ServicesCredentialsService } from './services-credentials.service';
 import { ServiceTemplatesFactoryService } from './service-templates-factory.service';
 import { ProjectAccessModule } from '../authorization/project-access.module';
 
+import { DatabaseS3BackupService } from './database-s3-backup.service';
+
 @Module({
   imports: [
     PrismaModule,
@@ -20,7 +22,8 @@ import { ProjectAccessModule } from '../authorization/project-access.module';
     ServicesService,
     ServicesCredentialsService,
     ServiceTemplatesFactoryService,
+    DatabaseS3BackupService,
   ],
-  exports: [ServicesService],
+  exports: [ServicesService, DatabaseS3BackupService],
 })
 export class ServicesModule {}

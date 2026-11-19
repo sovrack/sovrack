@@ -19,7 +19,8 @@ type ThemeContextValue = {
   mounted: boolean;
 };
 
-const THEME_STORAGE_KEY = "deploy-automation-theme";
+const THEME_STORAGE_KEY = "sovrack-theme";
+const LEGACY_THEME_STORAGE_KEY = "deploy-automation-theme";
 const DEFAULT_THEME: Theme = "brand";
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
@@ -44,7 +45,9 @@ function persistTheme(theme: Theme) {
 }
 
 function getInitialTheme(): Theme {
-  const saved = localStorage.getItem(THEME_STORAGE_KEY);
+  const saved =
+    localStorage.getItem(THEME_STORAGE_KEY) ||
+    localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
   if (isTheme(saved)) {
     return saved;
   }

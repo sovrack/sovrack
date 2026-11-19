@@ -55,7 +55,7 @@ function makeDeps(
   };
 
   const configService = {
-    get: jest.fn().mockReturnValue('deployautomation_auth'),
+    get: jest.fn().mockReturnValue('sovrack_token'),
   };
   const workspaceAccess = {
     assertWorkspaceAction: jest.fn().mockResolvedValue({}),

@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
@@ -11,11 +11,29 @@ import { getApiErrorMessage } from "@/shared/lib/api";
 import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import { GoogleLoginButton } from "./google-login-button";
 import { resolveSafeInternalPath } from "@/shared/lib/safe-navigation";
+import { useLanguage } from "@/shared/i18n/language-context";
+
+function resolveOAuthErrorMessage(error: string | null, t: (s: string) => string): string {
+  if (!error) return "";
+  if (error === "oauth_not_configured") {
+    return t("Google authentication is not configured on this server.");
+  }
+  if (error === "account_disabled") {
+    return t("Your account is disabled.");
+  }
+  if (error === "oauth_callback_failed" || error === "oauth_failed") {
+    return t("Google authentication failed. Please try again.");
+  }
+  if (error === "oauth_cancelled") {
+    return t("Google authentication cancelled.");
+  }
+  return decodeURIComponent(error);
+}
 
 export function LoginScreen() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
+  const { t } = useLanguage();
   const oauthError = searchParams.get("error");
 
   const [email, setEmail] = useState("");
@@ -24,7 +42,7 @@ export function LoginScreen() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
   const [error, setError] = useState(
-    oauthError ? decodeURIComponent(oauthError) : "",
+    resolveOAuthErrorMessage(oauthError, t),
   );
   const [loading, setLoading] = useState(false);
 
@@ -38,7 +56,7 @@ export function LoginScreen() {
         searchParams.get("next"),
         "/dashboard",
       );
-      router.replace(next);
+      window.location.assign(next);
     } catch (err: unknown) {
       const code = (err as { response?: { data?: { code?: string } } }).response
         ?.data?.code;
@@ -76,11 +94,11 @@ export function LoginScreen() {
           <form onSubmit={handleSubmit} className="mt-10 space-y-5">
             {isCapabilityEnabled("googleAuthentication") && (
               <>
-                <GoogleLoginButton />
+                <GoogleLoginButton nextPath={searchParams.get("next") || undefined} />
                 <div className="relative flex items-center gap-3 py-1">
                   <span className="h-px flex-1 bg-white/10" />
                   <span className="text-xs uppercase tracking-wide text-slate-500">
-                    ou avec votre email
+                    {t("or with your email")}
                   </span>
                   <span className="h-px flex-1 bg-white/10" />
                 </div>

@@ -109,7 +109,11 @@ export class ServerHostKeyService {
       .get<string>('ANSIBLE_KNOWN_HOSTS_PATH', '')
       .trim();
     if (configured) {
-      return resolve(configured.replace(/[\n\r"'\\;|&$`]/g, '').trim());
+      const sanitized =
+        process.platform === 'win32'
+          ? configured.replace(/[\n\r"';|&$`]/g, '').trim()
+          : configured.replace(/[\n\r"'\\;|&$`]/g, '').trim();
+      return resolve(sanitized);
     }
 
     return resolve(process.cwd(), '.local/ssh/known_hosts');

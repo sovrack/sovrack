@@ -73,8 +73,8 @@ describe('BuildOrchestratorService', () => {
     service = new BuildOrchestratorService(
       prisma as unknown as PrismaService,
       detector as unknown as BuildDetectorService,
-      dockerfileGen as unknown as DockerfileGenerator,
-      dockerignoreGen as unknown as DockerignoreGenerator,
+      dockerfileGen,
+      dockerignoreGen,
       ciFactory as unknown as CiGeneratorFactory,
       providers as unknown as SourceProvidersService,
       workspaceAccess as unknown as WorkspaceAccessService,

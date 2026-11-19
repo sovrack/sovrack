@@ -44,6 +44,7 @@ describe("add-service-wizard catalog", () => {
         "APPLICATION",
         "DATABASE",
         "DOCKER",
+        "TEMPLATE",
       ]);
     });
 

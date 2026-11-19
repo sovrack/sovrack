@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import { SovrackLogo } from "./sovrack-logo";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
 
 const productLinks = isCapabilityEnabled("publicMarketingCopy")
@@ -65,8 +66,8 @@ export function MarketingNavbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-brand/80 backdrop-blur-xl">
-      <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-        <div className="flex flex-1">
+      <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <div className="flex shrink-0">
           <Link
             href={publicSitePath("/")}
             className="group flex items-center gap-2.5"
@@ -82,8 +83,8 @@ export function MarketingNavbar() {
           </Link>
         </div>
 
-        <nav className="absolute left-[42%] hidden -translate-x-1/2 items-center md:flex">
-          <div className="flex items-center gap-10" ref={menuRef}>
+        <nav className="hidden lg:flex items-center gap-8">
+          <div className="flex items-center gap-8" ref={menuRef}>
             {productLinks.length > 0 && (
               <div className="relative">
                 <button
@@ -206,7 +207,8 @@ export function MarketingNavbar() {
           </div>
         </nav>
 
-        <div className="hidden flex-1 items-center md:flex md:justify-end">
+        <div className="hidden lg:flex items-center justify-end gap-3 shrink-0">
+          <LanguageSwitcher />
           {isAuthenticated && user ? (
             <div className="relative" ref={menuRef}>
               <button
@@ -302,7 +304,7 @@ export function MarketingNavbar() {
 
         <button
           onClick={() => setMobileMenuOpen((v) => !v)}
-          className="rounded-lg p-2 text-slate-100 hover:bg-white/5 md:hidden"
+          className="rounded-lg p-2 text-slate-100 hover:bg-white/5 lg:hidden"
           aria-label="Menu"
           aria-expanded={mobileMenuOpen}
         >
@@ -332,7 +334,7 @@ export function MarketingNavbar() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-white/10 bg-brand px-6 py-4 md:hidden animate-in slide-in-from-top-2 duration-200">
+        <div className="border-t border-white/10 bg-brand px-6 py-4 lg:hidden animate-in slide-in-from-top-2 duration-200">
           <nav className="flex flex-col gap-4">
             <div className="flex flex-col gap-2 border-b border-white/10 pb-4 pt-2">
               {publicPricingEnabled && (
@@ -415,6 +417,10 @@ export function MarketingNavbar() {
                   </button>
                 </>
               )}
+              <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                <span className="text-sm text-slate-300">Langue / Language</span>
+                <LanguageSwitcher />
+              </div>
             </div>
           </nav>
         </div>

@@ -21,8 +21,8 @@ else
   exit 1
 fi
 validate_release_manifest "$RELEASE_FILE"
-runtime_services=(backend)
-pull_services=(backend frontend migrator)
+runtime_services=(server)
+pull_services=(server web migrator)
 configure_runtime_topology
 if [ "$RUNTIME_TOPOLOGY" = "split" ]; then
   runtime_services+=(worker)
@@ -116,7 +116,7 @@ fi
 touch "$MAINTENANCE_DIR/enabled"
 maintenance_enabled=true
 compose up -d --no-deps --wait --wait-timeout 120 nginx
-compose stop -t 60 frontend backend >/dev/null 2>&1 || true
+compose stop -t 60 web server frontend backend >/dev/null 2>&1 || true
 docker stop -t 60 sovrack-worker >/dev/null 2>&1 || true
 
 if [ "$postgres_was_running" = "true" ]; then
@@ -143,10 +143,10 @@ compose run --rm --no-deps migrator
 assert_schema_migration compose "$SCHEMA_MIGRATION"
 
 compose up -d --no-deps --wait --wait-timeout 300 "${runtime_services[@]}"
-compose up -d --no-deps --wait --wait-timeout 240 frontend nginx
-compose exec -T backend node -e \
+compose up -d --no-deps --wait --wait-timeout 240 web nginx
+compose exec -T server node -e \
   "fetch('http://127.0.0.1:3001/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-compose exec -T frontend wget -qO- http://127.0.0.1:3000/ >/dev/null
+compose exec -T web wget -qO- http://127.0.0.1:3000/ >/dev/null
 compose exec -T nginx nginx -t
 
 manifest_destination="$SHARED_DIR/release-manifests/$RELEASE_ID.manifest"

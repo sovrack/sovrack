@@ -27,8 +27,8 @@ up: ## Promeut une release immuable (FILE=manifest)
 ps: ## État des services
 	$(CURRENT_COMPOSE) ps
 
-logs: ## Logs backend+frontend en direct
-	$(CURRENT_COMPOSE) logs -f backend worker frontend
+logs: ## Logs server+web en direct
+	$(CURRENT_COMPOSE) logs -f server worker web
 
 backup: ## Dump PostgreSQL + rotation
 	SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/backup-current.sh
@@ -72,13 +72,13 @@ local-reset: ## Supprime uniquement les volumes de la recette locale
 	docker compose -f docker-compose.dev.yml down --volumes --remove-orphans
 
 local-logs: ## Affiche les logs de la recette locale
-	docker compose -f docker-compose.dev.yml logs -f backend frontend nginx mailpit
+	docker compose -f docker-compose.dev.yml logs -f server web nginx mailpit
 
 local-browser: ## Exécute les E2E navigateur sur les trois hôtes locaux
-	npm --prefix ../frontend run test:browser
+	npm --prefix ../apps/web run test:browser
 
 local-perf: ## Mesure Mon compte et Workspaces dans Chromium
-	npm --prefix ../frontend run perf:local
+	npm --prefix ../apps/web run perf:local
 
 local-acceptance: local-browser local-perf ## Exécute la recette navigateur et performance
 

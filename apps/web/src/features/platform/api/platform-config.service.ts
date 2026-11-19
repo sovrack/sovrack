@@ -10,6 +10,7 @@ import type {
   CreateRegistryConfigPayload,
   UpdateRegistryConfigPayload,
   RegistryTestResult,
+  GitRepoItem,
 } from "@/features/platform/types/platform-config";
 
 function integrationPath(resource: string): string {
@@ -134,27 +135,27 @@ export const platformConfigService = {
     return res.data;
   },
 
-  async listGithubRepos(
-    id: string,
-  ): Promise<
-    {
-      id: number;
-      name: string;
-      fullName: string;
-      httpUrl: string;
-      defaultBranch: string;
-    }[]
-  > {
+  async listGithubRepos(id: string): Promise<GitRepoItem[]> {
     const res = await api.get(
       integrationPath(`git/github/providers/${encodeURIComponent(id)}/repos`),
     );
-    return res.data as {
-      id: number;
-      name: string;
-      fullName: string;
-      httpUrl: string;
-      defaultBranch: string;
-    }[];
+    return res.data as GitRepoItem[];
+  },
+
+  async listGitlabRepos(id: string): Promise<GitRepoItem[]> {
+    const res = await api.get(
+      integrationPath(`git/gitlab/providers/${encodeURIComponent(id)}/repos`),
+    );
+    return res.data as GitRepoItem[];
+  },
+
+  async listProviderRepos(
+    id: string,
+    type: "GITLAB" | "GITHUB",
+  ): Promise<GitRepoItem[]> {
+    return type === "GITHUB"
+      ? this.listGithubRepos(id)
+      : this.listGitlabRepos(id);
   },
 
   // ============= Registry Configuration Methods =============

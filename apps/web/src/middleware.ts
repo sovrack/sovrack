@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const AUTH_COOKIE_NAME = "deploy_automation_token";
-const STAFF_COOKIE_NAME = "deploy_staff_token";
+const AUTH_COOKIE_NAME = "sovrack_token";
+const AUTH_COOKIE_NAME_LEGACY = "deploy_automation_token";
+const STAFF_COOKIE_NAME = "sovrack_staff_token";
+const STAFF_COOKIE_NAME_LEGACY = "deploy_staff_token";
 
 const PUBLIC_MARKETING_PATHS = [
   "/",
@@ -133,8 +135,12 @@ function isTokenExpiredOrInvalid(token: string): boolean {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
-  const staffToken = request.cookies.get(STAFF_COOKIE_NAME)?.value;
+  const token =
+    request.cookies.get(AUTH_COOKIE_NAME)?.value ||
+    request.cookies.get(AUTH_COOKIE_NAME_LEGACY)?.value;
+  const staffToken =
+    request.cookies.get(STAFF_COOKIE_NAME)?.value ||
+    request.cookies.get(STAFF_COOKIE_NAME_LEGACY)?.value;
 
   const publicOrigin = configuredOrigin(
     process.env.PUBLIC_SITE_URL,
@@ -218,7 +224,10 @@ export function middleware(request: NextRequest) {
         request,
         false,
       );
-      if (staffToken) response.cookies.delete(STAFF_COOKIE_NAME);
+      if (staffToken) {
+        response.cookies.delete(STAFF_COOKIE_NAME);
+        response.cookies.delete(STAFF_COOKIE_NAME_LEGACY);
+      }
       return response;
     }
     return NextResponse.next();
@@ -232,6 +241,7 @@ export function middleware(request: NextRequest) {
 
     const response = NextResponse.redirect(loginUrl);
     response.cookies.delete(AUTH_COOKIE_NAME);
+    response.cookies.delete(AUTH_COOKIE_NAME_LEGACY);
     return response;
   }
 

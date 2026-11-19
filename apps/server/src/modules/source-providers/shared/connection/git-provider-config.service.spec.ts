@@ -86,14 +86,27 @@ describe('GitProviderConfigService — GitLab CRUD', () => {
       syncRegistry: jest.fn().mockResolvedValue(undefined),
       bootstrapIfNeeded: jest.fn().mockResolvedValue(undefined),
     };
+    const tester = {
+      testProvider: jest.fn(),
+      listRepos: jest.fn().mockResolvedValue([
+        {
+          id: 1,
+          name: 'my-app',
+          fullName: 'org/my-app',
+          httpUrl: 'https://gitlab.example.com/org/my-app.git',
+          defaultBranch: 'main',
+        },
+      ]),
+    };
     service = new GitProviderConfigService(
       prisma as unknown as PrismaService,
       crypto as unknown as CryptoService,
       {} as unknown as GitProviderOauthService,
       legacySync as unknown as GitProviderLegacySyncService,
       {} as never, // GithubProviderService (GitHub delegated; tested separately)
-      {} as never, // GitlabConnectionTesterService (connection test extracted)
+      tester as unknown as GitlabConnectionTesterService,
     );
+    (service as unknown as { _tester: typeof tester })._tester = tester;
   });
 
   it('makes the FIRST GitLab provider default and encrypts its secrets', async () => {
@@ -181,5 +194,12 @@ describe('GitProviderConfigService — GitLab CRUD', () => {
     const list = await service.listGitlabProviders('workspace-1');
     expect(list[0]).not.toHaveProperty('adminToken');
     expect(list[0]).toHaveProperty('adminTokenConfigured', true);
+  });
+
+  it('listGitlabRepos fetches repos for a valid GitLab provider', async () => {
+    const repos = await service.listGitlabRepos('g1', 'workspace-1');
+    expect(repos).toHaveLength(1);
+    expect(repos[0].name).toBe('my-app');
+    expect(repos[0].fullName).toBe('org/my-app');
   });
 });

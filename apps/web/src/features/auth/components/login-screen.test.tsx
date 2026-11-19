@@ -19,9 +19,16 @@ vi.mock("@/shared/lib/api", () => ({
 import { LoginScreen } from "./login-screen";
 
 describe("LoginScreen (auth critical path)", () => {
+  const assignMock = vi.fn();
+
   beforeEach(() => {
     loginMock.mockReset();
     replaceMock.mockReset();
+    assignMock.mockReset();
+    vi.stubGlobal("location", {
+      ...window.location,
+      assign: assignMock,
+    });
   });
 
   const fillAndSubmit = (email: string, password: string) => {
@@ -42,7 +49,7 @@ describe("LoginScreen (auth critical path)", () => {
     await waitFor(() =>
       expect(loginMock).toHaveBeenCalledWith("a@b.com", "pw", undefined),
     );
-    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/dashboard"));
+    await waitFor(() => expect(assignMock).toHaveBeenCalledWith("/dashboard"));
   });
 
   it("shows an error and stays on the page when login fails", async () => {
@@ -56,11 +63,9 @@ describe("LoginScreen (auth critical path)", () => {
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  it("does not expose Google authentication while the capability is planned", () => {
+  it("exposes Google authentication when the capability is enabled", () => {
     render(<LoginScreen />);
 
-    expect(
-      screen.queryByRole("link", { name: /google/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /google/i })).toBeInTheDocument();
   });
 });

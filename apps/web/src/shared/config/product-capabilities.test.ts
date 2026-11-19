@@ -13,9 +13,7 @@ describe("product capabilities", () => {
   });
 
   it("does not expose unfinished commercial and infrastructure paths", () => {
-    expect(isCapabilityEnabled("selfServiceBilling")).toBe(false);
     expect(isCapabilityEnabled("managedInfrastructure")).toBe(false);
-    expect(isCapabilityEnabled("automatedBackups")).toBe(false);
     expect(isCapabilityEnabled("mergeRequestPreviews")).toBe(false);
   });
 

@@ -4,9 +4,9 @@
 # APPLICATION CONFIGURATION
 # ============================================================
 
-app_name: "deploy-automation"
+app_name: "sovrack"
 app_environment: "{{ server_role | default('production') }}"
-app_db_name: "deploy_automation"
+app_db_name: "sovrack"
 app_db_user: "deploy_user"
 app_db_password: "{{ vault_app_db_password }}"  # Use Ansible vault for this
 app_domain: "ton-domaine.com"

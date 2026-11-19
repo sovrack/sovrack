@@ -71,7 +71,7 @@ export function Modal({
   const hasHeader = Boolean(title) || !hideClose;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={dismissable ? onClose : undefined}
@@ -82,10 +82,10 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className={`relative z-10 flex max-h-[90vh] w-full ${sizeMap[size]} flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl outline-none`}
+        className={`relative z-10 flex max-h-[94vh] sm:max-h-[90vh] w-full ${sizeMap[size]} flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl outline-none`}
       >
         {hasHeader && (
-          <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
+          <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-4 py-3 sm:px-5 sm:py-4">
             <div className="flex items-start gap-3">
               {icon && <div className="shrink-0">{icon}</div>}
               <div>
@@ -115,13 +115,13 @@ export function Modal({
         )}
 
         <div
-          className={`flex-1 overflow-y-auto px-5 py-4 ${contentClassName ?? ""}`}
+          className={`flex-1 overflow-y-auto px-4 py-3 sm:px-5 sm:py-4 ${contentClassName ?? ""}`}
         >
           {children}
         </div>
 
         {footer && (
-          <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] px-5 py-4">
+          <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] px-4 py-3 sm:px-5 sm:py-4">
             {footer}
           </div>
         )}

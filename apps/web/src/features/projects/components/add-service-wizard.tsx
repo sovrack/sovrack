@@ -7,10 +7,12 @@ import {
   Loader2,
   Search,
   X,
+  Zap,
+  Key,
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
-import { ProviderSelect, KindPicker } from "./add-service-wizard.parts";
+import { ProviderSelect, KindPicker, RepoOneClickSection } from "./add-service-wizard.parts";
 import {
   DatabaseStep,
   DockerStep,
@@ -68,6 +70,13 @@ export function AddServiceWizard({
     selectedTemplate, selectedProvider,
     canReview,
     pickKind, pickPlatform, discover, toggleRepo, submit,
+    providerRepos,
+    loadingRepos,
+    repoMode,
+    setRepoMode,
+    repoSearch,
+    setRepoSearch,
+    pickRepo,
   } = useAddServiceWizard({ projectId, open, initialKind, onCreated, onClose });
 
   if (!open) return null;
@@ -75,11 +84,11 @@ export function AddServiceWizard({
   const kindLabel = KINDS.find((k) => k.kind === kind)?.label ?? "";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2.5 sm:p-4 backdrop-blur-sm">
       <div className="absolute inset-0" onClick={onClose} aria-hidden />
-      <div className="relative z-10 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
+      <div className="relative z-10 flex max-h-[94vh] sm:max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
         {/* Header + stepper */}
-        <div className="border-b border-[var(--border)] px-6 py-4">
+        <div className="border-b border-[var(--border)] px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
@@ -112,7 +121,7 @@ export function AddServiceWizard({
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto px-6 py-5">
+        <div className="flex-1 overflow-auto px-4 py-4 sm:px-6 sm:py-5">
           {error && (
             <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
               {error}
@@ -128,7 +137,7 @@ export function AddServiceWizard({
               <p className="text-sm text-[var(--text-secondary)]">
                 Choose the Git platform for this service.
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 {[
                   {
                     type: "GITLAB" as const,
@@ -211,34 +220,88 @@ export function AddServiceWizard({
                   </div>
 
                   {appMode === "repo" ? (
-                    <>
-                      <Input
-                        label="Repository path"
-                        placeholder="group/project or owner/repo (or paste full URL)"
-                        value={repoPath}
-                        onChange={(e) =>
-                          setRepoPath(normalizeRepoPath(e.target.value))
-                        }
-                      />
-                      <div className="grid grid-cols-2 gap-3">
-                        <Input
-                          label="Branch"
-                          value={branch}
-                          onChange={(e) => setBranch(e.target.value)}
-                        />
-                        <Input
-                          label="Port"
-                          value={port}
-                          onChange={(e) => setPort(e.target.value)}
-                        />
+                    <div className="space-y-3">
+                      <div className="flex gap-1 rounded-xl border border-[var(--border)] bg-[var(--bg-app)]/50 p-1">
+                        <button
+                          type="button"
+                          onClick={() => setRepoMode("list")}
+                          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition ${
+                            repoMode === "list"
+                              ? "bg-[var(--text-primary)] text-[var(--bg-app)] shadow-sm"
+                              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                          }`}
+                        >
+                          <Zap size={13} />
+                          Mes Dépôts (1-Clic)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRepoMode("manual")}
+                          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition ${
+                            repoMode === "manual"
+                              ? "bg-[var(--text-primary)] text-[var(--bg-app)] shadow-sm"
+                              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                          }`}
+                        >
+                          <Key size={13} />
+                          Manuel (URL & Jeton)
+                        </button>
                       </div>
-                      <Input
-                        label="Service name (optional)"
-                        placeholder={repoPath ? repoToName(repoPath) : "api"}
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                      />
-                    </>
+
+                      {repoMode === "list" ? (
+                        <RepoOneClickSection
+                          loadingRepos={loadingRepos}
+                          platform={platform}
+                          providerRepos={providerRepos}
+                          repoSearch={repoSearch}
+                          setRepoSearch={setRepoSearch}
+                          repoPath={repoPath}
+                          pickRepo={pickRepo}
+                          setRepoMode={setRepoMode}
+                          branch={branch}
+                          setBranch={setBranch}
+                          port={port}
+                          setPort={setPort}
+                          name={name}
+                          setName={setName}
+                        />
+                      ) : (
+                        <div className="space-y-3">
+                          <Input
+                            label="Repository path"
+                            placeholder="group/project or owner/repo (or paste full URL)"
+                            value={repoPath}
+                            onChange={(e) =>
+                              setRepoPath(normalizeRepoPath(e.target.value))
+                            }
+                          />
+                          <div className="grid grid-cols-2 gap-3">
+                            <Input
+                              label="Branch"
+                              value={branch}
+                              onChange={(e) => setBranch(e.target.value)}
+                            />
+                            <Input
+                              label="Port"
+                              value={port}
+                              onChange={(e) => setPort(e.target.value)}
+                            />
+                          </div>
+                          <Input
+                            label="Deploy Token / PAT (optionnel)"
+                            placeholder="glpat-... ou ghp_..."
+                            value={token}
+                            onChange={(e) => setToken(e.target.value)}
+                          />
+                          <Input
+                            label="Service name (optional)"
+                            placeholder={repoPath ? repoToName(repoPath) : "api"}
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                          />
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <>
                       <div className="flex items-end gap-2">
@@ -390,7 +453,7 @@ export function AddServiceWizard({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-[var(--border)] px-6 py-4">
+        <div className="flex items-center justify-between border-t border-[var(--border)] px-4 py-3 sm:px-6 sm:py-4">
           <Button
             variant="secondary"
             onClick={() =>

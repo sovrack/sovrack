@@ -9,7 +9,7 @@ describe("application navigation", () => {
     );
 
     expect(billing?.capability).toBe("selfServiceBilling");
-    expect(isCapabilityEnabled(billing!.capability!)).toBe(false);
+    expect(isCapabilityEnabled(billing!.capability!)).toBe(true);
   });
 
   it("matches nested routes without making dashboard globally active", () => {

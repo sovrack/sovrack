@@ -58,15 +58,15 @@ if [ "$migrations_table" = "t" ]; then
 fi
 
 release_id="unmanaged"
-backend_container_id="$(compose ps --all --quiet backend 2>/dev/null || true)"
-frontend_container_id="$(compose ps --all --quiet frontend 2>/dev/null || true)"
-backend_image=""
-frontend_image=""
-if [ -n "$backend_container_id" ]; then
-  backend_image="$(docker inspect "$backend_container_id" --format '{{.Config.Image}}')"
+server_container_id="$(compose ps --all --quiet server 2>/dev/null || compose ps --all --quiet backend 2>/dev/null || true)"
+web_container_id="$(compose ps --all --quiet web 2>/dev/null || compose ps --all --quiet frontend 2>/dev/null || true)"
+server_image=""
+web_image=""
+if [ -n "$server_container_id" ]; then
+  server_image="$(docker inspect "$server_container_id" --format '{{.Config.Image}}')"
 fi
-if [ -n "$frontend_container_id" ]; then
-  frontend_image="$(docker inspect "$frontend_container_id" --format '{{.Config.Image}}')"
+if [ -n "$web_container_id" ]; then
+  web_image="$(docker inspect "$web_container_id" --format '{{.Config.Image}}')"
 fi
 if [ -n "${RELEASE_FILE:-}" ]; then
   validate_release_manifest "$RELEASE_FILE"
@@ -84,8 +84,10 @@ dump_sha256="$(sha256sum "$DEST" | awk '{print $1}')"
   printf 'DATABASE=%s\n' "$P_DB"
   printf 'SCHEMA_MIGRATION=%s\n' "$schema_migration"
   printf 'RELEASE_ID=%s\n' "$release_id"
-  printf 'BACKEND_IMAGE=%s\n' "$backend_image"
-  printf 'FRONTEND_IMAGE=%s\n' "$frontend_image"
+  printf 'SERVER_IMAGE=%s\n' "$server_image"
+  printf 'WEB_IMAGE=%s\n' "$web_image"
+  printf 'BACKEND_IMAGE=%s\n' "$server_image"
+  printf 'FRONTEND_IMAGE=%s\n' "$web_image"
   printf 'DUMP_SHA256=%s\n' "$dump_sha256"
 } > "$DEST.metadata"
 chmod 600 "$DEST" "$DEST.sha256" "$DEST.metadata"

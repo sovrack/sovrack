@@ -55,7 +55,7 @@ describe('BuildSetupService', () => {
     await expect(
       service.updateBuildConfig(
         'nope',
-        { projectType: 'nodejs' } as never,
+        { projectType: 'nodejs' },
         'admin',
         Role.OWNER,
       ),
@@ -65,7 +65,7 @@ describe('BuildSetupService', () => {
   it('updateBuildConfig maps DTO fields and updates the project services', async () => {
     await service.updateBuildConfig(
       'p1',
-      { projectType: 'nodejs', buildPort: 4000 } as never,
+      { projectType: 'nodejs', buildPort: 4000 },
       'admin',
       Role.OWNER,
     );

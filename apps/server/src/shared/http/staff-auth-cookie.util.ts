@@ -2,7 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import type { CookieOptions } from 'express';
 
 /** Cookie dédié au back-office — isolé de la session client. */
-export const STAFF_AUTH_COOKIE_NAME_DEFAULT = 'deploy_staff_token';
+export const STAFF_AUTH_COOKIE_NAME_DEFAULT = 'sovrack_staff_token';
 const STAFF_AUTH_COOKIE_MAX_AGE_MS_DEFAULT = 12 * 60 * 60 * 1000; // 12h
 
 type SameSiteValue = 'lax' | 'strict' | 'none';

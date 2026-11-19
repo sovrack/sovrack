@@ -25,11 +25,18 @@ vi.mock("@/shared/lib/api", () => ({
 import { RegisterScreen } from "./register-screen";
 
 describe("RegisterScreen (public signup)", () => {
+  const assignMock = vi.fn();
+
   beforeEach(() => {
     registerMock.mockReset();
     verifyEmailMock.mockReset();
     resendCodeMock.mockReset();
     replaceMock.mockReset();
+    assignMock.mockReset();
+    vi.stubGlobal("location", {
+      ...window.location,
+      assign: assignMock,
+    });
   });
 
   const fillAndSubmit = (organization = false) => {
@@ -114,7 +121,7 @@ describe("RegisterScreen (public signup)", () => {
         "registration-1",
       ),
     );
-    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/dashboard"));
+    await waitFor(() => expect(assignMock).toHaveBeenCalledWith("/dashboard"));
   });
 
   it("shows an error when the code is wrong", async () => {

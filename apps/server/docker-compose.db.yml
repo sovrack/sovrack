@@ -25,18 +25,18 @@ services:
   # - Expose le port DB_PORT vers l'hote pour DBeaver ou autres clients.
   database:
     image: postgres:16-alpine
-    container_name: deployautomation_db
+    container_name: sovrack_db
     restart: unless-stopped
 
     # Variables d'initialisation de PostgreSQL.
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-deploy_automation}
+      POSTGRES_DB: ${DB_NAME:-sovrack}
 
     # Healthcheck: permet a Compose de savoir quand la DB est vraiment prete.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-deploy_automation}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-sovrack}"]
       interval: 5s
       timeout: 3s
       retries: 10

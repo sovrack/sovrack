@@ -12,7 +12,7 @@ apt_cache_valid_time: 3600
 deploy_user: ubuntu
 
 # Paths
-app_home: /opt/deploy-automation
+app_home: /opt/sovrack
 
 # Docker
 docker_packages:

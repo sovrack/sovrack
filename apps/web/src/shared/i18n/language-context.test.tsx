@@ -38,7 +38,7 @@ describe("LanguageProvider / useI18n", () => {
       "Untranslated string",
     );
     // Persistance du choix.
-    expect(localStorage.getItem("deploy-automation-lang")).toBe("en");
+    expect(localStorage.getItem("sovrack-lang")).toBe("en");
   });
 
   it("falls back to French outside a provider (tests, storybook…)", () => {

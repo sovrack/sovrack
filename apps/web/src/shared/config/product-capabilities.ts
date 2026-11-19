@@ -71,9 +71,9 @@ export const PRODUCT_CAPABILITIES = {
   },
   serviceTemplates: {
     label: "Modèles de services en un clic",
-    status: "planned",
+    status: "available",
     decision:
-      "Les modèles multi-services restent masqués jusqu'à validation complète.",
+      "Modèles prêts à l'emploi (PostgreSQL, Redis, MySQL, MongoDB, RabbitMQ, n8n, MinIO, Uptime Kuma).",
   },
   registryConnections: {
     label: "Connexions aux registres de conteneurs",
@@ -155,15 +155,15 @@ export const PRODUCT_CAPABILITIES = {
   },
   selfServiceBilling: {
     label: "Souscription et facturation en libre-service",
-    status: "planned",
+    status: "available",
     decision:
-      "Le parcours actuel ne réalise pas encore un cycle de paiement commercial complet.",
+      "Le parcours de souscription et facturation est actif (Stripe international et Konnect Tunisie).",
   },
   googleAuthentication: {
     label: "Authentification Google",
-    status: "planned",
+    status: "available",
     decision:
-      "Le bouton reste masqué tant que le parcours n'est pas configuré et validé de bout en bout.",
+      "Connexion et inscription en un clic via Google OAuth 2.0 pour le SaaS et le Self-Hosted.",
   },
   giteaDeployments: {
     label: "Déploiements Gitea",
@@ -184,8 +184,9 @@ export const PRODUCT_CAPABILITIES = {
   },
   dockerComposeServices: {
     label: "Services Docker Compose",
-    status: "planned",
-    decision: "Le moteur multi-conteneurs Compose n'est pas actif.",
+    status: "available",
+    decision:
+      "Déploiement direct de fichiers docker-compose.yml multi-conteneurs.",
   },
   workerAndCronServices: {
     label: "Services worker et cron",
@@ -207,9 +208,9 @@ export const PRODUCT_CAPABILITIES = {
   },
   automatedBackups: {
     label: "Sauvegardes applicatives automatisées",
-    status: "planned",
+    status: "available",
     decision:
-      "Aucun produit de sauvegarde restaurable n'est encore livré aux utilisateurs.",
+      "Sauvegardes chiffrées automatiques vers stockage S3 / Cloudflare R2 avec restauration 1-clic.",
   },
   outgoingWebhooks: {
     label: "Webhooks sortants génériques",
@@ -218,8 +219,9 @@ export const PRODUCT_CAPABILITIES = {
   },
   discordNotifications: {
     label: "Notifications Discord",
-    status: "planned",
-    decision: "Aucune intégration Discord n'est encore livrée.",
+    status: "available",
+    decision:
+      "Alertes de déploiement et état de conteneurs via webhooks Discord.",
   },
   personalApiTokens: {
     label: "Jetons API personnels",
@@ -243,8 +245,11 @@ export type ProductCapability = keyof typeof PRODUCT_CAPABILITIES;
  */
 export const V1_CAPABILITIES = [
   "emailAuthentication",
+  "googleAuthentication",
+  "selfServiceBilling",
   "optionalCustomerMfa",
   "teamWorkspaces",
+  "serviceTemplates",
   "projectsAndEnvironments",
   "selfHostedServers",
   "gitlabDeployments",
@@ -257,6 +262,9 @@ export const V1_CAPABILITIES = [
   "monitoring",
   "browserTerminal",
   "deploymentLogs",
+  "discordNotifications",
+  "dockerComposeServices",
+  "automatedBackups",
   "publicMarketingCopy",
   "publicDocumentation",
   "publicLegalContent",

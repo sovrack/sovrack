@@ -102,7 +102,7 @@ const questions = [
   {
     question: "Quels dépôts Git sont pris en charge ?",
     answer:
-      "Sovrack prend en charge GitHub avec un Personal Access Token et GitLab avec un jeton d'accès.",
+      "Sovrack prend en charge l'importation en 1 clic de vos dépôts GitHub et GitLab, ainsi que les jetons d'accès personnels (PAT) pour vos dépôts d'entreprise.",
   },
   {
     question: "Sovrack fournit-il le serveur ?",
@@ -119,9 +119,9 @@ export default function LandingPage() {
       <MarketingNavbar />
 
       <main>
-        <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden bg-[radial-gradient(ellipse_80%_65%_at_50%_0%,rgba(14,116,144,0.30)_0%,rgba(19,17,28,0)_72%)] px-6 py-16 sm:py-20">
+        <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden bg-[radial-gradient(ellipse_80%_65%_at_50%_0%,rgba(14,116,144,0.30)_0%,rgba(19,17,28,0)_72%)] px-4 sm:px-6 py-14 sm:py-20">
           <div className="relative mx-auto max-w-6xl text-center">
-            <h1 className="mx-auto max-w-5xl text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
+            <h1 className="mx-auto max-w-5xl text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl lg:text-7xl">
               Déployez vos applications sur vos propres serveurs.
             </h1>
             <p className="mx-auto mt-7 max-w-3xl text-lg leading-8 text-slate-300 sm:text-xl">

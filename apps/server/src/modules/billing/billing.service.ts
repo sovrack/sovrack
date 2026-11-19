@@ -18,9 +18,9 @@ import { NotificationsSmtpService } from '../notifications/notifications-smtp.se
  */
 export const PLAN_PRICES_MILLIMES: Record<Plan, number> = {
   [Plan.FREE]: 0,
-  [Plan.STARTER]: 99000,
-  [Plan.PRO]: 299000,
-  [Plan.ENTERPRISE]: 990000,
+  [Plan.STARTER]: 45000,
+  [Plan.PRO]: 45000,
+  [Plan.ENTERPRISE]: 150000,
 };
 
 export const PLAN_LIMITS_DEFAULTS: Record<
@@ -41,23 +41,23 @@ export const PLAN_LIMITS_DEFAULTS: Record<
     maxBackups: 1,
   },
   [Plan.STARTER]: {
-    maxProjects: 3,
-    maxServers: 2,
+    maxProjects: 10,
+    maxServers: 5,
     maxTeamMembers: 10,
     storageLimitMb: 2048,
     maxBackups: 7,
   },
   [Plan.PRO]: {
-    maxProjects: 10,
-    maxServers: 5,
-    maxTeamMembers: 25,
+    maxProjects: 999999,
+    maxServers: 999999,
+    maxTeamMembers: 10,
     storageLimitMb: 10240,
     maxBackups: 30,
   },
   [Plan.ENTERPRISE]: {
-    maxProjects: 100,
-    maxServers: 100,
-    maxTeamMembers: 500,
+    maxProjects: 999999,
+    maxServers: 999999,
+    maxTeamMembers: 999999,
     storageLimitMb: 102400,
     maxBackups: 365,
   },
@@ -310,6 +310,73 @@ export class BillingService {
     this.logger.log(`Team ${teamId}: plan ${current} → ${plan}`);
     await this.sendPlanChangeEmail(teamId, plan, amount);
     return { success: true, message: `Plan ${plan} activé.`, plan };
+  }
+
+  /**
+   * Crée une session de paiement hébergée (Stripe Checkout pour l'international
+   * ou Konnect/Flouci pour le marché tunisien).
+   */
+  async createCheckoutSession(
+    teamId: string,
+    plan: Plan,
+    currency: string = 'USD',
+    gateway: 'stripe' | 'konnect' = 'stripe',
+    userId?: string,
+  ) {
+    if (!Object.values(Plan).includes(plan)) {
+      throw new BadRequestException('Plan invalide');
+    }
+
+    if (plan === Plan.FREE) {
+      return this.subscribe(teamId, Plan.FREE, userId);
+    }
+
+    const curr = currency.toUpperCase() === 'TND' ? 'TND' : 'USD';
+    const amount =
+      curr === 'TND'
+        ? plan === Plan.PRO
+          ? 45000
+          : 150000
+        : plan === Plan.PRO
+          ? 1500
+          : 4900;
+
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    const konnectApiKey = process.env.KONNECT_API_KEY;
+
+    const now = new Date();
+    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const invoice = await this.prisma.invoice.create({
+      data: {
+        teamId,
+        amountMillimes: curr === 'TND' ? amount : Math.round(amount * 31),
+        currency: curr,
+        status: 'PENDING',
+        periodStart: now,
+        periodEnd,
+      },
+    });
+
+    let checkoutUrl = '';
+    if (gateway === 'konnect' || curr === 'TND') {
+      checkoutUrl = konnectApiKey
+        ? `https://api.konnect.network/pay/${invoice.id}`
+        : `/billing/success?session_id=mock_konnect_${invoice.id}&gateway=konnect`;
+    } else {
+      checkoutUrl = stripeKey
+        ? `https://checkout.stripe.com/pay/${invoice.id}`
+        : `/billing/success?session_id=mock_stripe_${invoice.id}&gateway=stripe`;
+    }
+
+    return {
+      success: true,
+      invoiceId: invoice.id,
+      plan,
+      currency: curr,
+      amount,
+      gateway: gateway === 'konnect' || curr === 'TND' ? 'konnect' : 'stripe',
+      checkoutUrl,
+    };
   }
 
   /** Marque un paiement reçu (appelé par le webhook Stripe). */

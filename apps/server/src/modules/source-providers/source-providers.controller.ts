@@ -164,6 +164,15 @@ export class SourceProvidersController {
     );
   }
 
+  @Get('gitlab/providers/:id/repos')
+  @ApiOperation({ summary: 'List GitLab repos accessible via this provider' })
+  async listGitlabRepos(
+    @Param('id') id: string,
+    @GetWorkspaceId() workspaceId: string,
+  ) {
+    return this.gitProviders.listGitlabRepos(id, workspaceId);
+  }
+
   // ─── GitHub Providers ──────────────────────────────────────────────────
 
   @Get('github/providers')

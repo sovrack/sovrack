@@ -59,8 +59,139 @@ export const SERVICE_TEMPLATES: ServiceTemplate[] = [
         repoPath: 'dpage/pgadmin4:latest',
         buildPack: BuildPack.NONE,
         port: 80,
-        env: { PGADMIN_DEFAULT_EMAIL: 'admin@deployautomation.local' },
+        env: { PGADMIN_DEFAULT_EMAIL: 'admin@sovrack.local' },
         generateSecretEnvKey: 'PGADMIN_DEFAULT_PASSWORD',
+      },
+    ],
+  },
+  {
+    id: 'redis-insight',
+    name: 'Redis + RedisInsight',
+    description:
+      'In-memory key-value cache and store paired with RedisInsight visualization and management UI.',
+    components: [
+      {
+        nameSuffix: 'cache',
+        type: ServiceType.DATABASE,
+        databaseType: ManagedServiceType.REDIS,
+        databaseVersion: '7-alpine',
+      },
+      {
+        nameSuffix: 'ui',
+        type: ServiceType.APPLICATION,
+        sourceType: SourceType.DOCKER_IMAGE,
+        repoPath: 'redis/redisinsight:latest',
+        buildPack: BuildPack.NONE,
+        port: 5540,
+      },
+    ],
+  },
+  {
+    id: 'mysql-phpmyadmin',
+    name: 'MySQL + phpMyAdmin',
+    description:
+      'High-performance MySQL 8 relational database with phpMyAdmin web administration dashboard.',
+    components: [
+      {
+        nameSuffix: 'mysql',
+        type: ServiceType.DATABASE,
+        databaseType: ManagedServiceType.MYSQL,
+        databaseVersion: '8.0',
+      },
+      {
+        nameSuffix: 'phpmyadmin',
+        type: ServiceType.APPLICATION,
+        sourceType: SourceType.DOCKER_IMAGE,
+        repoPath: 'phpmyadmin:latest',
+        buildPack: BuildPack.NONE,
+        port: 80,
+      },
+    ],
+  },
+  {
+    id: 'mongodb-express',
+    name: 'MongoDB + Mongo Express',
+    description:
+      'Document database with Mongo Express web administrative client.',
+    components: [
+      {
+        nameSuffix: 'mongo',
+        type: ServiceType.DATABASE,
+        databaseType: ManagedServiceType.MONGODB,
+        databaseVersion: '7.0',
+      },
+      {
+        nameSuffix: 'express',
+        type: ServiceType.APPLICATION,
+        sourceType: SourceType.DOCKER_IMAGE,
+        repoPath: 'mongo-express:latest',
+        buildPack: BuildPack.NONE,
+        port: 8081,
+      },
+    ],
+  },
+  {
+    id: 'rabbitmq-management',
+    name: 'RabbitMQ Message Broker',
+    description:
+      'Robust AMQP message queue and pub/sub broker with integrated management web interface.',
+    components: [
+      {
+        nameSuffix: 'broker',
+        type: ServiceType.DATABASE,
+        databaseType: ManagedServiceType.RABBITMQ,
+        databaseVersion: '3-management-alpine',
+      },
+    ],
+  },
+  {
+    id: 'n8n',
+    name: 'n8n Workflow Automation',
+    description:
+      'Fair-code workflow automation tool allowing flexible connections between external APIs and services.',
+    components: [
+      {
+        nameSuffix: 'app',
+        type: ServiceType.APPLICATION,
+        sourceType: SourceType.DOCKER_IMAGE,
+        repoPath: 'n8nio/n8n:latest',
+        buildPack: BuildPack.NONE,
+        port: 5678,
+        env: { N8N_PORT: '5678' },
+      },
+    ],
+  },
+  {
+    id: 'minio',
+    name: 'MinIO Object Storage (S3-Compatible)',
+    description:
+      'High-performance, S3-compatible object storage server with web browser console.',
+    components: [
+      {
+        nameSuffix: 's3',
+        type: ServiceType.APPLICATION,
+        sourceType: SourceType.DOCKER_IMAGE,
+        repoPath: 'minio/minio:latest',
+        buildPack: BuildPack.NONE,
+        port: 9001,
+        env: { MINIO_ROOT_USER: 'admin' },
+        generateSecretEnvKey: 'MINIO_ROOT_PASSWORD',
+      },
+    ],
+  },
+  {
+    id: 'uptime-kuma',
+    name: 'Uptime Kuma',
+    description:
+      'Self-hosted monitoring tool with fancy status pages and multi-protocol ping checks.',
+    components: [
+      {
+        nameSuffix: 'monitor',
+        type: ServiceType.APPLICATION,
+        sourceType: SourceType.DOCKER_IMAGE,
+        repoPath: 'louislam/uptime-kuma:1',
+        buildPack: BuildPack.NONE,
+        port: 3001,
       },
     ],
   },

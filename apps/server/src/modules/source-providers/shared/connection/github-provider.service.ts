@@ -27,13 +27,10 @@ type UpsertProviderInput = {
 };
 type PatchProviderInput = Partial<UpsertProviderInput>;
 
-export type GithubRepoOption = {
-  id: number;
-  name: string;
-  fullName: string;
-  httpUrl: string;
-  defaultBranch: string;
-};
+import type { GitRepoOption } from './git-provider.types';
+
+export type { GitRepoOption };
+export type GithubRepoOption = GitRepoOption;
 
 /**
  * GitHub provider CRUD + connectivity test + repo listing. Extracted from
@@ -205,14 +202,17 @@ export class GithubProviderService {
 
   async listRepos(id: string, teamId: string): Promise<GithubRepoOption[]> {
     const provider = await this.getOrFail(id, teamId);
+    const oauthToken = provider.oauthAccessToken
+      ? this.crypto.decrypt(provider.oauthAccessToken).trim()
+      : '';
     const adminToken = provider.adminToken
       ? this.crypto.decrypt(provider.adminToken).trim()
       : '';
-    const token = adminToken;
+    const token = oauthToken || adminToken;
 
     if (!token)
       throw new BadRequestException(
-        'Configure un PAT GitHub avant de lister les repos',
+        'Configure un token OAuth ou un PAT GitHub avant de lister les repos',
       );
 
     const apiBase = buildGithubApiBase(provider.providerUrl.trim());
@@ -237,6 +237,7 @@ export class GithubProviderService {
       repos.push(...res.data);
       if (res.data.length < 100) break;
       page++;
+      if (page > 10) break;
     }
 
     return repos.map((r) => ({

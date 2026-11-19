@@ -4,8 +4,14 @@
 // conteneur déployé. Découvert lors du déploiement réel complet.
 // JSDoc garde l'autocomplétion/typage en dev sans dépendance runtime.
 
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   reactStrictMode: true,
   poweredByHeader: false,
   typescript: {
@@ -27,6 +33,7 @@ const nextConfig = {
     // BACKEND_INTERNAL_URL est une variable RUNTIME du conteneur ; en dev
     // local le fallback NEXT_PUBLIC_API_URL (http://localhost:3001) suffit.
     const backendUrl =
+      process.env.SERVER_INTERNAL_URL ||
       process.env.BACKEND_INTERNAL_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
       'http://localhost:3001';
@@ -72,7 +79,7 @@ const nextConfig = {
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
-              "upgrade-insecure-requests",
+              ...(process.env.NODE_ENV === 'production' ? ["upgrade-insecure-requests"] : []),
             ].join('; '),
           },
         ],

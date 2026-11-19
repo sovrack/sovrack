@@ -1,3 +1,4 @@
+import { resolve } from 'path';
 import { ConfigService } from '@nestjs/config';
 import { AnsibleRunnerService } from './ansible-runner.service';
 
@@ -70,11 +71,11 @@ describe('AnsibleRunnerService path resolution', () => {
     const root = build({
       ANSIBLE_PLAYBOOKS_PATH: '/custom/pb',
     }).resolvePlaybooksRoot();
-    expect(root).toBe('/custom/pb');
+    expect(root).toBe(resolve('/custom/pb'));
   });
 
   it('resolvePlaybooksRoot falls back to <cwd>/ansible/playbooks', () => {
-    expect(build().resolvePlaybooksRoot()).toMatch(/ansible\/playbooks$/);
+    expect(build().resolvePlaybooksRoot()).toMatch(/ansible[\\/]playbooks$/);
   });
 
   it('resolvePlaybookBin falls back to the global binary without a venv', () => {

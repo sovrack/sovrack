@@ -80,13 +80,13 @@ services:
           cpus: "${NGINX_CPU_LIMIT:-0.25}"
           pids: 256
 
-  # ──────────────────────────── FRONTEND (Next.js) ───────────────────────────
-  frontend:
+  # ──────────────────────────── WEB (Next.js) ───────────────────────────
+  web:
     <<: *common
-    image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE must be an immutable release tag or digest}
-    container_name: sovrack-frontend
+    image: ${WEB_IMAGE:-${FRONTEND_IMAGE:?WEB_IMAGE or FRONTEND_IMAGE must be set}}
+    container_name: sovrack-web
     depends_on:
-      backend:
+      server:
         condition: service_healthy
     read_only: true
     cap_drop:
@@ -104,7 +104,8 @@ services:
     environment:
       NODE_ENV: production
       # Nom réseau interne pour le rewrite /backend-api
-      BACKEND_INTERNAL_URL: http://backend:3001
+      SERVER_INTERNAL_URL: http://server:3001
+      BACKEND_INTERNAL_URL: http://server:3001
       # Vars publiques déjà "baked" au build de l'image ; fournies de nouveau
       # pour la clarté (l'image doit déjà exposer les bonnes valeurs).
       NEXT_PUBLIC_API_URL: ${FRONTEND_PUBLIC_URL:-https://app.sovrack.tech}
@@ -120,23 +121,23 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${FRONTEND_MEMORY_LIMIT:-512M}
-          cpus: "${FRONTEND_CPU_LIMIT:-0.75}"
+          memory: ${WEB_MEMORY_LIMIT:-${FRONTEND_MEMORY_LIMIT:-512M}}
+          cpus: "${WEB_CPU_LIMIT:-${FRONTEND_CPU_LIMIT:-0.75}}"
           pids: 256
         reservations:
-          memory: ${FRONTEND_MEMORY_RESERVATION:-256M}
-          cpus: "${FRONTEND_CPU_RESERVATION:-0.2}"
+          memory: ${WEB_MEMORY_RESERVATION:-${FRONTEND_MEMORY_RESERVATION:-256M}}
+          cpus: "${WEB_CPU_RESERVATION:-${FRONTEND_CPU_RESERVATION:-0.2}}"
     stop_grace_period: 30s
 
-  # ──────────────────────────── BACKEND (NestJS) ─────────────────────────────
-  backend:
+  # ──────────────────────────── SERVER (NestJS) ─────────────────────────────
+  server:
     <<: *common
-    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be an immutable release tag or digest}
-    container_name: sovrack-backend
-    environment: &backend-environment
+    image: ${SERVER_IMAGE:-${BACKEND_IMAGE:?SERVER_IMAGE or BACKEND_IMAGE must be set}}
+    container_name: sovrack-server
+    environment: &server-environment
       NODE_ENV: production
       PORT: "3001"
-      PROCESS_ROLE: ${BACKEND_PROCESS_ROLE:-api}
+      PROCESS_ROLE: ${SERVER_PROCESS_ROLE:-${BACKEND_PROCESS_ROLE:-api}}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       TRUST_PROXY: ${TRUST_PROXY:-1}
       # Base de données (redis/chemin via le réseau docker)
@@ -210,18 +211,18 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${BACKEND_MEMORY_LIMIT:-768M}
-          cpus: "${BACKEND_CPU_LIMIT:-1.0}"
+          memory: ${SERVER_MEMORY_LIMIT:-${BACKEND_MEMORY_LIMIT:-768M}}
+          cpus: "${SERVER_CPU_LIMIT:-${BACKEND_CPU_LIMIT:-1.0}}"
           pids: 256
         reservations:
-          memory: ${BACKEND_MEMORY_RESERVATION:-384M}
-          cpus: "${BACKEND_CPU_RESERVATION:-0.35}"
+          memory: ${SERVER_MEMORY_RESERVATION:-${BACKEND_MEMORY_RESERVATION:-384M}}
+          cpus: "${SERVER_CPU_RESERVATION:-${BACKEND_CPU_RESERVATION:-0.35}}"
     stop_grace_period: 45s
 
   # One-shot release gate. Ordinary API/worker restarts never run migrations.
   migrator:
     <<: *common
-    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be an immutable release tag or digest}
+    image: ${SERVER_IMAGE:-${BACKEND_IMAGE:?SERVER_IMAGE or BACKEND_IMAGE must be set}}
     container_name: sovrack-migrator
     restart: "no"
     pids_limit: 256
@@ -232,7 +233,7 @@ services:
       - /tmp:rw,noexec,nosuid,size=128m,uid=100,gid=101,mode=1777
       - /home/appuser:rw,noexec,nosuid,size=32m,uid=100,gid=101,mode=0700
     environment:
-      <<: *backend-environment
+      <<: *server-environment
       PROCESS_ROLE: migrator
     depends_on:
       postgres:
@@ -250,7 +251,7 @@ services:
   # mot de passe initial n'est créé ou transmis par l'opérateur.
   staff-bootstrap:
     <<: *common
-    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be an immutable tag or digest}
+    image: ${SERVER_IMAGE:-${BACKEND_IMAGE:?SERVER_IMAGE or BACKEND_IMAGE must be set}}
     profiles:
       - bootstrap
     restart: "no"
@@ -261,7 +262,7 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=128m,uid=100,gid=101,mode=1777
     environment:
-      <<: *backend-environment
+      <<: *server-environment
       PROCESS_ROLE: bootstrap
     depends_on:
       postgres:
@@ -272,7 +273,7 @@ services:
   # to the API process through the Redis adapter.
   worker:
     <<: *common
-    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be an immutable release tag or digest}
+    image: ${SERVER_IMAGE:-${BACKEND_IMAGE:?SERVER_IMAGE or BACKEND_IMAGE must be set}}
     container_name: sovrack-worker
     profiles:
       - split-runtime
@@ -283,7 +284,7 @@ services:
       - /tmp:rw,noexec,nosuid,size=128m,uid=100,gid=101,mode=1777
       - /home/appuser:rw,noexec,nosuid,size=32m,uid=100,gid=101,mode=0700
     environment:
-      <<: *backend-environment
+      <<: *server-environment
       PORT: "3002"
       PROCESS_ROLE: worker
     depends_on:
