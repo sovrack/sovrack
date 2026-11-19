@@ -406,7 +406,7 @@ describe('StaffService', () => {
       prisma.staff.findUnique.mockResolvedValue(null);
 
       const result = await service.requestStaffActivationCode(
-        'unknown@sovrack.tech',
+        'unknown@sovrack.com',
         '::1',
       );
 

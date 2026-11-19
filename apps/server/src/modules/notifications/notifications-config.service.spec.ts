@@ -192,7 +192,7 @@ describe('NotificationsConfigService', () => {
           port: 587,
           security: 'starttls',
           user: 'apikey',
-          from: 'contact@sovrack.tech',
+          from: 'contact@sovrack.com',
         }),
       ).rejects.toThrow('mot de passe SMTP');
     });

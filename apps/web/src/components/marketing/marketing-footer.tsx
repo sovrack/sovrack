@@ -119,10 +119,10 @@ export default function MarketingFooter() {
             <ul className="space-y-3 text-sm">
               <li>
                 <a
-                  href="mailto:contact@sovrack.tech"
+                  href="mailto:contact@sovrack.com"
                   className="transition hover:text-sky-300"
                 >
-                  contact@sovrack.tech
+                  contact@sovrack.com
                 </a>
               </li>
               <li>Tunis, Tunisie</li>

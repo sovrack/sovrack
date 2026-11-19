@@ -8,7 +8,7 @@ import { StaffPasswordRecoveryService } from './staff-password-recovery.service'
 
 const staff: Staff = {
   id: 'staff-1',
-  email: 'contact@sovrack.tech',
+  email: 'contact@sovrack.com',
   password: '$argon2id$old',
   fullName: 'Root Admin',
   role: PlatformRole.ROOT,
@@ -88,7 +88,7 @@ describe('StaffPasswordRecoveryService', () => {
     prisma.staff.findUnique.mockResolvedValue(null);
 
     const result = await service.forgotPassword({
-      email: 'unknown@sovrack.tech',
+      email: 'unknown@sovrack.com',
     });
 
     expect(result.message).toContain('Si ce compte staff existe');

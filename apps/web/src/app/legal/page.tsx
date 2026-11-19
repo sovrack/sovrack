@@ -11,7 +11,7 @@ export default function LegalPage() {
           title: "Éditeur et contact",
           paragraphs: [
             "Le site et le service sont publiés sous le nom Sovrack depuis la Tunisie.",
-            "Le point de contact unique pour toute demande administrative, technique ou relative aux données personnelles est contact@sovrack.tech.",
+            "Le point de contact unique pour toute demande administrative, technique ou relative aux données personnelles est contact@sovrack.com.",
           ],
         },
         {

@@ -211,7 +211,7 @@ done
 curl -fsS http://127.0.0.1:9090/-/ready >/dev/null
 curl -fsS http://127.0.0.1:9093/-/ready >/dev/null
 
-query='probe_success{job="sovrack_external_https"}'
+query='probe_success{job="SOVRACK_external_https"}'
 for _attempt in $(seq 1 20); do
   successes="$(curl -fsSG --data-urlencode "query=$query" \
     http://127.0.0.1:9090/api/v1/query \

@@ -139,7 +139,7 @@ async function main() {
     },
   });
 
-  const frontendUrl = (process.env.FRONTEND_URL || 'https://sovrack.tech').replace(/\/$/, '');
+  const frontendUrl = (process.env.FRONTEND_URL || 'https://sovrack.com').replace(/\/$/, '');
   const activationUrl = `${frontendUrl}/staff/activate?email=${encodeURIComponent(email)}`;
   const transporter = nodemailer.createTransport({
     host: smtpHost,

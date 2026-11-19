@@ -41,7 +41,7 @@ export default function PrivacyPage() {
         {
           title: "Vos droits",
           paragraphs: [
-            "Vous pouvez demander l’accès, la rectification, l’export ou la suppression de vos données en écrivant à contact@sovrack.tech. Une vérification d’identité peut être demandée afin d’éviter toute divulgation à un tiers.",
+            "Vous pouvez demander l’accès, la rectification, l’export ou la suppression de vos données en écrivant à contact@sovrack.com. Une vérification d’identité peut être demandée afin d’éviter toute divulgation à un tiers.",
           ],
         },
       ]}

@@ -252,9 +252,9 @@ les fichiers présents dans le conteneur.
 ```bash
 SOVRACK_BASE_DIR=/srv/sovrack /srv/sovrack/current/scripts/current-compose.sh ps
 SOVRACK_BASE_DIR=/srv/sovrack /srv/sovrack/current/scripts/current-compose.sh logs --tail=150 migrator backend worker frontend nginx
-curl --fail --silent https://app.sovrack.tech/backend-api/health
-curl --fail --silent https://sovrack.tech/
-curl --fail --silent https://staff.sovrack.tech/staff/login
+curl --fail --silent https://app.sovrack.com/backend-api/health
+curl --fail --silent https://sovrack.com/
+curl --fail --silent https://staff.sovrack.com/staff/login
 ```
 
 Contrôler aussi les métriques authentifiées, les erreurs applicatives, l'espace

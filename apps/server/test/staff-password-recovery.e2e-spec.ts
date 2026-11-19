@@ -7,7 +7,7 @@ import { NotificationsSmtpService } from '../src/modules/notifications/notificat
 describe('Staff password recovery (e2e)', () => {
   let ctx: E2EContext;
   let smtp: { sendTransactionalEmail: jest.Mock };
-  const email = 'contact@sovrack.tech';
+  const email = 'contact@sovrack.com';
   const oldPassword = 'Old-Staff-Password-2026!';
   const newPassword = 'New-Staff-Password-2026!';
 
@@ -106,7 +106,7 @@ describe('Staff password recovery (e2e)', () => {
   it('does not reveal an unknown staff identity', async () => {
     await request(ctx.app.getHttpServer())
       .post('/staff/forgot-password')
-      .send({ email: 'unknown@sovrack.tech' })
+      .send({ email: 'unknown@sovrack.com' })
       .expect(200)
       .expect(({ body }) => {
         expect(body.message).toContain('Si ce compte staff existe');

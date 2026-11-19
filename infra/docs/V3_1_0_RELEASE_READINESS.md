@@ -103,14 +103,14 @@ de données conteneurisées et l'absence d'Automation dans la V1 publique.
   cible annoncée ;
 - le certificat public actuel couvre l'apex, `www`, `app` et `staff` ;
 - SPF, MX et les deux sélecteurs DKIM OVH sont publiés ;
-- `_dmarc.sovrack.tech` est publié sur les serveurs OVH et résolu par
+- `_dmarc.sovrack.com` est publié sur les serveurs OVH et résolu par
   Cloudflare et Google avec la politique de surveillance suivante :
-  `v=DMARC1; p=none; rua=mailto:contact@sovrack.tech; adkim=s; aspf=s; pct=100` ;
+  `v=DMARC1; p=none; rua=mailto:contact@sovrack.com; adkim=s; aspf=s; pct=100` ;
 - les MX OVH `mx0`, `mx1`, `mx2` et `mx3` sont résolus ;
 - la version servie est `v3.1.0` depuis le 29 septembre 2026.
 
 La présence de DNS valides ne prouve pas un envoi et une réception de bout en
-bout. Ce contrôle exige l'accès réel à la boîte `contact@sovrack.tech`.
+bout. Ce contrôle exige l'accès réel à la boîte `contact@sovrack.com`.
 
 ## Promotion de production du 29 septembre 2026
 
@@ -125,7 +125,7 @@ bout. Ce contrôle exige l'accès réel à la boîte `contact@sovrack.tech`.
 - backend, frontend, Nginx, PostgreSQL et Redis healthy, avec zéro redémarrage
   et une racine en lecture seule ;
 - maintenance retirée et release `v3.1.0` activée atomiquement ;
-- dry-run Let's Encrypt réussi pour `sovrack.tech`, `www`, `app` et `staff`,
+- dry-run Let's Encrypt réussi pour `sovrack.com`, `www`, `app` et `staff`,
   puis Nginx revenu healthy ;
 - smoke tests HTTP/TLS réussis sur les trois domaines et l'API ;
 - trois parcours Playwright de production réussis : site public, isolation des
@@ -137,7 +137,7 @@ bout. Ce contrôle exige l'accès réel à la boîte `contact@sovrack.tech`.
 
 ## Contrôles externes restant à clôturer
 
-1. Tester réellement `contact@sovrack.tech` : réception externe, envoi SMTP,
+1. Tester réellement `contact@sovrack.com` : réception externe, envoi SMTP,
    vérification d'adresse et récupération du compte ROOT. Conserver les
    en-têtes du message reçu pour contrôler SPF, DKIM et DMARC.
 2. Fournir et valider le nom légal complet de l'éditeur, son adresse, son

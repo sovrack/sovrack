@@ -7839,7 +7839,7 @@ export interface components {
         StaffLoginDto: {
             /**
              * Format: email
-             * @example contact@sovrack.tech
+             * @example contact@sovrack.com
              */
             email: string;
             /** @example S3cure-Password! */
@@ -7853,14 +7853,14 @@ export interface components {
         StaffForgotPasswordDto: {
             /**
              * Format: email
-             * @example contact@sovrack.tech
+             * @example contact@sovrack.com
              */
             email: string;
         };
         StaffResetPasswordDto: {
             /**
              * Format: email
-             * @example contact@sovrack.tech
+             * @example contact@sovrack.com
              */
             email: string;
             /** @example 12345678 */
@@ -7870,7 +7870,7 @@ export interface components {
         AcceptStaffInvitationDto: {
             /**
              * Format: email
-             * @example contact@sovrack.tech
+             * @example contact@sovrack.com
              */
             email: string;
             /** @example 12345678 */
@@ -7880,14 +7880,14 @@ export interface components {
         RequestStaffActivationCodeDto: {
             /**
              * Format: email
-             * @example contact@sovrack.tech
+             * @example contact@sovrack.com
              */
             email: string;
         };
         CreateStaffDto: {
             /**
              * Format: email
-             * @example nouveau.staff@sovrack.tech
+             * @example nouveau.staff@sovrack.com
              */
             email: string;
             /** @example Sami Ben Salah */

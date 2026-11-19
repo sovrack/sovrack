@@ -34,7 +34,7 @@ export default function SecurityPage() {
         {
           title: "Signaler une vulnérabilité",
           paragraphs: [
-            "Envoyez un signalement responsable à contact@sovrack.tech avec une description, les étapes de reproduction et l’impact estimé. N’accédez pas aux données d’un tiers et n’interrompez pas le service.",
+            "Envoyez un signalement responsable à contact@sovrack.com avec une description, les étapes de reproduction et l’impact estimé. N’accédez pas aux données d’un tiers et n’interrompez pas le service.",
           ],
         },
       ]}

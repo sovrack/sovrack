@@ -2,7 +2,7 @@
   "name": "@sovrack/web",
   "version": "3.1.0",
   "description": "Sovrack Multi-tenant Web App & Dashboard",
-  "author": "Habib Drira <contact@sovrack.tech>",
+  "author": "Habib Drira <contact@sovrack.com>",
   "private": true,
   "license": "BSL-1.1",
   "scripts": {

@@ -23,7 +23,7 @@ import {
 } from '../../../shared/validation/identity-validation.util';
 
 export class StaffLoginDto {
-  @ApiProperty({ example: 'contact@sovrack.tech' })
+  @ApiProperty({ example: 'contact@sovrack.com' })
   @NormalizeEmail()
   @IsEmail()
   email: string;
@@ -70,14 +70,14 @@ export class StaffResetMfaDto {
 }
 
 export class StaffForgotPasswordDto {
-  @ApiProperty({ example: 'contact@sovrack.tech' })
+  @ApiProperty({ example: 'contact@sovrack.com' })
   @NormalizeEmail()
   @IsEmail()
   email: string;
 }
 
 export class StaffResetPasswordDto {
-  @ApiProperty({ example: 'contact@sovrack.tech' })
+  @ApiProperty({ example: 'contact@sovrack.com' })
   @NormalizeEmail()
   @IsEmail()
   email: string;
@@ -122,7 +122,7 @@ export class CreateStaffImpersonationDto {
 }
 
 export class CreateStaffDto {
-  @ApiProperty({ example: 'nouveau.staff@sovrack.tech' })
+  @ApiProperty({ example: 'nouveau.staff@sovrack.com' })
   @NormalizeEmail()
   @IsEmail()
   email: string;
@@ -143,7 +143,7 @@ export class CreateStaffDto {
 }
 
 export class AcceptStaffInvitationDto {
-  @ApiProperty({ example: 'contact@sovrack.tech' })
+  @ApiProperty({ example: 'contact@sovrack.com' })
   @NormalizeEmail()
   @IsEmail()
   email: string;
@@ -161,7 +161,7 @@ export class AcceptStaffInvitationDto {
 }
 
 export class RequestStaffActivationCodeDto {
-  @ApiProperty({ example: 'contact@sovrack.tech' })
+  @ApiProperty({ example: 'contact@sovrack.com' })
   @NormalizeEmail()
   @IsEmail()
   email: string;

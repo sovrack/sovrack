@@ -10,7 +10,7 @@ export default function CookiesPage() {
         {
           title: "Cookies strictement nécessaires",
           paragraphs: [
-            "La console client utilise un cookie HttpOnly de session limité au domaine app.sovrack.tech. Le back-office utilise un cookie distinct, limité à staff.sovrack.tech.",
+            "La console client utilise un cookie HttpOnly de session limité au domaine app.sovrack.com. Le back-office utilise un cookie distinct, limité à staff.sovrack.com.",
             "Ces cookies servent uniquement à maintenir une session authentifiée et à protéger les espaces privés. Ils ne sont pas accessibles au code JavaScript du navigateur.",
           ],
         },

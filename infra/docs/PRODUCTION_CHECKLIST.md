@@ -14,10 +14,10 @@
 - [ ] La baseline R0 (schéma 105 + anciens digests) est archivée.
 - [ ] L'état du `ROOT` existant a été contrôlé sans l'écraser ; `bootstrap-staff` n'est utilisé que s'il est réellement absent.
 - [ ] SMTP a été configuré depuis `/staff/settings/email`, limité au fournisseur attendu et testé.
-- [ ] La récupération du `ROOT` via `contact@sovrack.tech` et sa redirection OVH a été testée de bout en bout.
+- [ ] La récupération du `ROOT` via `contact@sovrack.com` et sa redirection OVH a été testée de bout en bout.
 - [ ] SPF, DKIM et DMARC sont publiés pour le domaine d'envoi.
 - [ ] L'identité légale de l'éditeur, son adresse et les informations d'hébergement ont été validées puis reportées dans les mentions légales ; aucune donnée n'est inventée par l'équipe technique.
-- [ ] Les DNS `sovrack.tech`, `app.sovrack.tech` et `staff.sovrack.tech` pointent vers la cible et le certificat SAN couvre les quatre noms avec `www`.
+- [ ] Les DNS `sovrack.com`, `app.sovrack.com` et `staff.sovrack.com` pointent vers la cible et le certificat SAN couvre les quatre noms avec `www`.
 - [ ] Les cookies client/staff sont host-only ; aucun `AUTH_COOKIE_DOMAIN` global n'est défini.
 - [ ] Le ROOT a validé la récupération par code ; l'ouverture publique reste conditionnée à une MFA staff effective.
 

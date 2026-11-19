@@ -5,7 +5,7 @@ import "@/styles/globals.css";
 
 const publicSiteUrl =
   process.env.NEXT_PUBLIC_PUBLIC_SITE_URL?.replace(/\/+$/, "") ||
-  "https://sovrack.tech";
+  "https://sovrack.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(publicSiteUrl),

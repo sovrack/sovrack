@@ -80,7 +80,7 @@ export class UsageGuardService {
         `UsageGuard deny: team=${teamId} action=${action} plan=${plan}`,
       );
       throw new ForbiddenException(
-        `${message} Contactez contact@sovrack.tech si vous avez besoin d’une capacité supplémentaire.`,
+        `${message} Contactez contact@sovrack.com si vous avez besoin d’une capacité supplémentaire.`,
       );
     }
   }

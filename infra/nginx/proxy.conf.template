@@ -29,7 +29,7 @@ map $host $sovrack_known_host {
 # réseau Docker via les noms de service.
 # =============================================================================
 
-# ── Frontend : https://sovrack.tech → Next.js ────────────────────────────────
+# ── Frontend : https://sovrack.com → Next.js ────────────────────────────────
 server {
     listen 80;
     server_name ${DOMAIN} www.${DOMAIN} ${APP_DOMAIN} ${STAFF_DOMAIN};
@@ -124,7 +124,7 @@ server {
     }
 }
 
-# ── Console client : https://app.sovrack.tech ──────────────────────────────
+# ── Console client : https://app.sovrack.com ──────────────────────────────
 server {
     listen 443 ssl;
     http2 on;
@@ -235,7 +235,7 @@ server {
     }
 }
 
-# ── Back-office : https://staff.sovrack.tech ───────────────────────────────
+# ── Back-office : https://staff.sovrack.com ───────────────────────────────
 server {
     listen 443 ssl;
     http2 on;

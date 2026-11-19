@@ -6,10 +6,10 @@
 set -euo pipefail
 
 # --- Configurable Variables ---
-APP_NAME="${APP_NAME:-Platform}"
-APP_SLUG="${APP_SLUG:-platform}"
-APP_DOMAIN="${APP_DOMAIN:-example.com}"
-GHCR_ORG="${GHCR_ORG:-platform}"
+APP_NAME="${APP_NAME:-Sovrack}"
+APP_SLUG="${APP_SLUG:-sovrack}"
+APP_DOMAIN="${APP_DOMAIN:-sovrack.com}"
+GHCR_ORG="${GHCR_ORG:-sovrack}"
 INSTALL_DIR="${INSTALL_DIR:-/srv/${APP_SLUG}}"
 PORT="${APP_PORT:-3000}"
 
@@ -24,11 +24,11 @@ NC='\033[0m' # No Color
 # --- Banner ---
 print_banner() {
   cat << "EOF"
-  ____  _       _    __                      
- |  _ \| | __ _| |_ / _| ___  _ __ _ __ ___  
- | |_) | |/ _` | __| |_ / _ \| '__| '_ ` _ \ 
- |  __/| | (_| | |_|  _| (_) | |  | | | | | |
- |_|   |_|\__,_|\__|_|  \___/|_|  |_| |_| |_|
+  ____                            _    
+ / ___|  _____   ___ __ __ _  ___| | __
+ \___ \ / _ \ \ / / '__/ _` |/ __| |/ /
+  ___) | (_) \ V /| | | (_| | (__|   < 
+ |____/ \___/ \_/ |_|  \__,_|\___|_|\_\
 EOF
   echo -e "${CYAN}${BOLD}${APP_NAME} — Self-Hosted Infrastructure & Orchestration Platform${NC}"
   echo -e "Website: https://${APP_DOMAIN}  |  Docs: https://docs.${APP_DOMAIN}"

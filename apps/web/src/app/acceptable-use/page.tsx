@@ -21,7 +21,7 @@ export default function AcceptableUsePage() {
         {
           title: "Réponse aux abus",
           paragraphs: [
-            "Sovrack peut limiter ou suspendre un accès afin de protéger la plateforme, les autres utilisateurs ou un tiers. Les signalements doivent être envoyés à contact@sovrack.tech avec les éléments techniques utiles, sans partager de secret.",
+            "Sovrack peut limiter ou suspendre un accès afin de protéger la plateforme, les autres utilisateurs ou un tiers. Les signalements doivent être envoyés à contact@sovrack.com avec les éléments techniques utiles, sans partager de secret.",
           ],
         },
       ]}

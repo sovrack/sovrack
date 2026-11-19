@@ -6,14 +6,14 @@ Une seule release frontend peut servir trois hôtes, mais chaque hôte a une
 responsabilité et des cookies host-only distincts :
 
 ```text
-sovrack.tech        site public, documentation et pages légales
-app.sovrack.tech    authentification et console des clients
-staff.sovrack.tech  authentification et back-office Sovrack
+sovrack.com        site public, documentation et pages légales
+app.sovrack.com    authentification et console des clients
+staff.sovrack.com  authentification et back-office Sovrack
 ```
 
 Nginx termine TLS pour les trois domaines avec un certificat SAN, refuse les
 Host headers inattendus et transmet l'hôte original à Next.js. Le middleware
-Next.js impose ensuite le plan correspondant. `www.sovrack.tech` est seulement
+Next.js impose ensuite le plan correspondant. `www.sovrack.com` est seulement
 une redirection vers le domaine public canonique.
 
 `AUTH_COOKIE_DOMAIN` et `STAFF_AUTH_COOKIE_DOMAIN` doivent rester absents : le
@@ -23,7 +23,7 @@ vers le back-office et une session staff ne voyage pas vers le site public.
 L'impersonation ne partage aucun cookie. Le staff crée un grant aléatoire de
 60 secondes, accompagné d'un motif obligatoire, dont seul le hash est en base.
 Le jeton brut est transporté dans un fragment d'URL, échangé une fois sur
-`app.sovrack.tech`, puis remplacé par une session client limitée à 15 minutes.
+`app.sovrack.com`, puis remplacé par une session client limitée à 15 minutes.
 Cette session est en lecture seule, ne peut pas ouvrir un canal WebSocket et
 affiche un bandeau permanent. Sa création, son échange et sa fin sont
 journalisés. « Quitter la session » la termine aussi côté serveur sans révoquer

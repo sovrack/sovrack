@@ -93,7 +93,7 @@ export default function StatusPage() {
           <h2 className="text-lg font-semibold">Besoin d’assistance ?</h2>
           <p className="mt-2 text-sm leading-6 text-slate-400">
             Si votre espace reste inaccessible alors que les services sont
-            opérationnels, écrivez à contact@sovrack.tech sans joindre de mot
+            opérationnels, écrivez à contact@sovrack.com sans joindre de mot
             de passe, clé SSH ou jeton d’accès.
           </p>
         </section>

@@ -37,7 +37,7 @@ documenté et couvert par la recette locale.
 - site public, documentation, page de sécurité, état instantané et pages
   juridiques ;
 - accès gratuit V1 affiché sans carte bancaire ni abonnement automatique ;
-- `contact@sovrack.tech` est l'unique adresse de contact publique.
+- `contact@sovrack.com` est l'unique adresse de contact publique.
 
 ## Fonctions planifiées et non exposées
 

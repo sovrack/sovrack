@@ -7,9 +7,9 @@ import {
 
 const config = requestPlaneConfigFromEnv({
   NODE_ENV: 'production',
-  PUBLIC_SITE_URL: 'https://sovrack.tech',
-  CUSTOMER_APP_URL: 'https://app.sovrack.tech',
-  STAFF_APP_URL: 'https://staff.sovrack.tech',
+  PUBLIC_SITE_URL: 'https://sovrack.com',
+  CUSTOMER_APP_URL: 'https://app.sovrack.com',
+  STAFF_APP_URL: 'https://staff.sovrack.com',
 });
 
 function run(
@@ -44,16 +44,16 @@ describe('request plane middleware', () => {
 
   it('keeps the public host free of application APIs', () => {
     expect(
-      run(middleware, { host: 'sovrack.tech', path: '/auth/me' }).status,
+      run(middleware, { host: 'sovrack.com', path: '/auth/me' }).status,
     ).toHaveBeenCalledWith(404);
   });
 
   it('allows customer APIs but not staff APIs on the app host', () => {
     expect(
-      run(middleware, { host: 'app.sovrack.tech', path: '/projects' }).next,
+      run(middleware, { host: 'app.sovrack.com', path: '/projects' }).next,
     ).toHaveBeenCalled();
     expect(
-      run(middleware, { host: 'app.sovrack.tech', path: '/staff/users' })
+      run(middleware, { host: 'app.sovrack.com', path: '/staff/users' })
         .status,
     ).toHaveBeenCalledWith(404);
   });
@@ -61,7 +61,7 @@ describe('request plane middleware', () => {
   it('allows only the one-time impersonation exchange on the app host', () => {
     expect(
       run(middleware, {
-        host: 'app.sovrack.tech',
+        host: 'app.sovrack.com',
         method: 'POST',
         path: '/staff/impersonation/exchange',
       }).next,
@@ -70,7 +70,7 @@ describe('request plane middleware', () => {
 
   it('keeps client APIs off the staff host', () => {
     expect(
-      run(middleware, { host: 'staff.sovrack.tech', path: '/projects' })
+      run(middleware, { host: 'staff.sovrack.com', path: '/projects' })
         .status,
     ).toHaveBeenCalledWith(404);
   });
@@ -82,20 +82,20 @@ describe('CSRF origin middleware', () => {
   it('accepts a cookie mutation only from the exact customer origin', () => {
     expect(
       run(middleware, {
-        host: 'app.sovrack.tech',
+        host: 'app.sovrack.com',
         method: 'POST',
         path: '/projects',
         cookie: 'deploy_automation_token=x',
-        origin: 'https://app.sovrack.tech',
+        origin: 'https://app.sovrack.com',
       }).next,
     ).toHaveBeenCalled();
   });
 
   it('rejects missing and sibling origins for cookie mutations', () => {
-    for (const origin of [undefined, 'https://staff.sovrack.tech']) {
+    for (const origin of [undefined, 'https://staff.sovrack.com']) {
       expect(
         run(middleware, {
-          host: 'app.sovrack.tech',
+          host: 'app.sovrack.com',
           method: 'DELETE',
           path: '/projects/p1',
           cookie: 'deploy_automation_token=x',
@@ -108,7 +108,7 @@ describe('CSRF origin middleware', () => {
   it('does not impose browser CSRF semantics on bearer-only API clients', () => {
     expect(
       run(middleware, {
-        host: 'app.sovrack.tech',
+        host: 'app.sovrack.com',
         method: 'POST',
         path: '/projects',
       }).next,

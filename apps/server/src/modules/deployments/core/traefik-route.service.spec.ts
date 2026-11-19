@@ -51,7 +51,7 @@ describe('TraefikRouteService.resolveAutoSubdomain', () => {
 
   it('falls back to process.env.PLATFORM_BASE_DOMAIN when not present in DB', async () => {
     const prev = process.env.PLATFORM_BASE_DOMAIN;
-    process.env.PLATFORM_BASE_DOMAIN = 'apps.sovrack.tech';
+    process.env.PLATFORM_BASE_DOMAIN = 'apps.sovrack.com';
     try {
       const { service, upsert } = makeService({});
       const domain = await service.resolveAutoSubdomain(
@@ -61,7 +61,7 @@ describe('TraefikRouteService.resolveAutoSubdomain', () => {
         'PROD',
         '10.0.0.1',
       );
-      expect(domain).toBe('my-store-prod.apps.sovrack.tech');
+      expect(domain).toBe('my-store-prod.apps.sovrack.com');
       expect(upsert).toHaveBeenCalled();
     } finally {
       if (prev !== undefined) {

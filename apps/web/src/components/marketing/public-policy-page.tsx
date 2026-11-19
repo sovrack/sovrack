@@ -63,10 +63,10 @@ export function PublicPolicyPage({
             Une question concernant ces informations ?
           </p>
           <a
-            href="mailto:contact@sovrack.tech"
+            href="mailto:contact@sovrack.com"
             className="mt-2 inline-flex font-semibold text-cyan-300 hover:text-cyan-200"
           >
-            contact@sovrack.tech
+            contact@sovrack.com
           </a>
         </div>
       </main>

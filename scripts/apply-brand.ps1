@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Automated Branding Application Script for Platform Core.
 

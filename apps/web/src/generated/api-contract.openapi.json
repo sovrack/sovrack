@@ -20426,7 +20426,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "contact@sovrack.tech"
+            "example": "contact@sovrack.com"
           },
           "password": {
             "type": "string",
@@ -20450,7 +20450,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "contact@sovrack.tech"
+            "example": "contact@sovrack.com"
           }
         },
         "required": [
@@ -20463,7 +20463,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "contact@sovrack.tech"
+            "example": "contact@sovrack.com"
           },
           "code": {
             "type": "string",
@@ -20491,7 +20491,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "contact@sovrack.tech"
+            "example": "contact@sovrack.com"
           },
           "code": {
             "type": "string",
@@ -20519,7 +20519,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "contact@sovrack.tech"
+            "example": "contact@sovrack.com"
           }
         },
         "required": [
@@ -20532,7 +20532,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "nouveau.staff@sovrack.tech"
+            "example": "nouveau.staff@sovrack.com"
           },
           "fullName": {
             "type": "string",

@@ -31,8 +31,8 @@ x-server-environment: &server-environment
   SMTP_HOST: mailpit
   SMTP_PORT: "1025"
   SMTP_SECURITY: none
-  SMTP_FROM: contact@sovrack.tech
-  SMTP_TO: contact@sovrack.tech
+  SMTP_FROM: contact@sovrack.com
+  SMTP_TO: contact@sovrack.com
   SMTP_ALLOWED_HOSTS: mailpit
   ANSIBLE_PLAYBOOKS_PATH: /app/ansible/playbooks
   ANSIBLE_COLLECTIONS_PATH: /usr/share/ansible/collections

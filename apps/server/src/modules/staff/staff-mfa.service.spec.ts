@@ -9,7 +9,7 @@ import { StaffMfaService } from './staff-mfa.service';
 
 const staff: Staff = {
   id: 'staff-1',
-  email: 'contact@sovrack.tech',
+  email: 'contact@sovrack.com',
   password: 'hashed-password',
   fullName: 'Root Admin',
   role: PlatformRole.ROOT,

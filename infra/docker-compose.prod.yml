@@ -108,16 +108,16 @@ services:
       BACKEND_INTERNAL_URL: http://server:3001
       # Vars publiques déjà "baked" au build de l'image ; fournies de nouveau
       # pour la clarté (l'image doit déjà exposer les bonnes valeurs).
-      NEXT_PUBLIC_API_URL: ${FRONTEND_PUBLIC_URL:-https://app.sovrack.tech}
-      NEXT_PUBLIC_WS_URL: ${FRONTEND_WS_PUBLIC_URL:-wss://sovrack.tech}
+      NEXT_PUBLIC_API_URL: ${FRONTEND_PUBLIC_URL:-https://app.sovrack.com}
+      NEXT_PUBLIC_WS_URL: ${FRONTEND_WS_PUBLIC_URL:-wss://sovrack.com}
       NEXT_PUBLIC_APP_NAME: ${APP_NAME:-Sovrack}
       NEXT_PUBLIC_APP_VERSION: ${APP_VERSION:-3.1.0}
-      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://sovrack.tech}
-      CUSTOMER_APP_URL: ${CUSTOMER_APP_URL:-https://app.sovrack.tech}
-      STAFF_APP_URL: ${STAFF_APP_URL:-https://staff.sovrack.tech}
-      NEXT_PUBLIC_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://sovrack.tech}
-      NEXT_PUBLIC_CUSTOMER_APP_URL: ${CUSTOMER_APP_URL:-https://app.sovrack.tech}
-      NEXT_PUBLIC_STAFF_APP_URL: ${STAFF_APP_URL:-https://staff.sovrack.tech}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://sovrack.com}
+      CUSTOMER_APP_URL: ${CUSTOMER_APP_URL:-https://app.sovrack.com}
+      STAFF_APP_URL: ${STAFF_APP_URL:-https://staff.sovrack.com}
+      NEXT_PUBLIC_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://sovrack.com}
+      NEXT_PUBLIC_CUSTOMER_APP_URL: ${CUSTOMER_APP_URL:-https://app.sovrack.com}
+      NEXT_PUBLIC_STAFF_APP_URL: ${STAFF_APP_URL:-https://staff.sovrack.com}
     deploy:
       resources:
         limits:
@@ -155,11 +155,11 @@ services:
       # Chiffrement config
       CONFIG_SECRET: ${CONFIG_SECRET}
       # CORS : URL publique du frontend
-      FRONTEND_URL: ${CUSTOMER_APP_URL:-https://app.sovrack.tech}
-      FRONTEND_URLS: ${CUSTOMER_APP_URL:-https://app.sovrack.tech},${STAFF_APP_URL:-https://staff.sovrack.tech}
-      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://sovrack.tech}
-      CUSTOMER_APP_URL: ${CUSTOMER_APP_URL:-https://app.sovrack.tech}
-      STAFF_APP_URL: ${STAFF_APP_URL:-https://staff.sovrack.tech}
+      FRONTEND_URL: ${CUSTOMER_APP_URL:-https://app.sovrack.com}
+      FRONTEND_URLS: ${CUSTOMER_APP_URL:-https://app.sovrack.com},${STAFF_APP_URL:-https://staff.sovrack.com}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://sovrack.com}
+      CUSTOMER_APP_URL: ${CUSTOMER_APP_URL:-https://app.sovrack.com}
+      STAFF_APP_URL: ${STAFF_APP_URL:-https://staff.sovrack.com}
       HOST_PLANE_ENFORCEMENT: "true"
       OUTBOUND_PRIVATE_HOST_ALLOWLIST: ${OUTBOUND_PRIVATE_HOST_ALLOWLIST:-}
       # Cookies sécurisés
@@ -187,7 +187,7 @@ services:
       # Google OAuth ("Se connecter avec Google")
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://app.sovrack.tech/backend-api/auth/google/callback}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://app.sovrack.com/backend-api/auth/google/callback}
     expose:
       - "3001"
     read_only: true

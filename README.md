@@ -1,22 +1,23 @@
-# Modern Infrastructure & Deployment Orchestration Platform 🚀
+# Sovrack 🛡️
+### Sovereign Self-Hosted PaaS & Infrastructure Orchestration Platform
 
-[![CI & Quality Gates](https://github.com/platform-org/platform/actions/workflows/ci.yml/badge.svg)](https://github.com/platform-org/platform/actions/workflows/ci.yml)
+[![CI & Quality Gates](https://github.com/sovrack/sovrack/actions/workflows/ci.yml/badge.svg)](https://github.com/sovrack/sovrack/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?logo=typescript)](https://www.typescriptlang.org/)
 [![NestJS](https://img.shields.io/badge/NestJS-11.x-E0234E.svg?logo=nestjs)](https://nestjs.com/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.x-000000.svg?logo=nextdotjs)](https://nextjs.org/)
 [![Docker](https://img.shields.io/badge/Docker-Production%20Ready-2496ED.svg?logo=docker)](https://www.docker.com/)
 
-A modern, enterprise-grade multi-server deployment and infrastructure orchestration platform. Manage servers, execute automated container builds, stream live logs, and open secure in-browser SSH sessions across your fleet.
+**Sovrack** is a modern, enterprise-grade, self-hosted PaaS and multi-server infrastructure orchestration platform. Reclaim full sovereignty over your VPS, bare-metal servers, and application fleets from high-cost hyperscalers. Execute automated Nixpacks & Docker builds, stream live container logs, run Ansible hardening, and open secure in-browser xterm.js SSH sessions.
 
 ---
 
 ### ⚡ 1-Click Automated Install (Linux / VPS)
 
-Install Community Edition on your Ubuntu or Debian server in under 2 minutes:
+Install Sovrack Community Edition on your Ubuntu or Debian server in under 2 minutes:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/platform-org/platform/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/sovrack/sovrack/main/install.sh | sudo bash
 ```
 
 *Automatically installs Docker, provisions databases, configures cryptographic secrets, and exposes the dashboard on port `3000`.*
@@ -34,8 +35,8 @@ This repository is organized under an Open-Core model:
 
 ```bash
 # Clone the repository
-git clone https://github.com/platform-org/platform.git
-cd platform
+git clone https://github.com/sovrack/sovrack.git
+cd sovrack
 
 # Install workspace dependencies
 npm ci

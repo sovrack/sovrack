@@ -240,7 +240,7 @@ export default function PricingPage() {
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
             <a
-              href="mailto:contact@sovrack.tech?subject=Demande%20Sovrack%20Entreprise"
+              href="mailto:contact@sovrack.com?subject=Demande%20Sovrack%20Entreprise"
               className="inline-flex items-center justify-center rounded-xl bg-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/15"
             >
               {isEn ? "Contact Enterprise Sales" : "Contacter l'équipe Entreprise"}

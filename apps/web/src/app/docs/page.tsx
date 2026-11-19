@@ -82,7 +82,7 @@ const sections = [
     title: "8. Domaine et HTTPS",
     steps: [
       "Ajoutez le nom de domaine dans la configuration du service.",
-      "Créez un enregistrement A vers l’IPv4 du serveur. Pour app.sovrack.tech, le champ sous-domaine est app ; pour staff.sovrack.tech, il est staff.",
+      "Créez un enregistrement A vers l’IPv4 du serveur. Pour app.sovrack.com, le champ sous-domaine est app ; pour staff.sovrack.com, il est staff.",
       "N’ajoutez un enregistrement AAAA que si ce même serveur possède une IPv6 publique fonctionnelle et que le proxy écoute réellement en IPv6. Une mauvaise valeur AAAA provoque des pannes intermittentes chez les visiteurs utilisant IPv6.",
       "Attendez la propagation DNS puis relancez la vérification dans Sovrack.",
       "L'émission HTTPS ne peut réussir que lorsque le domaine pointe vers le bon serveur et que les ports web sont accessibles.",
@@ -105,7 +105,7 @@ const sections = [
       "Utilisez un mot de passe unique et protégez l'accès à votre messagerie.",
       "Révoquez immédiatement une clé SSH ou un jeton Git que vous pensez compromis.",
       "Les rôles limitent les actions au niveau de l'espace de travail et du projet.",
-      "Pour toute question, contactez contact@sovrack.tech sans transmettre de mot de passe ni de secret.",
+      "Pour toute question, contactez contact@sovrack.com sans transmettre de mot de passe ni de secret.",
     ],
   },
   {
@@ -208,7 +208,7 @@ export default function DocsPage() {
             Notre équipe vous répond par email.
           </p>
           <a
-            href="mailto:contact@sovrack.tech"
+            href="mailto:contact@sovrack.com"
             className="mt-5 inline-block rounded-xl bg-white px-6 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
           >
             Contacter le support

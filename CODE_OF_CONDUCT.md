@@ -33,5 +33,5 @@ repository, issue trackers, discussions, and any official communication channels
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leadership at **contact@sovrack.tech**. All
+reported to the community leadership at **contact@sovrack.com**. All
 complaints will be reviewed and investigated promptly and fairly.

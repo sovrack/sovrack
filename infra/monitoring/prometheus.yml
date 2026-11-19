@@ -28,10 +28,10 @@ scrape_configs:
         - https_2xx
     static_configs:
       - targets:
-          - https://sovrack.tech/
-          - https://sovrack.tech/backend-api/health
-          - https://sovrack.tech/backend-api/health/live
-          - https://sovrack.tech/backend-api/health/ready
+          - https://sovrack.com/
+          - https://sovrack.com/backend-api/health
+          - https://sovrack.com/backend-api/health/live
+          - https://sovrack.com/backend-api/health/ready
     relabel_configs:
       - source_labels:
           - __address__
@@ -49,7 +49,7 @@ scrape_configs:
         - http_redirect
     static_configs:
       - targets:
-          - http://sovrack.tech/
+          - http://sovrack.com/
     relabel_configs:
       - source_labels:
           - __address__
