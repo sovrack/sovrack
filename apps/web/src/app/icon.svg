@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="137 107 280 280" width="64" height="64">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a5f3fc"/>
+      <stop offset="100%" stop-color="#00d8f6"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00d8f6"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0369a1"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="g4" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00e5ff"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#e0f2fe"/>
+    </linearGradient>
+  </defs>
+  <polygon points="175,130 255,200 185,170" fill="url(#g1)"/>
+  <polygon points="180,175 270,225 195,205" fill="url(#g2)"/>
+  <polygon points="190,210 275,245 210,230" fill="url(#g2)"/>
+  <polygon points="205,235 270,260 220,250" fill="url(#g3)"/>
+  <polygon points="160,110 250,180 270,260 215,220" fill="url(#g4)"/>
+  <polygon points="250,180 300,250 270,260" fill="url(#g2)"/>
+  <polygon points="170,380 235,325 255,300 200,350" fill="url(#g4)"/>
+  <polygon points="200,385 245,340 260,330" fill="url(#g2)"/>
+  <polygon points="270,260 300,250 365,285 300,320 235,325" fill="url(#g2)"/>
+  <polygon points="300,320 365,285 280,345" fill="url(#g3)"/>
+  <polygon points="300,250 330,245 350,260 320,270" fill="url(#g1)"/>
+  <polygon points="330,245 385,260 365,285 350,260" fill="url(#g4)"/>
+  <polygon points="385,260 395,275 380,275 365,285" fill="url(#g2)"/>
+  <polygon points="340,258 355,260 345,265" fill="#0b111e"/>
+</svg>
