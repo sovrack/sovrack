@@ -15,7 +15,7 @@ export type PlatformHealth = {
     valid: boolean;
     callbackUrl: string | null;
   };
-  // C2 : ressources de la machine qui héberge Deploy Automation (disque plein = panne
+  // C2 : ressources de la machine qui héberge Sovrack (disque plein = panne
   // silencieuse n°1). Optionnel : un backend pas encore à jour n'en envoie pas.
   host?: {
     cpuLoad1m: number;

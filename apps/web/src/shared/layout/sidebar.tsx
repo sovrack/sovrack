@@ -123,7 +123,7 @@ export function Sidebar() {
             )}
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]">
-              <SovrackLogo size={34} className="-rotate-12" />
+              <SovrackLogo size={32} />
             </div>
             <span
               className={clsx(
@@ -131,7 +131,7 @@ export function Sidebar() {
                 collapsed && "lg:hidden",
               )}
             >
-              Deploy<span className="text-sky-400">Arc</span>
+              Sov<span className="text-sky-400">rack</span>
             </span>
           </Link>
         </div>

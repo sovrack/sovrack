@@ -6774,7 +6774,7 @@ export interface components {
             userId?: string;
             /**
              * Format: email
-             * @example dev@deployautomation.local
+             * @example dev@sovrack.local
              */
             email?: string;
             /**

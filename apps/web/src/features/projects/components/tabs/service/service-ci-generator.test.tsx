@@ -23,7 +23,7 @@ describe("ServiceCiGenerator", () => {
     vi.clearAllMocks();
     (webhooksService.status as ReturnType<typeof vi.fn>).mockResolvedValue({
       configured: true,
-      webhookUrl: "https://deployautomation/hook/abc",
+      webhookUrl: "https://sovrack/hook/abc",
     });
   });
 
@@ -48,7 +48,7 @@ describe("ServiceCiGenerator", () => {
     // How-to + the webhook URL are surfaced for the user.
     expect(screen.getByText(/Colle chaque fichier/)).toBeInTheDocument();
     expect(
-      screen.getByText("https://deployautomation/hook/abc"),
+      screen.getByText("https://sovrack/hook/abc"),
     ).toBeInTheDocument();
   });
 

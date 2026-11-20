@@ -179,7 +179,7 @@ export class GitlabCiGenerator implements ICiGenerator {
       '  script:',
       '    - echo "Pipeline OK for $CI_COMMIT_SHA on $CI_COMMIT_REF_NAME"',
       '    - echo "Image pushed:$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"',
-      // Déclenche le déploiement Deploy Automation (deployTrigger = PIPELINE_SUCCESS / CI_HOOK).
+      // Déclenche le déploiement Sovrack (deployTrigger = PIPELINE_SUCCESS / CI_HOOK).
       // Définis la variable CI `DA_DEPLOY_HOOK` = URL du webhook du service.
       '    - |',
       '      if [ -n "$DA_DEPLOY_HOOK" ]; then',

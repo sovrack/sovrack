@@ -188,10 +188,10 @@ export class GithubActionsGenerator implements ICiGenerator {
       '          cache-from: type=gha',
       '          cache-to: type=gha,mode=max',
       '',
-      // Déclenche le déploiement Deploy Automation (deployTrigger = PIPELINE_SUCCESS / CI_HOOK).
+      // Déclenche le déploiement Sovrack (deployTrigger = PIPELINE_SUCCESS / CI_HOOK).
       // Renseigne les secrets repo DA_DEPLOY_HOOK (URL webhook du service) +
       // DA_DEPLOY_TOKEN (secret du webhook) pour activer le déclenchement.
-      '      - name: Trigger Deploy Automation deployment',
+      '      - name: Trigger Sovrack deployment',
       '        env:',
       '          DA_DEPLOY_HOOK: ${{ secrets.DA_DEPLOY_HOOK }}',
       '          DA_DEPLOY_TOKEN: ${{ secrets.DA_DEPLOY_TOKEN }}',

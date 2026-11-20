@@ -14,9 +14,9 @@ describe('GithubActionsGenerator', () => {
     expect(out).toContain('      - qa');
   });
 
-  it('emits the Deploy Automation deployment trigger step', () => {
+  it('emits the Sovrack deployment trigger step', () => {
     const out = gen.generate({ projectType: 'nodejs', branches: ['main'] });
-    expect(out).toContain('Trigger Deploy Automation deployment');
+    expect(out).toContain('Trigger Sovrack deployment');
     expect(out).toContain('secrets.DA_DEPLOY_HOOK');
     expect(out).toContain('X-Hub-Signature-256: $DA_DEPLOY_TOKEN');
     expect(out).toContain('déploiement non déclenché');

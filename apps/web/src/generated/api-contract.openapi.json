@@ -16748,8 +16748,8 @@
     }
   },
   "info": {
-    "title": "Deploy Automation API",
-    "description": "API de la plateforme centralisée de déploiement",
+    "title": "Sovrack API",
+    "description": "API de la plateforme souveraine de déploiement multi-serveurs",
     "version": "1.0",
     "contact": {}
   },
@@ -17502,7 +17502,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "dev@deployautomation.local"
+            "example": "dev@sovrack.local"
           },
           "role": {
             "enum": [

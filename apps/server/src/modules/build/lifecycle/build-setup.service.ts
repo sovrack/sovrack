@@ -385,7 +385,7 @@ export class BuildSetupService {
         key: 'DOCKERFILE',
         label: 'Dockerfile (auto-généré)',
         description:
-          'Deploy Automation génère un Dockerfile optimisé pour votre framework (15 langages supportés). Vous pouvez aussi fournir votre propre Dockerfile.',
+          'Sovrack génère un Dockerfile optimisé pour votre framework (15 langages supportés). Vous pouvez aussi fournir votre propre Dockerfile.',
         requiresDockerfile: false,
         supportsLocal: true,
         available: true,
@@ -424,7 +424,7 @@ export class BuildSetupService {
         key: 'STATIC',
         label: 'Site statique (sans Docker)',
         description:
-          'Pour les frontends statiques (Astro, Hugo, Jekyll, Gatsby). Deploy Automation exécute le build puis sert les fichiers via Nginx — pas de Docker.',
+          'Pour les frontends statiques (Astro, Hugo, Jekyll, Gatsby). Sovrack exécute le build puis sert les fichiers via Nginx — pas de Docker.',
         requiresDockerfile: false,
         supportsLocal: true,
         available: true,
@@ -433,7 +433,7 @@ export class BuildSetupService {
         key: 'NONE',
         label: 'Image externe (pull only)',
         description:
-          'Aucune construction. Deploy Automation pull une image Docker existante depuis un registry et la déploie.',
+          'Aucune construction. Sovrack pull une image Docker existante depuis un registry et la déploie.',
         requiresDockerfile: false,
         supportsLocal: false,
         available: true,

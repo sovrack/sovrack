@@ -157,7 +157,7 @@ export function ServiceCiGenerator({
                 {t("3. Push")}
               </span>{" "}
               {t(
-                "→ the CI builds the image then triggers the Deploy Automation deployment.",
+                "→ the CI builds the image then triggers the Sovrack deployment.",
               )}
             </li>
           </ol>

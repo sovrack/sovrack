@@ -1,5 +1,5 @@
 # =============================================================================
-# Frontend Makefile — Deploy Automation
+# Frontend Makefile — Sovrack
 # =============================================================================
 .PHONY: help build run dev test test-watch test-coverage lint lint-fix typecheck \
 	build-dev build-prod dev-clean clean clean-all install install-clean \
@@ -14,7 +14,7 @@ help: ## Show this help
 # ─── Application ─────────────────────────────────────────────────────────────
 
 build: ## Build Docker image
-	docker build -t deployautomation/frontend:local .
+	docker build -t sovrack/frontend:local .
 
 run: ## Run with Docker Compose
 	docker compose up -d --build
@@ -60,7 +60,7 @@ dev-clean: ## Clean development (remove .next and restart)
 
 clean: ## Stop this Compose project and remove only its local app image
 	docker compose down
-	-docker image rm deployautomation/frontend:local
+	-docker image rm sovrack/frontend:local
 
 clean-all: ## Clean everything including node_modules and .next
 	rm -rf -- "$(CURDIR)/node_modules" "$(CURDIR)/.next" "$(CURDIR)/dist" "$(CURDIR)/coverage"

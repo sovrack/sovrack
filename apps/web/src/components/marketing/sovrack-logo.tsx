@@ -7,85 +7,70 @@ interface LogoProps extends SVGProps<SVGSVGElement> {
 }
 
 /**
- * Logo Sovrack : un oiseau néon (facettes cyan / bleu) qui symbolise
- * "lancer / déployer une application". Lueur néon au survol.
+ * Logo Sovrack : Bouclier souverain et 3 baies serveurs formant un « S ».
+ * Symbolise l'infrastructure maîtrisée, la sécurité et la souveraineté.
  */
-export function SovrackLogo({ size = 32, ...props }: LogoProps) {
+export function SovrackLogo({ size = 32, className = "", ...props }: LogoProps) {
   const uid = useId();
-  const g1 = `${uid}-grad-cyan-bright`;
-  const g2 = `${uid}-grad-cyan-mid`;
-  const g3 = `${uid}-grad-blue-dark`;
-  const g4 = `${uid}-grad-wing-top`;
-  const glow = `${uid}-neon-glow`;
+  const shieldGrad = `${uid}-shieldGrad`;
+  const accentGrad = `${uid}-accentGrad`;
+  const goldGrad = `${uid}-goldGrad`;
 
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 500 500"
+      viewBox="0 0 120 120"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
+      className={className}
       {...props}
     >
       <defs>
-        <filter id={glow} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="8" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-
-        <linearGradient id={g1} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#a5f3fc" />
-          <stop offset="100%" stopColor="#00d8f6" />
+        <linearGradient id={shieldGrad} x1="24" y1="20" x2="96" y2="100" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#1E293B" />
+          <stop offset="100%" stopColor="#0F172A" />
         </linearGradient>
-
-        <linearGradient id={g2} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00d8f6" />
-          <stop offset="100%" stopColor="#0284c7" />
+        <linearGradient id={accentGrad} x1="30" y1="30" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#059669" />
         </linearGradient>
-
-        <linearGradient id={g3} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#0369a1" />
-          <stop offset="100%" stopColor="#0f172a" />
-        </linearGradient>
-
-        <linearGradient id={g4} x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#00e5ff" />
-          <stop offset="50%" stopColor="#38bdf8" />
-          <stop offset="100%" stopColor="#e0f2fe" />
+        <linearGradient id={goldGrad} x1="40" y1="30" x2="80" y2="90" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#F59E0B" />
+          <stop offset="100%" stopColor="#D97706" />
         </linearGradient>
       </defs>
 
-      <g filter={`url(#${glow})`}>
-        {/* Plumes de l'aile arrière / supérieure */}
-        <polygon points="175,130 255,200 185,170" fill={`url(#${g1})`} />
-        <polygon points="180,175 270,225 195,205" fill={`url(#${g2})`} />
-        <polygon points="190,210 275,245 210,230" fill={`url(#${g2})`} />
-        <polygon points="205,235 270,260 220,250" fill={`url(#${g3})`} />
+      {/* Container discret */}
+      <rect width="120" height="120" rx="28" fill="#090D16" />
 
-        {/* Structure principale de l'aile avant */}
-        <polygon points="160,110 250,180 270,260 215,220" fill={`url(#${g4})`} />
-        <polygon points="250,180 300,250 270,260" fill={`url(#${g2})`} />
+      {/* Contour bouclier souverain */}
+      <path
+        d="M60 18 L94 30 V58 C94 80 60 98 60 98 C60 98 26 80 26 58 V30 Z"
+        fill={`url(#${shieldGrad})`}
+        stroke="#334155"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
 
-        {/* Queue */}
-        <polygon points="170,380 235,325 255,300 200,350" fill={`url(#${g4})`} />
-        <polygon points="200,385 245,340 260,330" fill={`url(#${g2})`} />
+      {/* Étage supérieur de la baie (haut du 'S') */}
+      <rect x="38" y="36" width="44" height="10" rx="3" fill="#1E293B" stroke="#475569" strokeWidth="1" />
+      <circle cx="44" cy="41" r="2" fill="#10B981" />
+      <circle cx="50" cy="41" r="2" fill="#64748B" />
+      <rect x="68" y="39" width="10" height="4" rx="1" fill="#10B981" opacity="0.8" />
 
-        {/* Corps & Poitrine */}
-        <polygon points="270,260 300,250 365,285 300,320 235,325" fill={`url(#${g2})`} />
-        <polygon points="300,320 365,285 280,345" fill={`url(#${g3})`} />
+      {/* Étage central avec nœud souverain (colonne du 'S') */}
+      <rect x="38" y="52" width="44" height="10" rx="3" fill="#0F172A" stroke="#10B981" strokeWidth="1.5" />
+      <circle cx="44" cy="57" r="2" fill="#F59E0B" />
+      <circle cx="50" cy="57" r="2" fill="#10B981" />
+      <path d="M62 55 L74 57 L62 59 Z" fill="#10B981" />
 
-        {/* Tête et Bec */}
-        <polygon points="300,250 330,245 350,260 320,270" fill={`url(#${g1})`} />
-        <polygon points="330,245 385,260 365,285 350,260" fill={`url(#${g4})`} />
-        <polygon points="385,260 395,275 380,275 365,285" fill={`url(#${g2})`} />
-
-        {/* Ombre de l'œil */}
-        <polygon points="340,258 355,260 345,265" fill="#0b111e" />
-      </g>
+      {/* Étage inférieur de la baie (base du 'S') */}
+      <rect x="38" y="68" width="44" height="10" rx="3" fill="#1E293B" stroke="#475569" strokeWidth="1" />
+      <circle cx="44" cy="73" r="2" fill="#10B981" />
+      <circle cx="50" cy="73" r="2" fill="#64748B" />
+      <rect x="60" y="71" width="18" height="4" rx="1" fill="#334155" />
     </svg>
   );
 }
@@ -104,7 +89,7 @@ export function SovrackBrand({
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <SovrackLogo size={logoSize} />
       <span className={`text-lg font-extrabold tracking-tight ${textClassName}`}>
-        Deploy<span className="text-sky-300">Arc</span>
+        Sov<span className="text-sky-300">rack</span>
       </span>
     </span>
   );

@@ -2,8 +2,8 @@ import { DocumentBuilder } from '@nestjs/swagger';
 
 export function buildSwaggerConfig() {
   return new DocumentBuilder()
-    .setTitle('Deploy Automation API')
-    .setDescription('API de la plateforme centralisée de déploiement')
+    .setTitle('Sovrack API')
+    .setDescription('API de la plateforme souveraine de déploiement multi-serveurs')
     .setVersion('1.0')
     .addBearerAuth()
     .build();

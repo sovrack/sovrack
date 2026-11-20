@@ -73,12 +73,12 @@ export function MarketingNavbar() {
             className="group flex items-center gap-2.5"
           >
             <SovrackLogo
-              size={64}
-              className="-rotate-12 drop-shadow-[0_0_18px_rgba(0,229,255,0.5)]"
+              size={36}
+              className="drop-shadow-[0_0_18px_rgba(16,185,129,0.45)]"
             />
             <span className="text-lg font-extrabold tracking-tight text-white group-hover:text-sky-100 transition">
-              Deploy
-              <span className="text-sky-300 group-hover:text-sky-200">Arc</span>
+              Sov
+              <span className="text-sky-300 group-hover:text-sky-200">rack</span>
             </span>
           </Link>
         </div>

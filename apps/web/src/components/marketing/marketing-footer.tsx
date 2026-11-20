@@ -18,11 +18,11 @@ export default function MarketingFooter() {
               className="mb-4 flex items-center gap-2.5"
             >
               <SovrackLogo
-                size={64}
-                className="-rotate-12 drop-shadow-[0_0_20px_rgba(0,229,255,0.55)]"
+                size={38}
+                className="drop-shadow-[0_0_20px_rgba(16,185,129,0.5)]"
               />
               <span className="text-lg font-extrabold tracking-tight text-white">
-                Deploy<span className="text-sky-300">Arc</span>
+                Sov<span className="text-sky-300">rack</span>
               </span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-slate-400">
