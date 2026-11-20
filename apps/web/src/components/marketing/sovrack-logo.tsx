@@ -1,83 +1,81 @@
-import { useId } from "react";
 import type { SVGProps } from "react";
 
 interface LogoProps extends SVGProps<SVGSVGElement> {
   /** Taille en pixels (carré). */
   size?: number;
+  /** Afficher le fond sombre rectangulaire arrondi ou le glyphe pur transparent. */
+  withBackground?: boolean;
 }
 
 /**
- * Logo Sovrack : Bouclier souverain et 3 baies serveurs formant un « S ».
- * Symbolise l'infrastructure maîtrisée, la sécurité et la souveraineté.
+ * Logo officiel Sovrack : Le glyphe géométrique « S » avec barre centrale bleue oblique.
+ * Conçu avec une symétrie 180° parfaite, représentant la précision, la puissance et la souveraineté.
  */
-export function SovrackLogo({ size = 32, className = "", ...props }: LogoProps) {
-  const uid = useId();
-  const shieldGrad = `${uid}-shieldGrad`;
-  const accentGrad = `${uid}-accentGrad`;
-  const goldGrad = `${uid}-goldGrad`;
+export function SovrackLogo({
+  size = 32,
+  withBackground = true,
+  className = "",
+  ...props
+}: LogoProps) {
+  if (withBackground) {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 1024 1024"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+        className={className}
+        {...props}
+      >
+        <rect width="1024" height="1024" rx="200" fill="#0B0D13" />
+        <polygon
+          points="699,250 517,250 288,472 406,581 459,495 428,465 553,346 639,346"
+          fill="#FFFFFF"
+        />
+        <polygon
+          points="621,375 565,375 406,638 463,637"
+          fill="#2D7AE5"
+        />
+        <polygon
+          points="736,549 616,440 564,525 594,555 476,667 389,667 324,773 500,773"
+          fill="#FFFFFF"
+        />
+      </svg>
+    );
+  }
 
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 120 120"
+      viewBox="260 220 504 584"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
       className={className}
       {...props}
     >
-      <defs>
-        <linearGradient id={shieldGrad} x1="24" y1="20" x2="96" y2="100" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#1E293B" />
-          <stop offset="100%" stopColor="#0F172A" />
-        </linearGradient>
-        <linearGradient id={accentGrad} x1="30" y1="30" x2="90" y2="90" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#10B981" />
-          <stop offset="100%" stopColor="#059669" />
-        </linearGradient>
-        <linearGradient id={goldGrad} x1="40" y1="30" x2="80" y2="90" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#F59E0B" />
-          <stop offset="100%" stopColor="#D97706" />
-        </linearGradient>
-      </defs>
-
-      {/* Container discret */}
-      <rect width="120" height="120" rx="28" fill="#090D16" />
-
-      {/* Contour bouclier souverain */}
-      <path
-        d="M60 18 L94 30 V58 C94 80 60 98 60 98 C60 98 26 80 26 58 V30 Z"
-        fill={`url(#${shieldGrad})`}
-        stroke="#334155"
-        strokeWidth="2"
-        strokeLinejoin="round"
+      <polygon
+        points="699,250 517,250 288,472 406,581 459,495 428,465 553,346 639,346"
+        fill="#FFFFFF"
       />
-
-      {/* Étage supérieur de la baie (haut du 'S') */}
-      <rect x="38" y="36" width="44" height="10" rx="3" fill="#1E293B" stroke="#475569" strokeWidth="1" />
-      <circle cx="44" cy="41" r="2" fill="#10B981" />
-      <circle cx="50" cy="41" r="2" fill="#64748B" />
-      <rect x="68" y="39" width="10" height="4" rx="1" fill="#10B981" opacity="0.8" />
-
-      {/* Étage central avec nœud souverain (colonne du 'S') */}
-      <rect x="38" y="52" width="44" height="10" rx="3" fill="#0F172A" stroke="#10B981" strokeWidth="1.5" />
-      <circle cx="44" cy="57" r="2" fill="#F59E0B" />
-      <circle cx="50" cy="57" r="2" fill="#10B981" />
-      <path d="M62 55 L74 57 L62 59 Z" fill="#10B981" />
-
-      {/* Étage inférieur de la baie (base du 'S') */}
-      <rect x="38" y="68" width="44" height="10" rx="3" fill="#1E293B" stroke="#475569" strokeWidth="1" />
-      <circle cx="44" cy="73" r="2" fill="#10B981" />
-      <circle cx="50" cy="73" r="2" fill="#64748B" />
-      <rect x="60" y="71" width="18" height="4" rx="1" fill="#334155" />
+      <polygon
+        points="621,375 565,375 406,638 463,637"
+        fill="#2D7AE5"
+      />
+      <polygon
+        points="736,549 616,440 564,525 594,555 476,667 389,667 324,773 500,773"
+        fill="#FFFFFF"
+      />
     </svg>
   );
 }
 
-/** Association logo + mot « Sovrack ». */
+/** Wordmark & Identité officielle Sovrack. */
 export function SovrackBrand({
-  logoSize = 30,
+  logoSize = 32,
   className = "",
   textClassName = "",
 }: {
@@ -86,10 +84,12 @@ export function SovrackBrand({
   textClassName?: string;
 }) {
   return (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
+    <span className={`inline-flex items-center gap-2.5 select-none ${className}`}>
       <SovrackLogo size={logoSize} />
-      <span className={`text-lg font-extrabold tracking-tight ${textClassName}`}>
-        Sov<span className="text-sky-300">rack</span>
+      <span
+        className={`text-[19px] font-bold tracking-[-0.03em] text-white antialiased ${textClassName}`}
+      >
+        Sovrack
       </span>
     </span>
   );

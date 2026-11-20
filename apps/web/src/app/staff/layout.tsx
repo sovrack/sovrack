@@ -17,6 +17,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { SovrackLogo } from "@/components/marketing/sovrack-logo";
 import { useStaffAuth } from "@/features/staff/api/use-staff-auth";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -161,14 +162,12 @@ export default function StaffLayout({
               href="/staff"
               onClick={() => setMobileNavOpen(false)}
               aria-label="Accueil du back-office Sovrack"
-              className="flex min-w-0 flex-1 items-center gap-2"
+              className="flex min-w-0 flex-1 items-center gap-2.5"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30">
-                <ShieldCheck size={18} className="text-white" />
-              </span>
+              <SovrackLogo size={32} />
               <div>
-                <p className="text-sm font-bold text-white">Sovrack</p>
-                <p className="text-[11px] uppercase tracking-wider text-zinc-500">
+                <p className="text-[17px] font-bold tracking-[-0.03em] text-white">Sovrack</p>
+                <p className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
                   Back-office
                 </p>
               </div>

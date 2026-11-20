@@ -122,16 +122,14 @@ export function Sidebar() {
               collapsed && "lg:justify-center",
             )}
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]">
-              <SovrackLogo size={32} />
-            </div>
+            <SovrackLogo size={34} />
             <span
               className={clsx(
-                "truncate text-[17px] font-semibold text-[var(--text-primary)]",
+                "truncate text-[19px] font-bold tracking-[-0.03em] text-white antialiased",
                 collapsed && "lg:hidden",
               )}
             >
-              Sov<span className="text-sky-400">rack</span>
+              Sovrack
             </span>
           </Link>
         </div>

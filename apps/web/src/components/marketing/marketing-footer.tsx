@@ -15,14 +15,14 @@ export default function MarketingFooter() {
           <div className="lg:col-span-2">
             <Link
               href={publicSitePath("/")}
-              className="mb-4 flex items-center gap-2.5"
+              className="group mb-4 flex items-center gap-2.5 transition-opacity hover:opacity-90"
             >
               <SovrackLogo
                 size={38}
-                className="drop-shadow-[0_0_20px_rgba(16,185,129,0.5)]"
+                className="drop-shadow-[0_0_16px_rgba(45,122,229,0.35)]"
               />
-              <span className="text-lg font-extrabold tracking-tight text-white">
-                Sov<span className="text-sky-300">rack</span>
+              <span className="text-[20px] font-bold tracking-[-0.03em] text-white antialiased">
+                Sovrack
               </span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-slate-400">
