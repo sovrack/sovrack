@@ -8,8 +8,8 @@ export default function MarketingFooter() {
   const publicPricingEnabled = isCapabilityEnabled("publicPricing");
 
   return (
-    <footer className="border-t border-border/70 bg-app pb-12 pt-14 text-zinc-400">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+    <footer className="bg-[#0a0a0a] pb-12 pt-14 text-zinc-500">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
             <Link
@@ -17,42 +17,34 @@ export default function MarketingFooter() {
               className="mb-4 inline-flex items-center transition-opacity hover:opacity-90"
               aria-label="Sovrack Accueil"
             >
-              <SovrackBrand textClassName="text-[16px] font-normal tracking-[-0.02em] text-white" />
+              <SovrackBrand textClassName="text-[17px] font-medium tracking-[-0.02em] text-white" />
             </Link>
-            <p className="max-w-sm text-xs leading-relaxed text-zinc-400 mt-2">
+            <p className="max-w-sm text-xs leading-relaxed text-zinc-500 mt-2">
               Plateforme open-core de déploiement et d&apos;orchestration de conteneurs Docker sur vos propres serveurs VPS.
             </p>
-            <p className="mt-4 text-[11px] text-zinc-500 font-mono">
+            <p className="mt-4 text-[11px] text-zinc-600 font-mono">
               © {new Date().getFullYear()} Sovrack. Tous droits réservés.
             </p>
           </div>
 
           <div>
-            <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-white">
+            <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-300">
               Produit
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
                 <Link
                   href={publicSitePath("/features")}
-                  className="transition-colors hover:text-white"
+                  className="transition-colors hover:text-[#2563EB]"
                 >
                   Fonctionnalités
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={publicSitePath("/architecture")}
-                  className="transition-colors hover:text-white"
-                >
-                  Architecture
                 </Link>
               </li>
               {publicPricingEnabled && (
                 <li>
                   <Link
                     href={publicSitePath("/pricing")}
-                    className="transition-colors hover:text-white"
+                    className="transition-colors hover:text-[#2563EB]"
                   >
                     Tarifs
                   </Link>
@@ -61,7 +53,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/changelog")}
-                  className="transition-colors hover:text-white"
+                  className="transition-colors hover:text-[#2563EB]"
                 >
                   Changelog
                 </Link>
@@ -70,7 +62,7 @@ export default function MarketingFooter() {
           </div>
 
           <div>
-            <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-white">
+            <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-300">
               Ressources
             </h4>
             <ul className="space-y-2 text-xs">
@@ -78,7 +70,7 @@ export default function MarketingFooter() {
                 <li>
                   <Link
                     href={publicSitePath("/docs")}
-                    className="transition-colors hover:text-white"
+                    className="transition-colors hover:text-[#2563EB]"
                   >
                     Documentation
                   </Link>
@@ -87,7 +79,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/security")}
-                  className="transition-colors hover:text-white"
+                  className="transition-colors hover:text-[#2563EB]"
                 >
                   Sécurité
                 </Link>
@@ -95,7 +87,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/status")}
-                  className="transition-colors hover:text-white"
+                  className="transition-colors hover:text-[#2563EB]"
                 >
                   État des services
                 </Link>
@@ -104,14 +96,14 @@ export default function MarketingFooter() {
           </div>
 
           <div>
-            <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-white">
+            <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-300">
               Légal
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
                 <Link
                   href={publicSitePath("/terms")}
-                  className="transition-colors hover:text-white"
+                  className="transition-colors hover:text-[#2563EB]"
                 >
                   Conditions d&apos;utilisation
                 </Link>
@@ -119,7 +111,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/privacy")}
-                  className="transition-colors hover:text-white"
+                  className="transition-colors hover:text-[#2563EB]"
                 >
                   Confidentialité
                 </Link>
@@ -127,7 +119,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/cookies")}
-                  className="transition-colors hover:text-white"
+                  className="transition-colors hover:text-[#2563EB]"
                 >
                   Cookies
                 </Link>
@@ -135,7 +127,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/legal")}
-                  className="transition-colors hover:text-white"
+                  className="transition-colors hover:text-[#2563EB]"
                 >
                   Mentions légales
                 </Link>

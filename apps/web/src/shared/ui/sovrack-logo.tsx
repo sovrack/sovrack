@@ -40,14 +40,14 @@ interface BrandProps {
 
 export function SovrackBrand({
   className = "",
-  logoClassName = "w-5 h-5 text-primary",
+  logoClassName = "w-6 h-6 text-primary",
   textClassName = "",
 }: BrandProps) {
   return (
-    <span className={`inline-flex select-none items-center gap-2 ${className}`}>
-      <SovrackLogo className={`shrink-0 ${logoClassName}`} width={20} height={20} />
+    <span className={`inline-flex select-none items-center gap-2.5 ${className}`}>
+      <SovrackLogo className={`shrink-0 ${logoClassName}`} width={24} height={24} />
       <span
-        className={`text-[15px] font-normal tracking-[-0.02em] text-white antialiased ${textClassName}`}
+        className={`text-[17px] font-medium tracking-[-0.02em] text-white antialiased ${textClassName}`}
       >
         sovrack
       </span>

@@ -99,45 +99,45 @@ export default function PricingPage() {
             "Dedicated onboarding & setup assistance",
           ]
         : [
-            "Tout ce qui est inclus dans le plan Pro",
+            "Tout ce qui est inclus dans Pro",
             "Membres d'équipe illimités",
-            "Contrôle d'accès granulaire par rôle (RBAC)",
-            "Journaux d'audit de sécurité immuables",
-            "Gestion multi-organisations",
-            "Domaines personnalisés avancés",
-            "Assistance d'intégration dédiée",
+            "Gestion granulaire des rôles (RBAC)",
+            "Piste d'audit infalsifiable",
+            "Multi-organisations illimitées",
+            "Domaines personnalisés",
+            "Assistance à l'intégration dédiée",
           ],
     },
   ];
 
   return (
-    <div className="min-h-screen bg-app text-primary">
+    <div className="min-h-screen bg-[#0a0a0a] text-primary selection:bg-[#2563EB] selection:text-white">
       <MarketingNavbar />
 
-      <main className="mx-auto max-w-7xl px-6 py-16 sm:py-24">
+      <main className="mx-auto max-w-5xl px-4 sm:px-6 py-12 sm:py-16">
         {/* Header */}
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-xs font-medium uppercase tracking-wider text-[#2563EB]">
             {isEn ? "Flexible Pricing" : "Tarification"}
           </p>
-          <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-6xl">
+          <h1 className="mt-2 text-3xl sm:text-4xl font-normal tracking-tight text-white">
             {isEn ? "Predictable plans for modern deployments." : "Des tarifs transparents pour vos déploiements."}
           </h1>
-          <p className="mt-5 text-lg leading-8 text-secondary">
+          <p className="mt-2 text-sm text-zinc-400">
             {isEn
               ? "Start free on your own server, then upgrade as your infrastructure scales. Available worldwide and in Tunisia."
               : "Démarrez gratuitement sur votre serveur, puis faites évoluer selon vos besoins. Disponible à l'international et en Tunisie."}
           </p>
 
           {/* Currency Switcher */}
-          <div className="mt-8 inline-flex items-center rounded-lg border border-border bg-card p-1 backdrop-blur-md">
+          <div className="mt-6 inline-flex items-center rounded-lg bg-[#121212] p-1">
             <button
               type="button"
               onClick={() => setCurrency("usd")}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
                 currency === "usd"
-                  ? "border border-accent/30 bg-hover/20 text-accent font-semibold"
-                  : "text-secondary hover:text-primary"
+                  ? "bg-[#2563EB] text-white"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               International ($ USD)
@@ -145,10 +145,10 @@ export default function PricingPage() {
             <button
               type="button"
               onClick={() => setCurrency("tnd")}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
                 currency === "tnd"
-                  ? "border border-accent/30 bg-hover/20 text-accent font-semibold"
-                  : "text-secondary hover:text-primary"
+                  ? "bg-[#2563EB] text-white"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
               Tunisie (Dinars TND)
@@ -157,49 +157,47 @@ export default function PricingPage() {
         </div>
 
         {/* 3-Tier Grid */}
-        <div className="mx-auto mt-16 grid max-w-7xl gap-8 lg:grid-cols-3">
+        <div className="mt-12 grid gap-5 lg:grid-cols-3">
           {plans.map((plan) => (
             <div
               key={plan.id}
-              className={`relative flex flex-col justify-between rounded-lg border p-8 backdrop-blur-xl transition-all duration-200 ${
-                plan.highlighted
-                  ? "border-accent/50 bg-card ring-1 ring-accent/30"
-                  : "border-border bg-card hover:border-border-hover"
+              className={`relative flex flex-col justify-between rounded-xl bg-[#121212] p-6 transition-all duration-200 ${
+                plan.highlighted ? "ring-1 ring-[#2563EB]" : "hover:bg-[#151515]"
               }`}
             >
               {plan.badge && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                  <span className="inline-flex items-center gap-1.5 rounded-md border border-accent/30 bg-card px-3.5 py-1 text-xs font-semibold text-accent">
-                    <Sparkles className="h-3.5 w-3.5" />
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#2563EB] px-3 py-0.5 text-[10px] font-medium text-white">
+                    <Sparkles className="h-3 w-3" />
                     {plan.badge}
                   </span>
                 </div>
               )}
 
               <div>
-                <h3 className="text-2xl font-bold text-primary">{plan.name}</h3>
-                <p className="mt-2 text-sm leading-6 text-secondary">
+                <h3 className="text-lg font-medium text-white">{plan.name}</h3>
+                <p className="mt-1 text-xs text-zinc-400">
                   {plan.description}
                 </p>
 
-                <div className="mt-6 flex items-baseline gap-2">
-                  <span className="text-5xl font-extrabold tracking-tight text-primary">
+                <div className="mt-5 flex items-baseline gap-1.5">
+                  <span className="text-3xl font-medium tracking-tight text-white">
                     {plan.price}
                   </span>
-                  <span className="text-sm font-medium text-secondary">
+                  <span className="text-xs text-zinc-500">
                     {plan.period}
                   </span>
                 </div>
 
-                <div className="mt-8 border-t border-border pt-6">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-secondary">
+                <div className="mt-6 border-t border-zinc-800/40 pt-5">
+                  <p className="text-[11px] font-mono uppercase tracking-wider text-zinc-500">
                     {isEn ? "What's included" : "Fonctionnalités incluses"}
                   </p>
-                  <ul className="mt-4 space-y-3">
+                  <ul className="mt-3 space-y-2.5">
                     {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-3 text-sm text-primary">
+                      <li key={feature} className="flex items-start gap-2.5 text-xs text-zinc-300">
                         <CheckCircle2
-                          className="mt-0.5 h-4 w-4 shrink-0 text-accent"
+                          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#2563EB]"
                           aria-hidden="true"
                         />
                         <span>{feature}</span>
@@ -209,13 +207,13 @@ export default function PricingPage() {
                 </div>
               </div>
 
-              <div className="mt-8 pt-4">
+              <div className="mt-6 pt-2">
                 <Link
                   href={plan.ctaHref}
-                  className={`inline-flex w-full items-center justify-center rounded-lg px-5 py-3.5 text-center text-sm font-semibold transition-all ${
+                  className={`inline-flex w-full items-center justify-center rounded-md px-4 py-2 text-xs font-medium transition-colors ${
                     plan.highlighted
-                      ? "bg-accent text-accent-foreground hover:bg-accent-hover"
-                      : "border border-border bg-hover/10 text-primary hover:bg-hover/15"
+                      ? "bg-[#2563EB] text-white hover:bg-[#1d4ed8]"
+                      : "bg-[#161616] text-zinc-300 hover:text-white hover:bg-[#202020]"
                   }`}
                 >
                   {plan.cta}
@@ -225,23 +223,23 @@ export default function PricingPage() {
           ))}
         </div>
 
-        {/* On-Premise / Enterprise Callout */}
-        <section className="mx-auto mt-16 max-w-4xl rounded-lg border border-border bg-card p-8 text-center sm:p-10">
-          <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-lg border border-accent/30 bg-accent/10 text-accent">
-            <ShieldCheck className="h-6 w-6" />
+        {/* Enterprise Callout */}
+        <section className="mt-14 rounded-2xl bg-[#121212] p-8 text-center sm:p-10">
+          <div className="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#2563EB]/10 text-[#2563EB]">
+            <ShieldCheck className="h-5 w-5" />
           </div>
-          <h2 className="mt-4 text-2xl font-bold text-primary">
+          <h2 className="mt-3 text-xl font-normal text-white">
             {isEn ? "Sovrack Enterprise (On-Premise)" : "Sovrack Entreprise (On-Premise)"}
           </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-secondary">
+          <p className="mx-auto mt-2 max-w-xl text-xs text-zinc-400 leading-relaxed">
             {isEn
               ? "Need full data sovereignty, strict air-gapped isolation, SAML SSO, or custom SLA contracts? We offer an audited, self-hosted Enterprise edition licensed for corporate networks."
               : "Besoin d'une souveraineté totale de vos données, d'un réseau interne isolé (air-gapped), du SSO SAML ou d'un contrat de support SLA ? Nous proposons une édition Entreprise sous licence dédiée pour vos serveurs internes."}
           </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+          <div className="mt-5 flex justify-center">
             <a
               href="mailto:contact@sovrack.com?subject=Demande%20Sovrack%20Entreprise"
-              className="inline-flex items-center justify-center rounded-lg bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover"
+              className="inline-flex items-center justify-center rounded-md bg-[#2563EB] px-5 py-2 text-xs font-medium text-white transition-colors hover:bg-[#1d4ed8]"
             >
               {isEn ? "Contact Enterprise Sales" : "Contacter l'équipe Entreprise"}
             </a>
@@ -253,4 +251,3 @@ export default function PricingPage() {
     </div>
   );
 }
-

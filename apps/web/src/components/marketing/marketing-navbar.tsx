@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ArrowRight, Menu, X } from "lucide-react";
-import { useAuth } from "@/features/auth/api/use-auth";
+import { Menu, X } from "lucide-react";
 import { BRAND_CONFIG } from "@/shared/config/brand.config";
 import { SovrackBrand } from "@/shared/ui/sovrack-logo";
 import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
@@ -21,9 +20,9 @@ function GitHubIcon({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
+// Uniquement les pages dédiées réelles
 const navLinks = [
   { href: publicSitePath("/features"), label: "Fonctionnalités" },
-  { href: publicSitePath("/architecture"), label: "Architecture" },
   { href: publicSitePath("/docs"), label: "Documentation" },
   { href: publicSitePath("/pricing"), label: "Tarifs" },
   { href: publicSitePath("/changelog"), label: "Changelog" },
@@ -31,12 +30,11 @@ const navLinks = [
 
 export function MarketingNavbar() {
   const pathname = usePathname();
-  const { isAuthenticated } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/80 bg-app/90 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
+    <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
         {/* Logo & Navigation gauche */}
         <div className="flex items-center gap-7">
           <Link
@@ -44,10 +42,10 @@ export function MarketingNavbar() {
             className="flex shrink-0 items-center transition-opacity hover:opacity-90"
             aria-label="Sovrack Accueil"
           >
-            <SovrackBrand textClassName="text-[16px] font-normal tracking-[-0.02em] text-white" />
+            <SovrackBrand textClassName="text-[17px] font-medium tracking-[-0.02em] text-white" />
           </Link>
 
-          <nav className="hidden items-center gap-5 text-[13px] md:flex">
+          <nav className="hidden items-center gap-6 text-[13px] md:flex">
             {navLinks.map((link) => {
               const active = pathname === link.href;
               return (
@@ -56,8 +54,8 @@ export function MarketingNavbar() {
                   href={link.href}
                   className={`transition-colors duration-150 ${
                     active
-                      ? "text-white font-medium"
-                      : "text-zinc-400 hover:text-white"
+                      ? "text-[#2563EB] font-medium"
+                      : "text-zinc-500 hover:text-[#2563EB]"
                   }`}
                 >
                   {link.label}
@@ -67,43 +65,33 @@ export function MarketingNavbar() {
           </nav>
         </div>
 
-        {/* Côté droit : GitHub + Authentification */}
-        <div className="hidden items-center gap-3 md:flex">
+        {/* Côté droit : GitHub + Se connecter + Créer un compte */}
+        <div className="hidden items-center gap-4 md:flex">
           <Link
             href={BRAND_CONFIG.githubUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1.5 text-zinc-400 transition-colors hover:text-white"
+            className="p-1 text-zinc-500 transition-colors hover:text-[#2563EB]"
             aria-label="Dépôt GitHub Sovrack"
             title="GitHub"
           >
             <GitHubIcon className="h-4 w-4" />
           </Link>
 
-          {isAuthenticated ? (
+          <div className="flex items-center gap-3">
             <Link
-              href={customerAppPath("/dashboard")}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-accent px-3 text-xs font-medium text-white transition-colors hover:bg-accent-hover shadow-sm"
+              href={customerAppPath("/login")}
+              className="text-[13px] text-zinc-400 transition-colors hover:text-[#2563EB]"
             >
-              <span>Tableau de bord</span>
-              <ArrowRight className="h-3 w-3" />
+              Se connecter
             </Link>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link
-                href={customerAppPath("/login")}
-                className="h-8 px-2.5 text-[13px] font-normal text-zinc-300 transition-colors hover:text-white inline-flex items-center"
-              >
-                Se connecter
-              </Link>
-              <Link
-                href={customerAppPath("/register")}
-                className="inline-flex h-8 items-center rounded-md bg-accent px-3 text-xs font-medium text-white transition-colors hover:bg-accent-hover shadow-sm"
-              >
-                Créer un compte
-              </Link>
-            </div>
-          )}
+            <Link
+              href={customerAppPath("/register")}
+              className="inline-flex h-8 items-center rounded-md bg-[#2563EB] px-3 text-xs font-medium text-white transition-colors hover:bg-[#1d4ed8]"
+            >
+              Créer un compte
+            </Link>
+          </div>
         </div>
 
         {/* Bouton Menu Mobile */}
@@ -111,7 +99,7 @@ export function MarketingNavbar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen((v) => !v)}
-            className="p-2 text-zinc-400 hover:text-white focus:outline-none"
+            className="p-2 text-zinc-500 hover:text-[#2563EB] focus:outline-none"
             aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -121,7 +109,7 @@ export function MarketingNavbar() {
 
       {/* Menu mobile déroulant */}
       {mobileMenuOpen && (
-        <div className="border-b border-border bg-app px-5 py-4 md:hidden">
+        <div className="bg-[#0a0a0a] px-5 py-4 md:hidden">
           <nav className="flex flex-col space-y-3">
             {navLinks.map((link) => (
               <Link
@@ -129,48 +117,38 @@ export function MarketingNavbar() {
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`text-sm ${
-                  pathname === link.href ? "text-white font-medium" : "text-zinc-400 hover:text-white"
+                  pathname === link.href ? "text-[#2563EB] font-medium" : "text-zinc-500 hover:text-[#2563EB]"
                 }`}
               >
                 {link.label}
               </Link>
             ))}
-            <div className="pt-3 border-t border-border/80 flex flex-col gap-2">
+            <div className="pt-3 flex flex-col gap-2">
               <Link
                 href={BRAND_CONFIG.githubUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs text-zinc-400 hover:text-white py-1"
+                className="inline-flex items-center gap-2 text-xs text-zinc-500 hover:text-[#2563EB] py-1"
               >
                 <GitHubIcon className="h-4 w-4" />
                 <span>GitHub</span>
               </Link>
-              {isAuthenticated ? (
+              <div className="grid grid-cols-2 gap-2 mt-2">
                 <Link
-                  href={customerAppPath("/dashboard")}
+                  href={customerAppPath("/login")}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="mt-2 inline-flex h-8 items-center justify-center rounded-md bg-accent text-xs font-medium text-white hover:bg-accent-hover"
+                  className="inline-flex h-8 items-center justify-center rounded-md bg-[#161616] text-xs text-zinc-300 hover:text-white"
                 >
-                  Tableau de bord →
+                  Se connecter
                 </Link>
-              ) : (
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <Link
-                    href={customerAppPath("/login")}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-card text-xs text-zinc-300 hover:text-white"
-                  >
-                    Se connecter
-                  </Link>
-                  <Link
-                    href={customerAppPath("/register")}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="inline-flex h-8 items-center justify-center rounded-md bg-accent text-xs font-medium text-white hover:bg-accent-hover"
-                  >
-                    Créer un compte
-                  </Link>
-                </div>
-              )}
+                <Link
+                  href={customerAppPath("/register")}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="inline-flex h-8 items-center justify-center rounded-md bg-[#2563EB] text-xs font-medium text-white hover:bg-[#1d4ed8]"
+                >
+                  Créer un compte
+                </Link>
+              </div>
             </div>
           </nav>
         </div>
