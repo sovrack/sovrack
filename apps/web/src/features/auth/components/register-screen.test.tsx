@@ -40,9 +40,6 @@ describe("RegisterScreen (public signup)", () => {
   });
 
   const fillAndSubmit = () => {
-    fireEvent.change(screen.getByPlaceholderText("John Developer"), {
-      target: { value: "John Dev" },
-    });
     fireEvent.change(screen.getByPlaceholderText("vous@entreprise.com"), {
       target: { value: "john@sovrack.tn" },
     });
@@ -71,7 +68,7 @@ describe("RegisterScreen (public signup)", () => {
       expect(registerMock).toHaveBeenCalledWith({
         email: "john@sovrack.tn",
         password: "StrongPass123!",
-        fullName: "John Dev",
+        fullName: "john",
         workspaceType: "PERSONAL",
       }),
     );
@@ -90,7 +87,7 @@ describe("RegisterScreen (public signup)", () => {
       expect(registerMock).toHaveBeenCalledWith({
         email: "john@sovrack.tn",
         password: "StrongPass123!",
-        fullName: "John Dev",
+        fullName: "john",
         workspaceType: "PERSONAL",
       }),
     );

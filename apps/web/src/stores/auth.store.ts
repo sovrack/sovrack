@@ -11,6 +11,7 @@ type AuthState = {
   error: string | null;
   isAuthenticated: boolean;
   initialized: boolean;
+  pendingDevCode: string | null;
 };
 
 type AuthActions = {
@@ -21,7 +22,7 @@ type AuthActions = {
   register: (input: {
     email: string;
     password: string;
-    fullName: string;
+    fullName?: string;
     workspaceType: "PERSONAL" | "ORGANIZATION";
     workspaceName?: string;
   }) => Promise<string>;
@@ -46,6 +47,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       error: null,
       isAuthenticated: false,
       initialized: false,
+      pendingDevCode: null,
 
       setUser: (user) =>
         set({
@@ -119,7 +121,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       register: async (input: {
         email: string;
         password: string;
-        fullName: string;
+        fullName?: string;
         workspaceType: "PERSONAL" | "ORGANIZATION";
         workspaceName?: string;
       }) => {
@@ -129,17 +131,22 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           const response = await api.post<{
             email: string;
             registrationId: string;
+            devCode?: string;
           }>("/auth/register", {
             email: input.email,
             password: input.password,
-            fullName: input.fullName,
+            fullName: input.fullName || input.email.split("@")[0] || "User",
             workspaceType: input.workspaceType,
             ...(input.workspaceType === "ORGANIZATION"
               ? { workspaceName: input.workspaceName }
               : {}),
           });
 
-          set({ loading: false, error: null });
+          set({
+            loading: false,
+            error: null,
+            pendingDevCode: response.data.devCode ?? null,
+          });
           return response.data.registrationId;
         } catch (error) {
           set({

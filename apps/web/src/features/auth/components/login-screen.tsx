@@ -66,7 +66,7 @@ export function LoginScreen() {
       }
       setError(
         getApiErrorMessage(err) ||
-          "Email ou mot de passe incorrect. Veuillez réessayer.",
+        "Email ou mot de passe incorrect. Veuillez réessayer.",
       );
     } finally {
       setLoading(false);
@@ -99,11 +99,11 @@ export function LoginScreen() {
 
   const registerHref = searchParams.get("next")
     ? `/register?next=${encodeURIComponent(
-        resolveSafeInternalPath(
-          searchParams.get("next"),
-          "/dashboard",
-        ),
-      )}`
+      resolveSafeInternalPath(
+        searchParams.get("next"),
+        "/dashboard",
+      ),
+    )}`
     : "/register";
 
   return (

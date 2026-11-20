@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AuthLayout } from "./auth-layout";
@@ -21,11 +21,10 @@ type Step = "form" | "verify";
 
 export function RegisterScreen() {
   const searchParams = useSearchParams();
-  const { register, verifyEmail, resendCode } = useAuth();
+  const { register, verifyEmail, resendCode, login, pendingDevCode } = useAuth();
   const { t } = useLanguage();
 
   const [step, setStep] = useState<Step>("form");
-  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -46,6 +45,30 @@ export function RegisterScreen() {
     return cleaned;
   };
 
+  useEffect(() => {
+    if (step === "verify" && pendingDevCode) {
+      applyDigits(pendingDevCode);
+    }
+  }, [step, pendingDevCode]);
+
+  const handleLocalQuickLogin = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await login("owner@sovrack.test", "Local-Client-2026!");
+      const next = resolveSafeInternalPath(
+        searchParams.get("next"),
+        "/dashboard",
+      );
+      window.location.assign(next);
+    } catch (err: unknown) {
+      setError(
+        getApiErrorMessage(err) || "Impossible de se connecter au compte local.",
+      );
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
@@ -58,10 +81,11 @@ export function RegisterScreen() {
 
     setLoading(true);
     try {
+      const derivedFullName = email.split("@")[0] || "User";
       const pendingRegistrationId = await register({
         email,
         password,
-        fullName,
+        fullName: derivedFullName,
         workspaceType: "PERSONAL",
       });
       setRegistrationId(pendingRegistrationId);
@@ -71,7 +95,7 @@ export function RegisterScreen() {
     } catch (err: unknown) {
       setError(
         getApiErrorMessage(err) ||
-          "Impossible de créer le compte. Vérifiez vos informations.",
+        "Impossible de créer le compte. Vérifiez vos informations.",
       );
       setLoading(false);
     }
@@ -98,7 +122,7 @@ export function RegisterScreen() {
     } catch (err: unknown) {
       setError(
         getApiErrorMessage(err) ||
-          "Code invalide ou expiré. Demandez un nouveau code.",
+        "Code invalide ou expiré. Demandez un nouveau code.",
       );
       setLoading(false);
     }
@@ -114,7 +138,7 @@ export function RegisterScreen() {
     } catch (err: unknown) {
       setError(
         getApiErrorMessage(err) ||
-          "Impossible d'envoyer un nouveau code. Réessayez plus tard.",
+        "Impossible d'envoyer un nouveau code. Réessayez plus tard.",
       );
     } finally {
       setLoading(false);
@@ -163,11 +187,11 @@ export function RegisterScreen() {
 
   const loginHref = searchParams.get("next")
     ? `/login?next=${encodeURIComponent(
-        resolveSafeInternalPath(
-          searchParams.get("next"),
-          "/dashboard",
-        ),
-      )}`
+      resolveSafeInternalPath(
+        searchParams.get("next"),
+        "/dashboard",
+      ),
+    )}`
     : "/login";
 
   return (
@@ -185,6 +209,27 @@ export function RegisterScreen() {
             {error && (
               <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-xs text-red-300">
                 {error}
+              </div>
+            )}
+
+            {process.env.NODE_ENV !== "production" && (
+              <div className="mt-5 rounded-xl border border-sky-400/30 bg-sky-500/10 p-3.5 text-xs text-sky-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-white">Compte de test local</p>
+                    <p className="text-slate-300 font-mono text-[11px]">
+                      owner@sovrack.test (accès instantané)
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLocalQuickLogin}
+                    disabled={loading}
+                    className="rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-400 transition shadow-sm"
+                  >
+                    {loading ? "Connexion..." : "Connexion Démo (1 clic) →"}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -206,21 +251,6 @@ export function RegisterScreen() {
             )}
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">
-                  Nom complet
-                </label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="John Developer"
-                  autoComplete="name"
-                  required
-                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
-                />
-              </div>
-
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">
                   Email
@@ -282,6 +312,24 @@ export function RegisterScreen() {
               Un code de validation à 6 chiffres a été envoyé à{" "}
               <span className="font-semibold text-white">{email}</span>.
             </p>
+
+            {pendingDevCode && (
+              <div className="mt-4 rounded-xl border border-sky-400/30 bg-sky-500/10 p-3 text-xs text-sky-200 flex items-center justify-between">
+                <span>
+                  Code détecté (démo/dev) :{" "}
+                  <strong className="font-mono text-white text-sm tracking-widest">
+                    {pendingDevCode}
+                  </strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => applyDigits(pendingDevCode)}
+                  className="rounded-lg bg-sky-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-sky-400 transition"
+                >
+                  Remplir
+                </button>
+              </div>
+            )}
 
             {error && (
               <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-xs text-red-300">

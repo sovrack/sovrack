@@ -64,22 +64,28 @@ export class AuthService {
    */
   async register(
     dto: RegisterDto,
-  ): Promise<{ email: string; registrationId: string }> {
+  ): Promise<{ email: string; registrationId: string; devCode?: string }> {
     const email = normalizeEmailAddress(dto.email);
+    const resolvedFullName =
+      dto.fullName?.trim() || email.split('@')[0] || 'User';
     const pending = await this.emailVerification.startPendingRegistration({
       email,
       password: dto.password,
-      fullName: dto.fullName,
+      fullName: resolvedFullName,
       workspaceName:
         dto.workspaceType === WorkspaceType.ORGANIZATION
           ? dto.workspaceName!.trim()
-          : `${dto.fullName.trim().split(/\s+/)[0]} — Personnel`,
+          : `${resolvedFullName.split(/\s+/)[0]} — Personnel`,
       workspaceType: dto.workspaceType,
       role: Role.MEMBER,
     });
 
     this.logger.log(`Pending registration created (${pending.registrationId})`);
-    return { email, registrationId: pending.registrationId };
+    return {
+      email,
+      registrationId: pending.registrationId,
+      devCode: pending.devCode,
+    };
   }
 
   /**

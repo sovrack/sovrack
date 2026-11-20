@@ -4,6 +4,7 @@ import {
   IsEmail,
   IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
   ValidateIf,
@@ -32,10 +33,10 @@ export class RegisterDto {
   @IsNotEmpty({ message: 'Mot de passe requis' })
   password: string;
 
-  @ApiProperty({ example: 'John Developer' })
+  @ApiPropertyOptional({ example: 'John Developer' })
+  @IsOptional()
   @IsString({ message: 'Le nom complet doit être une chaîne de caractères' })
-  @IsNotEmpty({ message: 'Nom complet requis' })
-  fullName: string;
+  fullName?: string;
 
   @ApiProperty({ enum: WorkspaceType, example: WorkspaceType.PERSONAL })
   @IsEnum(WorkspaceType, { message: "Type d'espace invalide" })

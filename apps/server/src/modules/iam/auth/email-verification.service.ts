@@ -51,7 +51,7 @@ export class EmailVerificationService {
     workspaceName: string;
     workspaceType: WorkspaceType;
     role: Role;
-  }): Promise<{ registrationId: string }> {
+  }): Promise<{ registrationId: string; devCode?: string }> {
     const existing = await this.prisma.user.findUnique({
       where: { email: params.email },
       select: { id: true, emailVerifiedAt: true, isActive: true },
@@ -75,8 +75,15 @@ export class EmailVerificationService {
           emailVerificationAttemptId: registrationId,
         },
       });
-      await this.issueAndSendCode(existing.id, params.email, registrationId);
-      return { registrationId };
+      const code = await this.issueAndSendCode(
+        existing.id,
+        params.email,
+        registrationId,
+      );
+      return {
+        registrationId,
+        ...(process.env.NODE_ENV !== 'production' ? { devCode: code } : {}),
+      };
     }
 
     const hashedPassword = await this.passwordHasher.hash(params.password);
@@ -107,9 +114,24 @@ export class EmailVerificationService {
       select: { id: true, email: true },
     });
 
-    await this.sendCodeEmail(user.id, user.email, code);
+    try {
+      await this.sendCodeEmail(user.id, user.email, code);
+    } catch (err: unknown) {
+      if (process.env.NODE_ENV !== 'production') {
+        this.logger.warn(
+          `[DEV MODE] Verification email not sent via SMTP: ${
+            err instanceof Error ? err.message : 'unknown'
+          }. Dev verification code for ${params.email} is: ${code}`,
+        );
+      } else {
+        throw err;
+      }
+    }
     this.logger.log(`Pending registration for ${params.email} (${user.id})`);
-    return { registrationId };
+    return {
+      registrationId,
+      ...(process.env.NODE_ENV !== 'production' ? { devCode: code } : {}),
+    };
   }
 
   /**
@@ -238,7 +260,7 @@ export class EmailVerificationService {
     userId: string,
     email: string,
     registrationId: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const code = generateOneTimeCode();
     const expiresAt = new Date(Date.now() + VERIFICATION_CODE_TTL_MS);
     await this.prisma.user.update({
@@ -254,7 +276,20 @@ export class EmailVerificationService {
         isActive: false,
       },
     });
-    await this.sendCodeEmail(userId, email, code);
+    try {
+      await this.sendCodeEmail(userId, email, code);
+    } catch (err: unknown) {
+      if (process.env.NODE_ENV !== 'production') {
+        this.logger.warn(
+          `[DEV MODE] Verification email not sent via SMTP: ${
+            err instanceof Error ? err.message : 'unknown'
+          }. Dev verification code for ${email} is: ${code}`,
+        );
+      } else {
+        throw err;
+      }
+    }
+    return code;
   }
 
   private async sendCodeEmail(
