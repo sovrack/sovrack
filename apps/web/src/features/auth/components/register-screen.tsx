@@ -178,12 +178,12 @@ export function RegisterScreen() {
             <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
               Créer votre compte Sovrack
             </h1>
-            <p className="mt-2 text-sm text-zinc-400">
+            <p className="mt-2 text-sm text-slate-400">
               Votre premier déploiement en quelques secondes.
             </p>
 
             {error && (
-              <div className="mt-5 rounded-lg border border-red-500/25 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-300">
+              <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-xs text-red-300">
                 {error}
               </div>
             )}
@@ -193,21 +193,21 @@ export function RegisterScreen() {
                 <GoogleLoginButton
                   label={t("Sign up with Google")}
                   nextPath={searchParams.get("next") || undefined}
-                  className="rounded-lg border border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800/80 text-zinc-200"
+                  className="rounded-xl border border-white/15 bg-white/[0.04] hover:bg-white/10 text-slate-200"
                 />
                 <div className="relative flex items-center gap-3 py-1">
-                  <span className="h-px flex-1 bg-zinc-800" />
-                  <span className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
+                  <span className="h-px flex-1 bg-white/10" />
+                  <span className="text-xs uppercase tracking-wider text-slate-500 font-medium">
                     {t("or with your email")}
                   </span>
-                  <span className="h-px flex-1 bg-zinc-800" />
+                  <span className="h-px flex-1 bg-white/10" />
                 </div>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">
                   Nom complet
                 </label>
                 <input
@@ -217,12 +217,12 @@ export function RegisterScreen() {
                   placeholder="John Developer"
                   autoComplete="name"
                   required
-                  className="mt-1.5 w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 transition focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">
                   Email
                 </label>
                 <input
@@ -232,12 +232,12 @@ export function RegisterScreen() {
                   placeholder="vous@entreprise.com"
                   autoComplete="email"
                   required
-                  className="mt-1.5 w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 transition focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">
                   Mot de passe
                 </label>
                 <input
@@ -249,9 +249,9 @@ export function RegisterScreen() {
                   required
                   minLength={SOVRACK_PASSWORD_MIN_LENGTH}
                   maxLength={SOVRACK_PASSWORD_MAX_LENGTH}
-                  className="mt-1.5 w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 transition focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
                 />
-                <p className="mt-1.5 text-xs text-zinc-500">
+                <p className="mt-1.5 text-xs text-slate-500">
                   12 caractères minimum : majuscule, minuscule et chiffre
                 </p>
               </div>
@@ -259,14 +259,14 @@ export function RegisterScreen() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 shadow-sm disabled:opacity-50"
+                className="w-full rounded-xl bg-white py-3 text-sm font-semibold text-zinc-950 transition hover:bg-slate-100 shadow-sm disabled:opacity-50"
               >
                 {loading ? "Création en cours..." : "Créer mon compte"}
               </button>
 
-              <p className="text-center text-xs text-zinc-500">
+              <p className="text-center text-xs text-slate-500">
                 En créant votre compte, vous acceptez nos{" "}
-                <Link href="/terms" className="text-zinc-400 hover:text-white underline">
+                <Link href="/terms" className="text-slate-300 hover:text-white underline">
                   conditions d&apos;utilisation
                 </Link>
                 .
@@ -278,25 +278,25 @@ export function RegisterScreen() {
             <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
               Vérifiez votre email
             </h1>
-            <p className="mt-2 text-sm text-zinc-400">
+            <p className="mt-2 text-sm text-slate-400">
               Un code de validation à 6 chiffres a été envoyé à{" "}
               <span className="font-semibold text-white">{email}</span>.
             </p>
 
             {error && (
-              <div className="mt-5 rounded-lg border border-red-500/25 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-300">
+              <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-xs text-red-300">
                 {error}
               </div>
             )}
             {info && (
-              <div className="mt-5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-300">
+              <div className="mt-5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300">
                 {info}
               </div>
             )}
 
             <form onSubmit={handleVerify} className="mt-6 space-y-5">
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-zinc-400">
+                <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">
                   Code de vérification
                 </label>
                 <div className="mt-2.5 flex justify-between gap-2">
@@ -314,11 +314,11 @@ export function RegisterScreen() {
                       onKeyDown={(e) => handleDigitKeyDown(index, e)}
                       onPaste={handleDigitPaste}
                       aria-label={`Chiffre ${index + 1}`}
-                      className="h-12 w-full rounded-lg border border-zinc-800 bg-zinc-900/80 text-center text-xl font-bold text-white placeholder:text-zinc-500 transition focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                      className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] text-center text-xl font-bold text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
                     />
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-zinc-500">
+                <p className="mt-2 text-xs text-slate-500">
                   Le code expire dans 10 minutes.
                 </p>
               </div>
@@ -326,7 +326,7 @@ export function RegisterScreen() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 shadow-sm disabled:opacity-50"
+                className="w-full rounded-xl bg-white py-3 text-sm font-semibold text-zinc-950 transition hover:bg-slate-100 shadow-sm disabled:opacity-50"
               >
                 {loading ? "Vérification..." : "Vérifier et accéder"}
               </button>
@@ -335,7 +335,7 @@ export function RegisterScreen() {
                 type="button"
                 onClick={handleResend}
                 disabled={loading}
-                className="w-full text-center text-xs font-medium text-zinc-400 hover:text-white transition disabled:opacity-50"
+                className="w-full text-center text-xs font-medium text-slate-400 hover:text-white transition disabled:opacity-50"
               >
                 Renvoyer le code
               </button>
@@ -343,7 +343,7 @@ export function RegisterScreen() {
           </>
         )}
 
-        <p className="mt-8 text-center text-xs text-zinc-400">
+        <p className="mt-8 text-center text-xs text-slate-400">
           Déjà un compte ?{" "}
           <Link
             href={loginHref}
