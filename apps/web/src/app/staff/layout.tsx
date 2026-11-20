@@ -164,7 +164,7 @@ export default function StaffLayout({
               aria-label="Accueil du back-office Sovrack"
               className="flex min-w-0 flex-1 items-center gap-2.5"
             >
-              <SovrackLogo className="w-8 h-8 text-white shrink-0" />
+              <SovrackLogo className="w-7 h-7 text-white shrink-0" />
               <div>
                 <p className="text-[17px] font-semibold tracking-[-0.02em] text-white">Sovrack</p>
                 <p className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">

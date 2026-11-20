@@ -39,19 +39,13 @@ describe("RegisterScreen (public signup)", () => {
     });
   });
 
-  const fillAndSubmit = (organization = false) => {
+  const fillAndSubmit = () => {
     fireEvent.change(screen.getByPlaceholderText("John Developer"), {
       target: { value: "John Dev" },
     });
     fireEvent.change(screen.getByPlaceholderText("vous@entreprise.com"), {
       target: { value: "john@sovrack.tn" },
     });
-    if (organization) {
-      fireEvent.click(screen.getByRole("radio", { name: /organisation/i }));
-      fireEvent.change(screen.getByPlaceholderText("Acme Engineering"), {
-        target: { value: "Équipe John" },
-      });
-    }
     fireEvent.change(screen.getByPlaceholderText("12 caractères minimum"), {
       target: { value: "StrongPass123!" },
     });
@@ -87,18 +81,17 @@ describe("RegisterScreen (public signup)", () => {
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  it("creates an organization only when that workspace type is selected", async () => {
+  it("creates a personal workspace directly by default without complex steps", async () => {
     registerMock.mockResolvedValue("registration-1");
     render(<RegisterScreen />);
-    fillAndSubmit(true);
+    fillAndSubmit();
 
     await waitFor(() =>
       expect(registerMock).toHaveBeenCalledWith({
         email: "john@sovrack.tn",
         password: "StrongPass123!",
         fullName: "John Dev",
-        workspaceType: "ORGANIZATION",
-        workspaceName: "Équipe John",
+        workspaceType: "PERSONAL",
       }),
     );
   });

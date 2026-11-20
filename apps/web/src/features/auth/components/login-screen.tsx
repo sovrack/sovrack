@@ -4,8 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
-import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
-import MarketingFooter from "@/components/marketing/marketing-footer";
+import { AuthLayout } from "./auth-layout";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
@@ -74,170 +73,172 @@ export function LoginScreen() {
     }
   };
 
+  const registerHref = searchParams.get("next")
+    ? `/register?next=${encodeURIComponent(
+        resolveSafeInternalPath(
+          searchParams.get("next"),
+          "/dashboard",
+        ),
+      )}`
+    : "/register";
+
   return (
-    <div className="min-h-screen bg-brand">
-      <MarketingNavbar />
+    <AuthLayout headerAction={{ label: "Créer un compte", href: registerHref }}>
+      <div className="w-full">
+        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+          Connexion à Sovrack
+        </h1>
+        <p className="mt-2 text-sm text-zinc-400">
+          Connectez-vous à votre espace Sovrack.
+        </p>
 
-      <section className="mx-auto flex max-w-md items-center px-6 pb-24 pt-20">
-        <div className="w-full">
-          <h1 className="text-3xl font-bold text-white">Connexion</h1>
-          <p className="mt-2 text-slate-400">
-            Connectez-vous à votre espace Sovrack.
-          </p>
+        {error && (
+          <div className="mt-5 rounded-lg border border-red-500/25 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-300">
+            {error}
+          </div>
+        )}
 
-          {error && (
-            <div className="mt-6 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-              {error}
-            </div>
-          )}
-
-          {process.env.NODE_ENV !== "production" && (
-            <div className="mt-6 flex items-center justify-between rounded-xl border border-sky-400/25 bg-sky-500/10 px-4 py-3 text-xs text-sky-200">
-              <div>
-                <p className="font-semibold text-white">Compte de test local</p>
-                <p className="text-slate-300">owner@sovrack.test</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("owner@sovrack.test");
-                  setPassword("Local-Client-2026!");
-                }}
-                className="rounded-lg bg-sky-500 px-3 py-1.5 font-medium text-white transition hover:bg-sky-400"
-              >
-                Pré-remplir
-              </button>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="mt-10 space-y-5">
-            {isCapabilityEnabled("googleAuthentication") && (
-              <>
-                <GoogleLoginButton nextPath={searchParams.get("next") || undefined} />
-                <div className="relative flex items-center gap-3 py-1">
-                  <span className="h-px flex-1 bg-white/10" />
-                  <span className="text-xs uppercase tracking-wide text-slate-500">
-                    {t("or with your email")}
-                  </span>
-                  <span className="h-px flex-1 bg-white/10" />
-                </div>
-              </>
-            )}
+        {process.env.NODE_ENV !== "production" && (
+          <div className="mt-5 flex items-center justify-between rounded-lg border border-sky-500/25 bg-sky-500/10 px-3.5 py-2.5 text-xs text-sky-200">
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-slate-300"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="vous@entreprise.com"
-                autoComplete="email"
-                required
-                className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+              <p className="font-semibold text-white">Compte de test local</p>
+              <p className="text-slate-300">owner@sovrack.test</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("owner@sovrack.test");
+                setPassword("Local-Client-2026!");
+              }}
+              className="rounded-md bg-sky-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-sky-400"
+            >
+              Pré-remplir
+            </button>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          {isCapabilityEnabled("googleAuthentication") && (
+            <>
+              <GoogleLoginButton
+                nextPath={searchParams.get("next") || undefined}
+                className="rounded-lg border border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800/80 text-zinc-200"
               />
-            </div>
-            <div>
+              <div className="relative flex items-center gap-3 py-1">
+                <span className="h-px flex-1 bg-zinc-800" />
+                <span className="text-xs uppercase tracking-wider text-zinc-500 font-medium">
+                  {t("or with your email")}
+                </span>
+                <span className="h-px flex-1 bg-zinc-800" />
+              </div>
+            </>
+          )}
+
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-xs font-medium uppercase tracking-wider text-zinc-400"
+            >
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="vous@entreprise.com"
+              autoComplete="email"
+              required
+              className="mt-1.5 w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 transition focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-slate-300"
+                className="block text-xs font-medium uppercase tracking-wider text-zinc-400"
               >
                 Mot de passe
               </label>
-              <div className="relative mt-1.5">
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Votre mot de passe"
-                  autoComplete="current-password"
-                  required
-                  className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 pr-11 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={
-                    showPassword
-                      ? "Masquer le mot de passe"
-                      : "Afficher le mot de passe"
-                  }
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-            {mfaRequired && (
-              <div>
-                <label
-                  htmlFor="mfa-code"
-                  className="block text-sm font-medium text-slate-300"
-                >
-                  Code de double authentification
-                </label>
-                <input
-                  id="mfa-code"
-                  type="text"
-                  inputMode="text"
-                  autoComplete="one-time-code"
-                  value={mfaCode}
-                  onChange={(event) => setMfaCode(event.target.value.trim())}
-                  placeholder="123456 ou code de secours"
-                  required
-                  autoFocus
-                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 font-mono text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
-                />
-                <p className="mt-2 text-xs leading-5 text-slate-500">
-                  Ce champ apparaît uniquement parce que vous avez activé
-                  volontairement cette protection sur votre compte.
-                </p>
-              </div>
-            )}
-            <div className="text-right">
               <Link
                 href="/forgot-password"
-                className="text-sm font-medium text-sky-400 hover:text-sky-300"
+                className="text-xs text-zinc-400 transition hover:text-white"
               >
                 Mot de passe oublié ?
               </Link>
             </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 disabled:opacity-50"
-            >
-              {loading ? "Connexion..." : "Se connecter"}
-            </button>
-          </form>
+            <div className="relative mt-1.5">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Votre mot de passe"
+                autoComplete="current-password"
+                required
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-3.5 py-2.5 pr-10 text-sm text-white placeholder:text-zinc-500 transition focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={
+                  showPassword
+                    ? "Masquer le mot de passe"
+                    : "Afficher le mot de passe"
+                }
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400 hover:text-white"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
 
-          <p className="mt-10 text-center text-sm text-slate-400">
-            Pas encore de compte ?{" "}
-            <Link
-              href={
-                searchParams.get("next")
-                  ? `/register?next=${encodeURIComponent(
-                      resolveSafeInternalPath(
-                        searchParams.get("next"),
-                        "/dashboard",
-                      ),
-                    )}`
-                  : "/register"
-              }
-              className="font-semibold text-sky-400 hover:text-sky-300"
-            >
-              S&rsquo;inscrire
-            </Link>
-          </p>
-        </div>
-      </section>
+          {mfaRequired && (
+            <div>
+              <label
+                htmlFor="mfa-code"
+                className="block text-xs font-medium uppercase tracking-wider text-zinc-400"
+              >
+                Code de double authentification
+              </label>
+              <input
+                id="mfa-code"
+                type="text"
+                inputMode="text"
+                autoComplete="one-time-code"
+                value={mfaCode}
+                onChange={(event) => setMfaCode(event.target.value.trim())}
+                placeholder="123456 ou code de secours"
+                required
+                autoFocus
+                className="mt-1.5 w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-3.5 py-2.5 font-mono text-sm text-white placeholder:text-zinc-500 transition focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+              />
+              <p className="mt-1.5 text-xs text-zinc-500">
+                Ce champ apparaît uniquement car cette protection est activée sur votre compte.
+              </p>
+            </div>
+          )}
 
-      <MarketingFooter />
-    </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg bg-white py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 shadow-sm disabled:opacity-50"
+          >
+            {loading ? "Connexion..." : "Se connecter"}
+          </button>
+        </form>
+
+        <p className="mt-8 text-center text-xs text-zinc-400">
+          Pas encore de compte ?{" "}
+          <Link
+            href={registerHref}
+            className="font-medium text-white transition hover:underline"
+          >
+            S&rsquo;inscrire
+          </Link>
+        </p>
+      </div>
+    </AuthLayout>
   );
 }

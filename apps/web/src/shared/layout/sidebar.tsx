@@ -122,7 +122,7 @@ export function Sidebar() {
               collapsed && "lg:justify-center",
             )}
           >
-            <SovrackLogo className="w-8 h-8 text-white shrink-0" />
+            <SovrackLogo className="w-7 h-7 text-white shrink-0" />
             <span
               className={clsx(
                 "truncate text-[18px] font-semibold tracking-[-0.02em] text-white antialiased",

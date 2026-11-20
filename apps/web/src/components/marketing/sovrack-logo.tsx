@@ -13,7 +13,7 @@ export interface LogoProps extends SVGProps<SVGSVGElement> {
  * nettement plus grand, net et visible sans fond dans l'interface et les favicons.
  */
 export function SovrackLogo({
-  className = "w-9 h-9",
+  className = "w-7 h-7",
   size,
   withBackground = false,
   ...props
@@ -86,7 +86,7 @@ export function SovrackLogo({
 export function SovrackBrand({
   logoSize,
   className = "",
-  logoClassName = "w-9 h-9 text-white",
+  logoClassName = "w-7 h-7 text-white",
   textClassName = "",
   withBackground = false,
 }: {
@@ -104,7 +104,7 @@ export function SovrackBrand({
         withBackground={withBackground}
       />
       <span
-        className={`text-[19px] font-semibold tracking-[-0.02em] text-white antialiased ${textClassName}`}
+        className={`text-[18px] font-semibold tracking-[-0.02em] text-white antialiased ${textClassName}`}
       >
         Sovrack
       </span>

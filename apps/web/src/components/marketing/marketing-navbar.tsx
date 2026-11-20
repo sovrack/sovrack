@@ -69,12 +69,12 @@ export function MarketingNavbar() {
         <div className="flex shrink-0">
           <Link
             href={publicSitePath("/")}
-            className="group flex items-center gap-3"
+            className="group flex items-center gap-2.5"
           >
             <SovrackLogo
-              className="w-9 h-9 text-white drop-shadow-[0_0_16px_rgba(37,99,235,0.35)] transition-transform duration-200 group-hover:scale-105 shrink-0"
+              className="w-7 h-7 text-white shrink-0 transition-transform duration-200 group-hover:scale-105"
             />
-            <span className="text-[19px] font-semibold tracking-[-0.02em] text-white antialiased transition-colors group-hover:text-slate-100 select-none">
+            <span className="text-[18px] font-semibold tracking-[-0.02em] text-white antialiased transition-colors group-hover:text-slate-100 select-none">
               Sovrack
             </span>
           </Link>
