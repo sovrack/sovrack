@@ -143,17 +143,17 @@ const sections = [
 
 export default function DocsPage() {
   return (
-    <div className="min-h-screen bg-app">
+    <div className="min-h-screen bg-[#0a0a0a] text-primary selection:bg-[#2563EB] selection:text-white">
       <MarketingNavbar />
 
-      <section className="mx-auto max-w-3xl px-6 pb-24 pt-16">
-        <h1 className="text-4xl font-bold text-primary">Documentation</h1>
-        <p className="mt-3 text-secondary">
+      <section className="mx-auto max-w-[1280px] px-6 lg:px-8 pb-24 pt-16">
+        <h1 className="text-4xl font-normal text-white">Documentation</h1>
+        <p className="mt-3 text-zinc-400">
           Tout ce qu&apos;il faut savoir pour démarrer avec Sovrack.
         </p>
 
-        <div className="mt-8 rounded-lg border border-accent/30 bg-accent/10 p-6 text-sm leading-6 text-secondary">
-          <p className="font-semibold text-primary">Prérequis recommandés</p>
+        <div className="mt-8 rounded-xl bg-[#121212] p-6 text-sm leading-6 text-zinc-300">
+          <p className="font-semibold text-white">Prérequis recommandés</p>
           <p className="mt-2">
             Un VPS Ubuntu à jour, accessible en SSH, avec une IPv4 publique, des
             ports 80/443 ouverts, un domaine sous votre contrôle et un dépôt Git
@@ -164,34 +164,34 @@ export default function DocsPage() {
 
         <nav
           aria-label="Sommaire de la documentation"
-          className="mt-8 grid gap-2 rounded-lg border border-border bg-card p-5 sm:grid-cols-2"
+          className="mt-8 grid gap-2 rounded-xl bg-[#121212] p-5 sm:grid-cols-2"
         >
           {sections.map((section) => (
             <a
               key={section.id}
               href={`#${section.id}`}
-              className="rounded-lg px-3 py-2 text-sm text-secondary transition hover:bg-hover/10 hover:text-primary"
+              className="rounded-lg px-3 py-2 text-sm text-zinc-300 transition hover:bg-[#1a1a1a] hover:text-white"
             >
               {section.title}
             </a>
           ))}
         </nav>
 
-        <div className="mt-12 space-y-10">
+        <div className="mt-12 space-y-8">
           {sections.map((s) => (
             <div
               key={s.title}
               id={s.id}
-              className="rounded-lg border border-border bg-card p-8"
+              className="rounded-xl bg-[#121212] p-8"
             >
-              <h2 className="text-xl font-bold text-primary">{s.title}</h2>
+              <h2 className="text-xl font-medium text-white">{s.title}</h2>
               <ol className="mt-4 space-y-3">
                 {s.steps.map((step, i) => (
                   <li
                     key={step}
-                    className="flex items-start gap-3 text-sm leading-relaxed text-secondary"
+                    className="flex items-start gap-3 text-sm leading-relaxed text-zinc-400"
                   >
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent/10 text-xs font-bold text-accent">
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#2563EB]/10 text-xs font-medium text-[#2563EB]">
                       {i + 1}
                     </span>
                     {step}
@@ -202,14 +202,14 @@ export default function DocsPage() {
           ))}
         </div>
 
-        <div className="mt-12 rounded-lg border border-border bg-card p-8 text-center">
-          <h2 className="text-xl font-bold text-primary">Une question ?</h2>
-          <p className="mt-2 text-sm text-secondary">
+        <div className="mt-12 rounded-xl bg-[#121212] p-8 text-center">
+          <h2 className="text-xl font-medium text-white">Une question ?</h2>
+          <p className="mt-2 text-sm text-zinc-400">
             Notre équipe vous répond par email.
           </p>
           <a
             href="mailto:contact@sovrack.com"
-            className="mt-5 inline-block rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover"
+            className="mt-5 inline-block rounded-md bg-[#2563EB] px-6 py-2.5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
           >
             Contacter le support
           </a>

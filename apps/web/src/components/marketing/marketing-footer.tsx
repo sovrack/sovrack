@@ -9,7 +9,7 @@ export default function MarketingFooter() {
 
   return (
     <footer className="bg-[#0a0a0a] pb-12 pt-14 text-zinc-500">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+      <div className="mx-auto max-w-[1280px] px-6 lg:px-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
             <Link
@@ -17,7 +17,7 @@ export default function MarketingFooter() {
               className="mb-4 inline-flex items-center transition-opacity hover:opacity-90"
               aria-label="Sovrack Accueil"
             >
-              <SovrackBrand textClassName="text-[17px] font-medium tracking-[-0.02em] text-white" />
+              <SovrackBrand textClassName="text-[19px] font-medium tracking-tight text-white" />
             </Link>
             <p className="max-w-sm text-xs leading-relaxed text-zinc-500 mt-2">
               Plateforme open-core de déploiement et d&apos;orchestration de conteneurs Docker sur vos propres serveurs VPS.

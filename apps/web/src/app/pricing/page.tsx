@@ -114,7 +114,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-[#0a0a0a] text-primary selection:bg-[#2563EB] selection:text-white">
       <MarketingNavbar />
 
-      <main className="mx-auto max-w-5xl px-4 sm:px-6 py-12 sm:py-16">
+      <main className="mx-auto max-w-[1280px] px-6 lg:px-8 py-12 sm:py-16">
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-medium uppercase tracking-wider text-[#2563EB]">

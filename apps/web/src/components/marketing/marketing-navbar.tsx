@@ -20,7 +20,7 @@ function GitHubIcon({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
-// Uniquement les pages dédiées réelles
+// Pages dédiées réelles uniquement
 const navLinks = [
   { href: publicSitePath("/features"), label: "Fonctionnalités" },
   { href: publicSitePath("/docs"), label: "Documentation" },
@@ -34,18 +34,18 @@ export function MarketingNavbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6 lg:px-8">
         {/* Logo & Navigation gauche */}
-        <div className="flex items-center gap-7">
+        <div className="flex items-center gap-8">
           <Link
             href={publicSitePath("/")}
             className="flex shrink-0 items-center transition-opacity hover:opacity-90"
             aria-label="Sovrack Accueil"
           >
-            <SovrackBrand textClassName="text-[17px] font-medium tracking-[-0.02em] text-white" />
+            <SovrackBrand textClassName="text-[19px] font-medium tracking-tight text-white" />
           </Link>
 
-          <nav className="hidden items-center gap-6 text-[13px] md:flex">
+          <nav className="hidden items-center gap-7 text-[15px] md:flex">
             {navLinks.map((link) => {
               const active = pathname === link.href;
               return (
@@ -54,8 +54,8 @@ export function MarketingNavbar() {
                   href={link.href}
                   className={`transition-colors duration-150 ${
                     active
-                      ? "text-[#2563EB] font-medium"
-                      : "text-zinc-500 hover:text-[#2563EB]"
+                      ? "text-white font-medium"
+                      : "text-white/85 hover:text-white"
                   }`}
                 >
                   {link.label}
@@ -66,28 +66,28 @@ export function MarketingNavbar() {
         </div>
 
         {/* Côté droit : GitHub + Se connecter + Créer un compte */}
-        <div className="hidden items-center gap-4 md:flex">
+        <div className="hidden items-center gap-5 md:flex">
           <Link
             href={BRAND_CONFIG.githubUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1 text-zinc-500 transition-colors hover:text-[#2563EB]"
+            className="p-1 text-white/80 transition-colors hover:text-white"
             aria-label="Dépôt GitHub Sovrack"
             title="GitHub"
           >
             <GitHubIcon className="h-4 w-4" />
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <Link
               href={customerAppPath("/login")}
-              className="text-[13px] text-zinc-400 transition-colors hover:text-[#2563EB]"
+              className="text-[14px] font-normal text-white/85 transition-colors hover:text-white"
             >
               Se connecter
             </Link>
             <Link
               href={customerAppPath("/register")}
-              className="inline-flex h-8 items-center rounded-md bg-[#2563EB] px-3 text-xs font-medium text-white transition-colors hover:bg-[#1d4ed8]"
+              className="inline-flex h-8 items-center rounded-md bg-[#2563EB] px-3.5 text-xs font-medium text-white transition-colors hover:bg-[#1d4ed8]"
             >
               Créer un compte
             </Link>
@@ -99,7 +99,7 @@ export function MarketingNavbar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen((v) => !v)}
-            className="p-2 text-zinc-500 hover:text-[#2563EB] focus:outline-none"
+            className="p-2 text-zinc-300 hover:text-white focus:outline-none"
             aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -109,7 +109,7 @@ export function MarketingNavbar() {
 
       {/* Menu mobile déroulant */}
       {mobileMenuOpen && (
-        <div className="bg-[#0a0a0a] px-5 py-4 md:hidden">
+        <div className="bg-[#0a0a0a] px-6 py-4 md:hidden">
           <nav className="flex flex-col space-y-3">
             {navLinks.map((link) => (
               <Link
@@ -117,7 +117,7 @@ export function MarketingNavbar() {
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`text-sm ${
-                  pathname === link.href ? "text-[#2563EB] font-medium" : "text-zinc-500 hover:text-[#2563EB]"
+                  pathname === link.href ? "text-white font-medium" : "text-zinc-300 hover:text-white"
                 }`}
               >
                 {link.label}
@@ -128,7 +128,7 @@ export function MarketingNavbar() {
                 href={BRAND_CONFIG.githubUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs text-zinc-500 hover:text-[#2563EB] py-1"
+                className="inline-flex items-center gap-2 text-xs text-zinc-400 hover:text-white py-1"
               >
                 <GitHubIcon className="h-4 w-4" />
                 <span>GitHub</span>

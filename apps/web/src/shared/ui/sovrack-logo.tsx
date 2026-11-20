@@ -11,8 +11,8 @@ export function SovrackLogo({ className = "w-6 h-6", width, height }: LogoProps)
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      width={width || 24}
-      height={height || 24}
+      width={width || 26}
+      height={height || 26}
       aria-label="Sovrack Logo"
       role="img"
     >
@@ -40,14 +40,14 @@ interface BrandProps {
 
 export function SovrackBrand({
   className = "",
-  logoClassName = "w-6 h-6 text-primary",
+  logoClassName = "w-6 h-6 text-white",
   textClassName = "",
 }: BrandProps) {
   return (
     <span className={`inline-flex select-none items-center gap-2.5 ${className}`}>
-      <SovrackLogo className={`shrink-0 ${logoClassName}`} width={24} height={24} />
+      <SovrackLogo className={`shrink-0 ${logoClassName}`} width={26} height={26} />
       <span
-        className={`text-[17px] font-medium tracking-[-0.02em] text-white antialiased ${textClassName}`}
+        className={`text-[19px] font-medium tracking-tight text-white antialiased ${textClassName}`}
       >
         sovrack
       </span>
