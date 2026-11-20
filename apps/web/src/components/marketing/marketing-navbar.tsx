@@ -6,7 +6,6 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import { SovrackLogo } from "./sovrack-logo";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
 
 const productLinks = isCapabilityEnabled("publicMarketingCopy")
@@ -70,12 +69,12 @@ export function MarketingNavbar() {
         <div className="flex shrink-0">
           <Link
             href={publicSitePath("/")}
-            className="group flex items-center gap-2.5"
+            className="group flex items-center gap-3"
           >
             <SovrackLogo
-              className="w-9 h-9 text-white drop-shadow-[0_0_16px_rgba(37,99,235,0.35)] transition-transform duration-200 group-hover:scale-105"
+              className="w-9 h-9 text-white drop-shadow-[0_0_16px_rgba(37,99,235,0.35)] transition-transform duration-200 group-hover:scale-105 shrink-0"
             />
-            <span className="text-[20px] font-bold tracking-[-0.03em] text-white antialiased transition-colors group-hover:text-slate-100 select-none">
+            <span className="text-[19px] font-semibold tracking-[-0.02em] text-white antialiased transition-colors group-hover:text-slate-100 select-none">
               Sovrack
             </span>
           </Link>
@@ -206,7 +205,6 @@ export function MarketingNavbar() {
         </nav>
 
         <div className="hidden lg:flex items-center justify-end gap-3 shrink-0">
-          <LanguageSwitcher />
           {isAuthenticated && user ? (
             <div className="relative" ref={menuRef}>
               <button
@@ -415,10 +413,6 @@ export function MarketingNavbar() {
                   </button>
                 </>
               )}
-              <div className="pt-2 border-t border-white/10 flex items-center justify-between">
-                <span className="text-sm text-slate-300">Langue / Language</span>
-                <LanguageSwitcher />
-              </div>
             </div>
           </nav>
         </div>

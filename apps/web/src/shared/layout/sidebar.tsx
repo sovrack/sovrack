@@ -125,7 +125,7 @@ export function Sidebar() {
             <SovrackLogo className="w-8 h-8 text-white shrink-0" />
             <span
               className={clsx(
-                "truncate text-[19px] font-bold tracking-[-0.03em] text-white antialiased",
+                "truncate text-[18px] font-semibold tracking-[-0.02em] text-white antialiased",
                 collapsed && "lg:hidden",
               )}
             >

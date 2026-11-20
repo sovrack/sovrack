@@ -119,7 +119,7 @@ export default function LandingPage() {
       <MarketingNavbar />
 
       <main>
-        <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden bg-[radial-gradient(ellipse_80%_65%_at_50%_0%,rgba(14,116,144,0.30)_0%,rgba(19,17,28,0)_72%)] px-4 sm:px-6 py-14 sm:py-20">
+        <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden px-4 sm:px-6 py-14 sm:py-20">
           <div className="relative mx-auto max-w-6xl text-center">
             <h1 className="mx-auto max-w-5xl text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl lg:text-7xl">
               Déployez vos applications sur vos propres serveurs.

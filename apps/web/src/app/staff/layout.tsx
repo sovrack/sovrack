@@ -166,7 +166,7 @@ export default function StaffLayout({
             >
               <SovrackLogo className="w-8 h-8 text-white shrink-0" />
               <div>
-                <p className="text-[17px] font-bold tracking-[-0.03em] text-white">Sovrack</p>
+                <p className="text-[17px] font-semibold tracking-[-0.02em] text-white">Sovrack</p>
                 <p className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
                   Back-office
                 </p>

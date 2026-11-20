@@ -91,6 +91,25 @@ export function LoginScreen() {
             </div>
           )}
 
+          {process.env.NODE_ENV !== "production" && (
+            <div className="mt-6 flex items-center justify-between rounded-xl border border-sky-400/25 bg-sky-500/10 px-4 py-3 text-xs text-sky-200">
+              <div>
+                <p className="font-semibold text-white">Compte de test local</p>
+                <p className="text-slate-300">owner@sovrack.test</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("owner@sovrack.test");
+                  setPassword("Local-Client-2026!");
+                }}
+                className="rounded-lg bg-sky-500 px-3 py-1.5 font-medium text-white transition hover:bg-sky-400"
+              >
+                Pré-remplir
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="mt-10 space-y-5">
             {isCapabilityEnabled("googleAuthentication") && (
               <>

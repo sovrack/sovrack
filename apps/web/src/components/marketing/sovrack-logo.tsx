@@ -9,9 +9,11 @@ export interface LogoProps extends SVGProps<SVGSVGElement> {
 /**
  * Logo officiel Sovrack : Le glyphe géométrique « S » avec barre centrale bleue oblique.
  * Respecte à 100% le SVG vectoriel officiel Sovrack.
+ * ViewBox optimisée (24 22 52 56) pour remplir l'espace sans marge superflue, rendant le logo
+ * nettement plus grand, net et visible sans fond dans l'interface et les favicons.
  */
 export function SovrackLogo({
-  className = "w-8 h-8",
+  className = "w-9 h-9",
   size,
   withBackground = false,
   ...props
@@ -31,7 +33,6 @@ export function SovrackLogo({
         aria-label="Sovrack Logo"
         {...props}
       >
-        {/* Fond sombre squircle arrondi */}
         <rect width="100" height="100" rx="22" fill="#0B0D13" />
         {/* Partie supérieure */}
         <polygon
@@ -54,7 +55,7 @@ export function SovrackLogo({
 
   return (
     <svg
-      viewBox="0 0 100 100"
+      viewBox="24 22 52 56"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
@@ -81,11 +82,11 @@ export function SovrackLogo({
   );
 }
 
-/** Wordmark & Identité officielle Sovrack. */
+/** Wordmark & Identité officielle Sovrack. Typographie épurée, moderne et équilibrée (non grasse). */
 export function SovrackBrand({
   logoSize,
   className = "",
-  logoClassName = "w-8 h-8 text-white",
+  logoClassName = "w-9 h-9 text-white",
   textClassName = "",
   withBackground = false,
 }: {
@@ -103,7 +104,7 @@ export function SovrackBrand({
         withBackground={withBackground}
       />
       <span
-        className={`text-[19px] font-bold tracking-[-0.03em] text-white antialiased ${textClassName}`}
+        className={`text-[19px] font-semibold tracking-[-0.02em] text-white antialiased ${textClassName}`}
       >
         Sovrack
       </span>

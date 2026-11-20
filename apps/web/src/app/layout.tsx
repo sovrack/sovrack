@@ -26,6 +26,14 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Sovrack", url: publicSiteUrl }],
   creator: "Sovrack",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     type: "website",
     locale: "fr_FR",
