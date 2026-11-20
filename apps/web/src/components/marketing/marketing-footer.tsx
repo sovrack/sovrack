@@ -18,8 +18,7 @@ export default function MarketingFooter() {
               className="group mb-4 flex items-center gap-2.5 transition-opacity hover:opacity-90"
             >
               <SovrackLogo
-                size={38}
-                className="drop-shadow-[0_0_16px_rgba(45,122,229,0.35)]"
+                className="w-8 h-8 text-white drop-shadow-[0_0_16px_rgba(37,99,235,0.3)]"
               />
               <span className="text-[20px] font-bold tracking-[-0.03em] text-white antialiased">
                 Sovrack

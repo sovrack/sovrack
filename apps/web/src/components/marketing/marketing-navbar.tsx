@@ -73,8 +73,7 @@ export function MarketingNavbar() {
             className="group flex items-center gap-2.5"
           >
             <SovrackLogo
-              size={36}
-              className="drop-shadow-[0_0_16px_rgba(45,122,229,0.4)] transition-transform duration-200 group-hover:scale-105"
+              className="w-9 h-9 text-white drop-shadow-[0_0_16px_rgba(37,99,235,0.35)] transition-transform duration-200 group-hover:scale-105"
             />
             <span className="text-[20px] font-bold tracking-[-0.03em] text-white antialiased transition-colors group-hover:text-slate-100 select-none">
               Sovrack

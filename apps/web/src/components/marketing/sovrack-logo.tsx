@@ -1,45 +1,51 @@
 import type { SVGProps } from "react";
 
-interface LogoProps extends SVGProps<SVGSVGElement> {
-  /** Taille en pixels (carré). */
+export interface LogoProps extends SVGProps<SVGSVGElement> {
+  className?: string;
   size?: number;
-  /** Afficher le fond sombre rectangulaire arrondi ou le glyphe pur transparent. */
   withBackground?: boolean;
 }
 
 /**
  * Logo officiel Sovrack : Le glyphe géométrique « S » avec barre centrale bleue oblique.
- * Conçu avec une symétrie 180° parfaite, représentant la précision, la puissance et la souveraineté.
+ * Respecte à 100% le SVG vectoriel officiel Sovrack.
  */
 export function SovrackLogo({
-  size = 32,
-  withBackground = true,
-  className = "",
+  className = "w-8 h-8",
+  size,
+  withBackground = false,
   ...props
 }: LogoProps) {
+  const style = size
+    ? { width: size, height: size, ...props.style }
+    : props.style;
+
   if (withBackground) {
     return (
       <svg
-        width={size}
-        height={size}
-        viewBox="0 0 1024 1024"
+        viewBox="0 0 100 100"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
         className={className}
+        style={style}
+        aria-label="Sovrack Logo"
         {...props}
       >
-        <rect width="1024" height="1024" rx="200" fill="#0B0D13" />
+        {/* Fond sombre squircle arrondi */}
+        <rect width="100" height="100" rx="22" fill="#0B0D13" />
+        {/* Partie supérieure */}
         <polygon
-          points="699,250 517,250 288,472 406,581 459,495 428,465 553,346 639,346"
+          points="50,24 68,24 62.5,33.5 54,33.5 41.5,46 44.5,49 39.5,57.5 28,46"
           fill="#FFFFFF"
         />
+        {/* Barre centrale bleue */}
         <polygon
-          points="621,375 565,375 406,638 463,637"
-          fill="#2D7AE5"
+          points="54.5,36.5 60.5,36.5 45.5,63.5 39.5,63.5"
+          fill="#2563EB"
         />
+        {/* Partie inférieure */}
         <polygon
-          points="736,549 616,440 564,525 594,555 476,667 389,667 324,773 500,773"
+          points="50,76 32,76 37.5,66.5 46,66.5 58.5,54 55.5,51 60.5,42.5 72,54"
           fill="#FFFFFF"
         />
       </svg>
@@ -48,26 +54,28 @@ export function SovrackLogo({
 
   return (
     <svg
-      width={size}
-      height={size}
-      viewBox="260 220 504 584"
+      viewBox="0 0 100 100"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
       className={className}
+      style={style}
+      aria-label="Sovrack Logo"
       {...props}
     >
+      {/* Partie supérieure */}
       <polygon
-        points="699,250 517,250 288,472 406,581 459,495 428,465 553,346 639,346"
-        fill="#FFFFFF"
+        points="50,24 68,24 62.5,33.5 54,33.5 41.5,46 44.5,49 39.5,57.5 28,46"
+        fill="currentColor"
       />
+      {/* Barre centrale bleue */}
       <polygon
-        points="621,375 565,375 406,638 463,637"
-        fill="#2D7AE5"
+        points="54.5,36.5 60.5,36.5 45.5,63.5 39.5,63.5"
+        fill="#2563EB"
       />
+      {/* Partie inférieure */}
       <polygon
-        points="736,549 616,440 564,525 594,555 476,667 389,667 324,773 500,773"
-        fill="#FFFFFF"
+        points="50,76 32,76 37.5,66.5 46,66.5 58.5,54 55.5,51 60.5,42.5 72,54"
+        fill="currentColor"
       />
     </svg>
   );
@@ -75,17 +83,25 @@ export function SovrackLogo({
 
 /** Wordmark & Identité officielle Sovrack. */
 export function SovrackBrand({
-  logoSize = 32,
+  logoSize,
   className = "",
+  logoClassName = "w-8 h-8 text-white",
   textClassName = "",
+  withBackground = false,
 }: {
   logoSize?: number;
   className?: string;
+  logoClassName?: string;
   textClassName?: string;
+  withBackground?: boolean;
 }) {
   return (
     <span className={`inline-flex items-center gap-2.5 select-none ${className}`}>
-      <SovrackLogo size={logoSize} />
+      <SovrackLogo
+        size={logoSize}
+        className={logoClassName}
+        withBackground={withBackground}
+      />
       <span
         className={`text-[19px] font-bold tracking-[-0.03em] text-white antialiased ${textClassName}`}
       >
