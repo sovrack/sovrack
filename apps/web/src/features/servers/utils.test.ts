@@ -84,12 +84,12 @@ describe("server-utils", () => {
       expect(getJobStatusClassName("TIMEOUT")).toContain("red");
     });
     it("bleu pour RUNNING/PENDING", () => {
-      expect(getJobStatusClassName("RUNNING")).toContain("blue");
+      expect(getJobStatusClassName("RUNNING")).toContain("accent");
     });
     it("zinc par défaut", () => {
       expect(
         getJobStatusClassName("CANCELED" as ServerJob["status"]),
-      ).toContain("zinc");
+      ).toContain("border-border");
     });
   });
 });

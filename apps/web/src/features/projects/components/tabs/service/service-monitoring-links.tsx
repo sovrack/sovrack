@@ -28,7 +28,7 @@ export function ServiceMonitoringLinks({
 
   if (!data.installed) {
     return (
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-hover/10/40 px-4 py-2.5 text-xs text-secondary">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-xs text-secondary">
         <Activity size={13} className="shrink-0" />
         Monitoring stack not installed on this server
         {data.serverHost ? ` (${data.serverHost})` : ""} — install it from

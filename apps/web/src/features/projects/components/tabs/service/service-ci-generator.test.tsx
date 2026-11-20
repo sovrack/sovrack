@@ -91,7 +91,7 @@ describe("ServiceCiGenerator", () => {
 
       const findFileRow = (name: string) =>
         screen
-          .getAllByText(name)
+          .getAllByText((content) => content.includes(name))
           .map((el) => el.closest(".overflow-hidden"))
           .find((el): el is HTMLElement => el !== null)!;
 
@@ -132,7 +132,7 @@ describe("ServiceCiGenerator", () => {
 
       const findFileRow = (name: string) =>
         screen
-          .getAllByText(name)
+          .getAllByText((content) => content.includes(name))
           .map((el) => el.closest(".overflow-hidden"))
           .find((el): el is HTMLElement => el !== null)!;
 

@@ -13,7 +13,7 @@ describe("DeploymentStatusBadge", () => {
       <DeploymentStatusBadge status="RUNNING" variant="plain" />,
     );
     const el = container.querySelector("span");
-    expect(el?.className).toContain("bg-[var(--bg-card)]");
+    expect(el?.className).toContain("bg-card");
     expect(el?.className).not.toContain("rounded-full");
   });
 
@@ -22,6 +22,6 @@ describe("DeploymentStatusBadge", () => {
       <DeploymentStatusBadge status="FAILED" variant="fill" />,
     );
     const el = container.querySelector("span");
-    expect(el?.className).toContain("rounded-full");
+    expect(el?.className).toContain("rounded-md");
   });
 });

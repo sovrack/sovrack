@@ -211,7 +211,7 @@ export default function StaffAccountsPage() {
               <th className="px-4 py-3 font-medium">Dernière connexion</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-border">
             {(data?.items ?? []).map((s) => (
               <tr key={s.id} className="hover:bg-hover/10">
                 <td className="px-4 py-3 font-medium text-primary">

@@ -102,7 +102,7 @@ export function ServersTable({
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border bg-card  touch-pan-x">
-      <div className="flex items-center justify-between border-b border-border bg-hover/10/40 px-3.5 py-1.5 text-[11px] text-muted md:hidden">
+      <div className="flex items-center justify-between border-b border-border bg-card px-3.5 py-1.5 text-[11px] text-muted md:hidden">
         <span>↔ {viewMode === "table" ? "Faites défiler horizontalement" : "Vue en cartes activée"}</span>
         <div className="flex items-center rounded-lg border border-border bg-app p-0.5">
           <button

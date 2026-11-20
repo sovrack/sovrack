@@ -47,7 +47,7 @@ export default function StaffTeamsPage() {
               <th className="px-4 py-3 font-medium">Créée le</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-border">
             {(data?.items ?? []).map((t) => (
               <tr key={t.id} className="hover:bg-hover/10">
                 <td className="px-4 py-3 font-medium text-primary">

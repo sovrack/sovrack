@@ -78,7 +78,7 @@ function StaffActivationForm() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-app px-4 text-primary">
-      <section className="w-full max-w-md rounded-lg border border-border bg-card p-7 shadow-theme-lg">
+      <section className="w-full max-w-md rounded-lg border border-border bg-card p-7">
         <div className="mb-6 flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
             <ShieldCheck size={20} />

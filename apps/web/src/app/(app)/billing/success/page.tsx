@@ -11,7 +11,7 @@ export default function BillingSuccessPage() {
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-8 text-center shadow-theme-lg backdrop-blur-xl">
+      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-8 text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg border border-accent/50 bg-accent/10 text-accent">
           <CheckCircle2 className="h-9 w-9" />
         </div>

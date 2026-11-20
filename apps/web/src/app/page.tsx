@@ -323,7 +323,7 @@ export default function LandingPage() {
         </section>
 
         <section className="px-6 py-24 text-center">
-          <div className="mx-auto max-w-4xl rounded-lg border border-border bg-card px-8 py-14 shadow-theme-lg">
+          <div className="mx-auto max-w-4xl rounded-lg border border-border bg-card px-8 py-14">
             <h2 className="text-3xl font-bold sm:text-4xl">
               Prêt à lancer votre premier déploiement&nbsp;?
             </h2>

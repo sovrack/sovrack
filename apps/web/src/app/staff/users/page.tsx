@@ -137,7 +137,7 @@ export default function StaffUsersPage() {
               <th className="px-4 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-border">
             {(data?.items ?? []).map((u) => (
               <tr key={u.id} className="hover:bg-hover/10">
                 <td className="px-4 py-3 font-medium text-primary">
@@ -284,7 +284,7 @@ export default function StaffUsersPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="impersonation-title"
-            className="w-full max-w-lg rounded-lg border border-border bg-app p-6 shadow-theme-lg"
+            className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-theme-lg"
           >
             <div className="flex items-start gap-3">
               <span className="rounded-lg bg-amber-500/10 p-2 text-amber-300">

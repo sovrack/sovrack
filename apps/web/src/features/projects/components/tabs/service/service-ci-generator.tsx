@@ -119,7 +119,7 @@ export function ServiceCiGenerator({
       {files.length > 0 && (
         <>
           {/* Mode d'emploi — 1-2-3 */}
-          <ol className="space-y-2 rounded-lg border border-border bg-hover/10/40 p-4 text-xs text-secondary">
+          <ol className="space-y-2 rounded-lg border border-border bg-card p-4 text-xs text-secondary">
             <li>
               <span className="font-semibold text-primary">
                 {t("1. Paste each file")}
@@ -168,7 +168,7 @@ export function ServiceCiGenerator({
               key={f.name}
               className="overflow-hidden rounded-lg border border-border"
             >
-              <div className="flex items-center justify-between border-b border-border bg-hover/10/40 px-3 py-1.5">
+              <div className="flex items-center justify-between border-b border-border bg-card px-3 py-1.5">
                 <span className="flex items-center gap-1.5 font-mono text-xs text-secondary">
                   <FileCode2 size={12} /> {f.name}
                 </span>

@@ -43,7 +43,7 @@ export function getJobStatusClassName(status: ServerJob["status"]): string {
     return "border-red-500/30 bg-red-500/10 text-red-400";
   }
   if (status === "RUNNING" || status === "PENDING") {
-    return "border-blue-500/30 bg-blue-500/10 text-blue-400";
+    return "border-accent/30 bg-accent/10 text-accent";
   }
-  return "border-zinc-800 bg-zinc-800/50 text-zinc-400";
+  return "border-border bg-hover/10 text-secondary";
 }

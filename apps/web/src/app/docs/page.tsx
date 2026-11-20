@@ -202,14 +202,14 @@ export default function DocsPage() {
           ))}
         </div>
 
-        <div className="mt-12 rounded-lg border border-border bg-card p-8 text-center shadow-theme-lg">
+        <div className="mt-12 rounded-lg border border-border bg-card p-8 text-center">
           <h2 className="text-xl font-bold text-primary">Une question ?</h2>
           <p className="mt-2 text-sm text-secondary">
             Notre équipe vous répond par email.
           </p>
           <a
             href="mailto:contact@sovrack.com"
-            className="mt-5 inline-block rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover  "
+            className="mt-5 inline-block rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover"
           >
             Contacter le support
           </a>

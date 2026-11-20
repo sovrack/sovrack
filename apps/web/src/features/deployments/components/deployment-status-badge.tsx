@@ -58,9 +58,9 @@ export function DeploymentStatusBadge({
   // carte) → s'intègre dans la barre/header sans pastille colorée.
   const shape =
     variant === "plain"
-      ? "rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm"
+      ? "rounded-lg border border-border bg-card px-3 py-2 text-sm"
       : clsx(
-          "rounded-full",
+          "rounded-md",
           fill,
           size === "sm" ? "px-2 py-0.5 text-[11px]" : "px-3 py-1 text-xs",
         );

@@ -11,7 +11,7 @@ export default function BillingCancelPage() {
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-8 text-center shadow-theme-lg backdrop-blur-xl">
+      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-8 text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg border border-amber-400/30 bg-amber-500/10 text-amber-300">
           <AlertCircle className="h-9 w-9" />
         </div>

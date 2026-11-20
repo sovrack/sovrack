@@ -15,7 +15,7 @@ export default function StaffDashboardPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
       </div>
     );
   }
@@ -105,7 +105,7 @@ export default function StaffDashboardPage() {
                 <th className="px-4 py-3 font-medium">Créé le</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-border">
               {data.recentUsers.map((u) => (
                 <tr key={u.id} className="hover:bg-hover/10">
                   <td className="px-4 py-3 text-primary">{u.fullName}</td>

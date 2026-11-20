@@ -64,7 +64,7 @@ export default function StaffAuditLogsPage() {
               <th className="px-4 py-3 font-medium">Le</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-border">
             {(data?.items ?? []).map((entry) => (
               <tr key={entry.id} className="hover:bg-hover/10">
                 <td className="px-4 py-3 font-medium text-primary">

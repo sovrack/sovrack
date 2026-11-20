@@ -218,7 +218,7 @@ export function DeploymentLogsDialog({
             const cond = conditions[0];
             const sha = deployment.imageSha ?? null;
             return (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-border bg-hover/10/40 px-5 py-2.5 text-[11px]">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-border bg-card px-5 py-2.5 text-[11px]">
                 <span className="font-semibold uppercase tracking-wide text-muted">
                   Release
                 </span>
