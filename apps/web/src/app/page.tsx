@@ -196,29 +196,23 @@ export default function LandingPage() {
         <section className="px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-6 lg:grid-cols-2">
-              <article className="rounded-3xl border border-cyan-300/20 bg-cyan-300/[0.06] p-8">
+              <article className="rounded-3xl border border-white/10 bg-white/[0.03] p-8">
                 <UserRound className="text-cyan-300" size={30} />
-                <h2 className="mt-6 text-2xl font-bold">Espace personnel</h2>
+                <h2 className="mt-6 text-2xl font-bold">Démarrez seul en 1 minute</h2>
                 <p className="mt-3 leading-7 text-slate-300">
-                  Un espace réservé à une seule personne. Il ne propose ni
-                  invitation ni gestion de membres, tout en conservant les
-                  fonctions de projet et de déploiement.
+                  Un espace personnel sans aucune friction. Pas de formulaires superflus :
+                  déployez votre premier conteneur sur votre serveur en quelques clics.
                 </p>
               </article>
-              <article className="rounded-3xl border border-sky-300/20 bg-sky-300/[0.06] p-8">
+              <article className="rounded-3xl border border-white/10 bg-white/[0.03] p-8">
                 <Building2 className="text-sky-300" size={30} />
-                <h2 className="mt-6 text-2xl font-bold">Organisation</h2>
+                <h2 className="mt-6 text-2xl font-bold">Évoluez en équipe quand vous voulez</h2>
                 <p className="mt-3 leading-7 text-slate-300">
-                  Un espace collaboratif avec invitations et rôles. Un espace
-                  personnel peut être converti en organisation lorsque le besoin
-                  de travailler à plusieurs apparaît.
+                  Besoin de collaborer ? Créez des organisations depuis votre tableau de bord,
+                  invitez vos collaborateurs et gérez finement les permissions d&apos;accès par rôle.
                 </p>
               </article>
             </div>
-            <p className="mx-auto mt-6 max-w-3xl text-center text-sm text-slate-500">
-              « Enterprise » désigne un niveau d’offre, pas un type de compte ni
-              une identité différente.
-            </p>
           </div>
         </section>
 

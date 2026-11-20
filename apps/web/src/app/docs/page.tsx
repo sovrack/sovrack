@@ -9,7 +9,7 @@ const sections = [
     title: "1. Créer votre compte",
     steps: [
       "Créez un compte avec votre nom, votre adresse email et un mot de passe robuste.",
-      "Choisissez un espace personnel pour travailler seul ou une organisation pour collaborer.",
+      "Votre espace personnel est prêt immédiatement. Vous pouvez créer ou rejoindre une organisation à tout moment depuis le tableau de bord.",
       "Saisissez le code reçu par email afin d'activer votre identité.",
       "La connexion s'effectue ensuite avec votre email et votre mot de passe.",
       "Vous pouvez activer volontairement une application TOTP dans Mon compte ; cette protection reste facultative.",
