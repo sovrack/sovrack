@@ -13,7 +13,7 @@ interface AuthLayoutProps {
 
 /**
  * Layout d'authentification fixe et épuré.
- * - Fond identique au reste de l'application (bg-brand / #13111c).
+ * - Fond identique au reste de l'application (bg-brand / #0a0a0a).
  * - Barre supérieure sticky fixe à 100% en haut, ne bouge pas au défilement.
  * - Alignement vertical stable pour éviter les sauts entre login et inscription.
  * - Footer minimaliste avec liens légaux discrets.

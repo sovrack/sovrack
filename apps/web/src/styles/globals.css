@@ -167,8 +167,8 @@ a:hover {
 }
 
 ::selection {
-  background: #7dd3fc;
-  color: #13111c;
+  background: #2563EB;
+  color: #ffffff;
 }
 
 .no-scrollbar::-webkit-scrollbar {
