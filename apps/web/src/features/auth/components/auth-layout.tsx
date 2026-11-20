@@ -20,7 +20,7 @@ interface AuthLayoutProps {
  */
 export function AuthLayout({ children, headerAction }: AuthLayoutProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-brand text-white selection:bg-sky-500 selection:text-white">
+    <div className="flex min-h-screen flex-col bg-brand text-white selection:bg-[#2563EB] selection:text-white">
       {/* Barre supérieure fixe en haut */}
       <header className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-white/10 bg-brand/90 px-6 backdrop-blur-md sm:px-10">
         <Link href="/" className="transition hover:opacity-90">

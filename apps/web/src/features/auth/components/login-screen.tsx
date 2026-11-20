@@ -123,7 +123,7 @@ export function LoginScreen() {
         )}
 
         {process.env.NODE_ENV !== "production" && (
-          <div className="mt-5 rounded-xl border border-sky-400/30 bg-sky-500/10 p-3.5 text-xs text-sky-200">
+          <div className="mt-5 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-blue-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <p className="font-semibold text-white">Compte de test local</p>
@@ -141,7 +141,7 @@ export function LoginScreen() {
                   type="button"
                   onClick={handleLocalQuickLogin}
                   disabled={loading}
-                  className="rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-400 transition shadow-sm"
+                  className="rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1d4ed8] transition shadow-sm"
                 >
                   {loading ? "Connexion..." : "Connexion 1-clic →"}
                 </button>
@@ -182,7 +182,7 @@ export function LoginScreen() {
               placeholder="vous@entreprise.com"
               autoComplete="email"
               required
-              className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+              className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
             />
           </div>
 
@@ -196,7 +196,7 @@ export function LoginScreen() {
               </label>
               <Link
                 href="/forgot-password"
-                className="text-xs text-sky-400 transition hover:text-sky-300"
+                className="text-xs text-blue-400 transition hover:text-blue-300"
               >
                 Mot de passe oublié ?
               </Link>
@@ -210,7 +210,7 @@ export function LoginScreen() {
                 placeholder="Votre mot de passe"
                 autoComplete="current-password"
                 required
-                className="w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 pr-11 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                className="w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 pr-11 text-sm text-white placeholder:text-slate-500 transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
               />
               <button
                 type="button"
@@ -256,7 +256,7 @@ export function LoginScreen() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-white py-3 text-sm font-semibold text-zinc-950 transition hover:bg-slate-100 shadow-sm disabled:opacity-50"
+            className="w-full rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] shadow-md shadow-blue-500/20 disabled:opacity-50"
           >
             {loading ? "Connexion..." : "Se connecter"}
           </button>

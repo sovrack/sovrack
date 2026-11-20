@@ -117,7 +117,7 @@ export default function PricingPage() {
       <main className="mx-auto max-w-7xl px-6 py-16 sm:py-24">
         {/* Header */}
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-cyan-300">
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-400">
             {isEn ? "Flexible Pricing" : "Tarification"}
           </p>
           <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-6xl">
@@ -136,7 +136,7 @@ export default function PricingPage() {
               onClick={() => setCurrency("usd")}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                 currency === "usd"
-                  ? "border border-cyan-400/40 bg-white/15 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)] font-semibold"
+                  ? "border border-blue-500/40 bg-white/15 text-blue-400 shadow-[0_0_12px_rgba(37,99,235,0.3)] font-semibold"
                   : "text-slate-300 hover:text-white"
               }`}
             >
@@ -147,7 +147,7 @@ export default function PricingPage() {
               onClick={() => setCurrency("tnd")}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                 currency === "tnd"
-                  ? "border border-cyan-400/40 bg-white/15 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)] font-semibold"
+                  ? "border border-blue-500/40 bg-white/15 text-blue-400 shadow-[0_0_12px_rgba(37,99,235,0.3)] font-semibold"
                   : "text-slate-300 hover:text-white"
               }`}
             >
@@ -163,13 +163,13 @@ export default function PricingPage() {
               key={plan.id}
               className={`relative flex flex-col justify-between rounded-3xl border p-8 backdrop-blur-xl transition-all duration-200 ${
                 plan.highlighted
-                  ? "border-cyan-400/50 bg-gradient-to-b from-sky-950/40 via-cyan-950/20 to-brand-light shadow-[0_0_30px_rgba(6,182,212,0.15)] ring-1 ring-cyan-400/40"
-                  : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                  ? "border-blue-500/50 bg-[#121212] shadow-[0_0_30px_rgba(37,99,235,0.15)] ring-1 ring-blue-500/40"
+                  : "border-white/10 bg-[#121212] hover:border-white/20"
               }`}
             >
               {plan.badge && (
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/40 bg-cyan-900/80 px-3.5 py-1 text-xs font-semibold text-cyan-200 shadow-md backdrop-blur-md">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-400/40 bg-blue-900/80 px-3.5 py-1 text-xs font-semibold text-blue-200 shadow-md backdrop-blur-md">
                     <Sparkles className="h-3.5 w-3.5" />
                     {plan.badge}
                   </span>
@@ -199,7 +199,7 @@ export default function PricingPage() {
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3 text-sm text-slate-200">
                         <CheckCircle2
-                          className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400"
+                          className="mt-0.5 h-4 w-4 shrink-0 text-blue-400"
                           aria-hidden="true"
                         />
                         <span>{feature}</span>
@@ -214,7 +214,7 @@ export default function PricingPage() {
                   href={plan.ctaHref}
                   className={`inline-flex w-full items-center justify-center rounded-xl px-5 py-3.5 text-center text-sm font-semibold transition-all ${
                     plan.highlighted
-                      ? "bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg shadow-sky-500/25 hover:brightness-110"
+                      ? "bg-[#2563EB] text-white shadow-lg shadow-blue-500/25 hover:bg-[#1d4ed8]"
                       : "border border-white/20 bg-white/5 text-white hover:bg-white/10"
                   }`}
                 >

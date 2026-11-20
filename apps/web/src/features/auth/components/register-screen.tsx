@@ -213,7 +213,7 @@ export function RegisterScreen() {
             )}
 
             {process.env.NODE_ENV !== "production" && (
-              <div className="mt-5 rounded-xl border border-sky-400/30 bg-sky-500/10 p-3.5 text-xs text-sky-200">
+              <div className="mt-5 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-blue-200">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
                     <p className="font-semibold text-white">Compte de test local</p>
@@ -225,7 +225,7 @@ export function RegisterScreen() {
                     type="button"
                     onClick={handleLocalQuickLogin}
                     disabled={loading}
-                    className="rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-400 transition shadow-sm"
+                    className="rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1d4ed8] transition shadow-sm"
                   >
                     {loading ? "Connexion..." : "Connexion Démo (1 clic) →"}
                   </button>
@@ -262,7 +262,7 @@ export function RegisterScreen() {
                   placeholder="vous@entreprise.com"
                   autoComplete="email"
                   required
-                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                 />
               </div>
 
@@ -279,7 +279,7 @@ export function RegisterScreen() {
                   required
                   minLength={SOVRACK_PASSWORD_MIN_LENGTH}
                   maxLength={SOVRACK_PASSWORD_MAX_LENGTH}
-                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                 />
                 <p className="mt-1.5 text-xs text-slate-500">
                   12 caractères minimum : majuscule, minuscule et chiffre
@@ -289,7 +289,7 @@ export function RegisterScreen() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-white py-3 text-sm font-semibold text-zinc-950 transition hover:bg-slate-100 shadow-sm disabled:opacity-50"
+                className="w-full rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] shadow-md shadow-blue-500/20 disabled:opacity-50"
               >
                 {loading ? "Création en cours..." : "Créer mon compte"}
               </button>
@@ -314,7 +314,7 @@ export function RegisterScreen() {
             </p>
 
             {pendingDevCode && (
-              <div className="mt-4 rounded-xl border border-sky-400/30 bg-sky-500/10 p-3 text-xs text-sky-200 flex items-center justify-between">
+              <div className="mt-4 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-200 flex items-center justify-between">
                 <span>
                   Code détecté (démo/dev) :{" "}
                   <strong className="font-mono text-white text-sm tracking-widest">
@@ -324,7 +324,7 @@ export function RegisterScreen() {
                 <button
                   type="button"
                   onClick={() => applyDigits(pendingDevCode)}
-                  className="rounded-lg bg-sky-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-sky-400 transition"
+                  className="rounded-lg bg-[#2563EB] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#1d4ed8] transition"
                 >
                   Remplir
                 </button>
@@ -362,7 +362,7 @@ export function RegisterScreen() {
                       onKeyDown={(e) => handleDigitKeyDown(index, e)}
                       onPaste={handleDigitPaste}
                       aria-label={`Chiffre ${index + 1}`}
-                      className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] text-center text-xl font-bold text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                      className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] text-center text-xl font-bold text-white placeholder:text-slate-500 transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                     />
                   ))}
                 </div>
@@ -374,7 +374,7 @@ export function RegisterScreen() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-white py-3 text-sm font-semibold text-zinc-950 transition hover:bg-slate-100 shadow-sm disabled:opacity-50"
+                className="w-full rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] shadow-md shadow-blue-500/20 disabled:opacity-50"
               >
                 {loading ? "Vérification..." : "Vérifier et accéder"}
               </button>

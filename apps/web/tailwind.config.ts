@@ -25,10 +25,12 @@ const config: Config = {
         warning: '#eab308',
         idle: '#71717a',
         brand: {
-          DEFAULT: '#13111c',
-          light: '#1c1a2a',
-          lighter: '#262339',
-          line: 'rgba(148,163,255,0.18)',
+          DEFAULT: '#0a0a0a',
+          light: '#121212',
+          lighter: '#1a1a1a',
+          line: 'rgba(255,255,255,0.08)',
+          blue: '#2563EB',
+          'blue-hover': '#1d4ed8',
         },
       },
       boxShadow: {

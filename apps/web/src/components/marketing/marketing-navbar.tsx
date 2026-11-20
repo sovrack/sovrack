@@ -197,7 +197,7 @@ export function MarketingNavbar() {
               >
                 Tarifs
                 {pathname === "/pricing" && (
-                  <span className="absolute -bottom-1.5 left-0 h-0.5 w-full rounded-full bg-sky-400" />
+                  <span className="absolute -bottom-1.5 left-0 h-0.5 w-full rounded-full bg-[#2563EB]" />
                 )}
               </Link>
             )}
@@ -217,7 +217,7 @@ export function MarketingNavbar() {
                 aria-expanded={openMenu === "profile"}
                 aria-haspopup="true"
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-sky-500 to-cyan-500 text-xs font-bold text-white">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#2563EB] text-xs font-bold text-white">
                   {user.fullName?.charAt(0).toUpperCase() || "?"}
                 </span>
                 <span className="hidden max-w-[120px] truncate sm:block">
@@ -290,7 +290,7 @@ export function MarketingNavbar() {
               </Link>
               <Link
                 href={customerAppPath("/register")}
-                className="rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110"
+                className="rounded-xl bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#1d4ed8]"
               >
                 Créer un compte
               </Link>
@@ -374,7 +374,7 @@ export function MarketingNavbar() {
                   <Link
                     href={customerAppPath("/register")}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 px-4 py-2.5 text-center font-semibold text-white"
+                    className="rounded-xl bg-[#2563EB] px-4 py-2.5 text-center font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#1d4ed8]"
                   >
                     Créer un compte
                   </Link>

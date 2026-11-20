@@ -135,7 +135,7 @@ export default function LandingPage() {
                 href={customerAppPath(
                   isAuthenticated ? "/dashboard" : "/register",
                 )}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 px-6 py-3.5 font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:brightness-110"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#2563EB] px-6 py-3.5 font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#1d4ed8]"
               >
                 {isAuthenticated ? "Ouvrir mon espace" : "Créer un compte"}
                 <ArrowRight size={17} />
@@ -159,7 +159,7 @@ export default function LandingPage() {
         <section id="plateforme" className="px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <div className="max-w-3xl">
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-cyan-300">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-400">
                 Une console, un flux cohérent
               </p>
               <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
@@ -178,9 +178,9 @@ export default function LandingPage() {
               {capabilities.map(({ icon: Icon, title, description }) => (
                 <article
                   key={title}
-                  className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"
+                  className="rounded-2xl border border-white/10 bg-[#121212] p-6 hover:border-white/20 transition"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
                     <Icon size={21} />
                   </div>
                   <h3 className="mt-5 text-lg font-semibold">{title}</h3>
@@ -196,16 +196,16 @@ export default function LandingPage() {
         <section className="px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-6 lg:grid-cols-2">
-              <article className="rounded-3xl border border-white/10 bg-white/[0.03] p-8">
-                <UserRound className="text-cyan-300" size={30} />
+              <article className="rounded-3xl border border-white/10 bg-[#121212] p-8">
+                <UserRound className="text-blue-400" size={30} />
                 <h2 className="mt-6 text-2xl font-bold">Démarrez seul en 1 minute</h2>
                 <p className="mt-3 leading-7 text-slate-300">
                   Un espace personnel sans aucune friction. Pas de formulaires superflus :
                   déployez votre premier conteneur sur votre serveur en quelques clics.
                 </p>
               </article>
-              <article className="rounded-3xl border border-white/10 bg-white/[0.03] p-8">
-                <Building2 className="text-sky-300" size={30} />
+              <article className="rounded-3xl border border-white/10 bg-[#121212] p-8">
+                <Building2 className="text-blue-400" size={30} />
                 <h2 className="mt-6 text-2xl font-bold">Évoluez en équipe quand vous voulez</h2>
                 <p className="mt-3 leading-7 text-slate-300">
                   Besoin de collaborer ? Créez des organisations depuis votre tableau de bord,
@@ -225,9 +225,9 @@ export default function LandingPage() {
               {steps.map((step) => (
                 <article
                   key={step.number}
-                  className="rounded-2xl border border-white/10 p-7"
+                  className="rounded-2xl border border-white/10 bg-[#121212] p-7"
                 >
-                  <span className="font-mono text-sm font-bold text-cyan-300">
+                  <span className="font-mono text-sm font-bold text-blue-400">
                     {step.number}
                   </span>
                   <h3 className="mt-5 text-xl font-semibold">{step.title}</h3>
@@ -244,7 +244,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-12 lg:grid-cols-[1fr_1.2fr] lg:items-center">
               <div>
-                <p className="text-sm font-bold uppercase tracking-[0.2em] text-cyan-300">
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-400">
                   Écosystème compatible
                 </p>
                 <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
@@ -260,9 +260,9 @@ export default function LandingPage() {
                 {integrations.map((integration) => (
                   <div
                     key={integration}
-                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-slate-200"
+                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#121212] px-5 py-4 text-slate-200"
                   >
-                    <CheckCircle2 className="text-cyan-300" size={19} />
+                    <CheckCircle2 className="text-blue-400" size={19} />
                     <span className="font-medium">{integration}</span>
                   </div>
                 ))}
@@ -273,8 +273,8 @@ export default function LandingPage() {
 
         <section className="px-6 py-24">
           <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-2">
-            <article className="rounded-3xl border border-white/10 bg-white/[0.03] p-8">
-              <LockKeyhole className="text-cyan-300" size={30} />
+            <article className="rounded-3xl border border-white/10 bg-[#121212] p-8">
+              <LockKeyhole className="text-blue-400" size={30} />
               <h2 className="mt-6 text-2xl font-bold">
                 Des accès séparés et maîtrisés
               </h2>
@@ -284,8 +284,8 @@ export default function LandingPage() {
                 limitées par des rôles explicites.
               </p>
             </article>
-            <article className="rounded-3xl border border-white/10 bg-white/[0.03] p-8">
-              <Server className="text-cyan-300" size={30} />
+            <article className="rounded-3xl border border-white/10 bg-[#121212] p-8">
+              <Server className="text-blue-400" size={30} />
               <h2 className="mt-6 text-2xl font-bold">
                 Un serveur prêt pour Docker
               </h2>
@@ -301,7 +301,7 @@ export default function LandingPage() {
         <section className="px-6 py-24">
           <div className="mx-auto max-w-4xl">
             <div className="text-center">
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-cyan-300">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-400">
                 Questions fréquentes
               </p>
               <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
@@ -312,7 +312,7 @@ export default function LandingPage() {
               {questions.map((item) => (
                 <article
                   key={item.question}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-6"
+                  className="rounded-2xl border border-white/10 bg-[#121212] p-6"
                 >
                   <h3 className="text-lg font-semibold">{item.question}</h3>
                   <p className="mt-2 leading-7 text-slate-400">{item.answer}</p>
@@ -323,7 +323,7 @@ export default function LandingPage() {
         </section>
 
         <section className="px-6 py-24 text-center">
-          <div className="mx-auto max-w-4xl rounded-3xl border border-cyan-300/20 bg-gradient-to-br from-sky-500/10 to-cyan-400/5 px-8 py-14">
+          <div className="mx-auto max-w-4xl rounded-3xl border border-white/10 bg-[#121212] px-8 py-14 shadow-2xl">
             <h2 className="text-3xl font-bold sm:text-4xl">
               Prêt à lancer votre premier déploiement&nbsp;?
             </h2>
@@ -335,7 +335,7 @@ export default function LandingPage() {
               href={customerAppPath(
                 isAuthenticated ? "/dashboard" : "/register",
               )}
-              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-50"
+              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-[#2563EB] px-6 py-3.5 font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#1d4ed8]"
             >
               {isAuthenticated ? "Ouvrir mon espace" : "Créer un compte"}
               <ArrowRight size={17} />

@@ -31,51 +31,51 @@
 }
 
 .dark {
-  --bg-app: #09090b;
-  --bg-sidebar: #09090b;
-  --bg-card: #18181b;
-  --border: #27272a;
+  --bg-app: #0a0a0a;
+  --bg-sidebar: #0a0a0a;
+  --bg-card: #121212;
+  --border: #262626;
   --text-primary: #fafafa;
   --text-secondary: #a1a1aa;
   --text-muted: #71717a;
-  --hover: #27272a;
-  --active: #27272a;
+  --hover: #171717;
+  --active: #262626;
   --sidebar-text: #e4e4e7;
   --sidebar-text-muted: #71717a;
   --sidebar-text-active: #ffffff;
-  --sidebar-icon: #e4e4e7;
-  --sidebar-active-bg: #27272a;
-  --sidebar-hover-bg: rgba(39, 39, 42, 0.6);
+  --sidebar-icon: #a1a1aa;
+  --sidebar-active-bg: #1a1a1a;
+  --sidebar-hover-bg: rgba(26, 26, 26, 0.7);
   --success: #22c55e;
   --error: #ef4444;
   --warning: #eab308;
   --idle: #71717a;
-  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.45);
-  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
-  --primary: 0 0% 98%;
-  --primary-foreground: 240 5.9% 10%;
+  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.65);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.5);
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
 }
 
 .brand {
-  --bg-app: #070b14;
-  --bg-sidebar: #09101d;
-  --bg-card: #101827;
-  --border: #203047;
-  --text-primary: #f0f9ff;
-  --text-secondary: #a8bdd2;
-  --text-muted: #65809d;
-  --hover: #16243a;
-  --active: #18324c;
-  --sidebar-text: #d4e7f5;
-  --sidebar-text-muted: #7892ab;
+  --bg-app: #0a0a0a;
+  --bg-sidebar: #0a0a0a;
+  --bg-card: #121212;
+  --border: #262626;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --hover: #171717;
+  --active: #262626;
+  --sidebar-text: #e4e4e7;
+  --sidebar-text-muted: #71717a;
   --sidebar-text-active: #ffffff;
-  --sidebar-icon: #7dd3fc;
-  --sidebar-active-bg: #12304a;
-  --sidebar-hover-bg: rgba(18, 48, 74, 0.68);
-  --primary: 195 92% 48%;
-  --primary-foreground: 222 47% 8%;
-  --shadow-lg: 0 18px 44px rgba(2, 132, 199, 0.14);
-  --shadow-sm: 0 2px 12px rgba(2, 132, 199, 0.1);
+  --sidebar-icon: #2563EB;
+  --sidebar-active-bg: #1a1a1a;
+  --sidebar-hover-bg: rgba(26, 26, 26, 0.7);
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.65);
+  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.5);
 }
 
 * {

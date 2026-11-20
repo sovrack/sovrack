@@ -152,7 +152,7 @@ export default function DocsPage() {
           Tout ce qu&apos;il faut savoir pour démarrer avec Sovrack.
         </p>
 
-        <div className="mt-8 rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.05] p-6 text-sm leading-6 text-slate-300">
+        <div className="mt-8 rounded-2xl border border-blue-500/30 bg-blue-500/10 p-6 text-sm leading-6 text-slate-300">
           <p className="font-semibold text-white">Prérequis recommandés</p>
           <p className="mt-2">
             Un VPS Ubuntu à jour, accessible en SSH, avec une IPv4 publique, des
@@ -164,7 +164,7 @@ export default function DocsPage() {
 
         <nav
           aria-label="Sommaire de la documentation"
-          className="mt-8 grid gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:grid-cols-2"
+          className="mt-8 grid gap-2 rounded-2xl border border-white/10 bg-[#121212] p-5 sm:grid-cols-2"
         >
           {sections.map((section) => (
             <a
@@ -182,7 +182,7 @@ export default function DocsPage() {
             <div
               key={s.title}
               id={s.id}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] p-8"
+              className="rounded-2xl border border-white/10 bg-[#121212] p-8"
             >
               <h2 className="text-xl font-bold text-white">{s.title}</h2>
               <ol className="mt-4 space-y-3">
@@ -191,7 +191,7 @@ export default function DocsPage() {
                     key={step}
                     className="flex items-start gap-3 text-sm leading-relaxed text-slate-300"
                   >
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-400/10 text-xs font-bold text-sky-300">
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-xs font-bold text-blue-400">
                       {i + 1}
                     </span>
                     {step}
@@ -202,14 +202,14 @@ export default function DocsPage() {
           ))}
         </div>
 
-        <div className="mt-12 rounded-2xl bg-gradient-to-br from-brand-light to-brand-lighter p-8 text-center">
+        <div className="mt-12 rounded-2xl border border-white/10 bg-[#121212] p-8 text-center shadow-xl">
           <h2 className="text-xl font-bold text-white">Une question ?</h2>
-          <p className="mt-2 text-sm text-sky-200">
+          <p className="mt-2 text-sm text-slate-300">
             Notre équipe vous répond par email.
           </p>
           <a
             href="mailto:contact@sovrack.com"
-            className="mt-5 inline-block rounded-xl bg-white px-6 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+            className="mt-5 inline-block rounded-xl bg-[#2563EB] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] shadow-md shadow-blue-500/20"
           >
             Contacter le support
           </a>

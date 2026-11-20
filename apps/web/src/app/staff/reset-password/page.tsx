@@ -169,7 +169,7 @@ function StaffResetPasswordForm() {
               <button
                 type="submit"
                 disabled={loading || code.length !== 8}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white shadow-md shadow-blue-500/20 transition hover:bg-[#1d4ed8] disabled:opacity-50"
               >
                 <KeyRound size={16} />
                 {loading ? "Réinitialisation…" : "Modifier le mot de passe"}

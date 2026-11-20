@@ -29,7 +29,7 @@ export default function BillingCancelPage() {
         <div className="mt-8 flex justify-center">
           <Link
             href={customerAppPath("/settings/billing")}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#1d4ed8]"
           >
             <ArrowLeft className="h-4 w-4" />
             {isEn ? "Back to Billing Settings" : "Retour à la facturation"}

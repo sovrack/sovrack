@@ -11,7 +11,7 @@ export default function BillingSuccessPage() {
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-lg rounded-3xl border border-cyan-400/30 bg-gradient-to-b from-sky-950/40 via-brand-light to-brand-light p-8 text-center shadow-2xl backdrop-blur-xl">
+      <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#121212] p-8 text-center shadow-2xl backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/40 bg-cyan-500/10 text-cyan-300 shadow-[0_0_24px_rgba(6,182,212,0.3)]">
           <CheckCircle2 className="h-9 w-9" />
         </div>
@@ -29,7 +29,7 @@ export default function BillingSuccessPage() {
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
             href={customerAppPath("/dashboard")}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#1d4ed8]"
           >
             {isEn ? "Go to Dashboard" : "Aller au Tableau de bord"}
             <ArrowRight className="h-4 w-4" />

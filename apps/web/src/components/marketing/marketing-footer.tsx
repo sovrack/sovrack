@@ -38,7 +38,7 @@ export default function MarketingFooter() {
                 <li>
                   <Link
                     href={publicSitePath("/pricing")}
-                    className="transition hover:text-sky-300"
+                    className="transition hover:text-blue-400"
                   >
                     Tarifs
                   </Link>
@@ -47,7 +47,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={customerAppPath("/register")}
-                  className="transition hover:text-sky-300"
+                  className="transition hover:text-blue-400"
                 >
                   Créer un compte
                 </Link>
@@ -55,7 +55,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={customerAppPath("/login")}
-                  className="transition hover:text-sky-300"
+                  className="transition hover:text-blue-400"
                 >
                   Connexion
                 </Link>
@@ -63,7 +63,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/")}
-                  className="transition hover:text-sky-300"
+                  className="transition hover:text-blue-400"
                 >
                   Accueil
                 </Link>
@@ -80,7 +80,7 @@ export default function MarketingFooter() {
                 <li>
                   <Link
                     href={publicSitePath("/docs")}
-                    className="transition hover:text-sky-300"
+                    className="transition hover:text-blue-400"
                   >
                     Documentation
                   </Link>
@@ -89,7 +89,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/security")}
-                  className="transition hover:text-sky-300"
+                  className="transition hover:text-blue-400"
                 >
                   Sécurité
                 </Link>
@@ -97,7 +97,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/status")}
-                  className="transition hover:text-sky-300"
+                  className="transition hover:text-blue-400"
                 >
                   État des services
                 </Link>
@@ -105,7 +105,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/legal")}
-                  className="transition hover:text-sky-300"
+                  className="transition hover:text-blue-400"
                 >
                   Mentions légales
                 </Link>
@@ -119,7 +119,7 @@ export default function MarketingFooter() {
               <li>
                 <a
                   href="mailto:contact@sovrack.com"
-                  className="transition hover:text-sky-300"
+                  className="transition hover:text-blue-400"
                 >
                   contact@sovrack.com
                 </a>

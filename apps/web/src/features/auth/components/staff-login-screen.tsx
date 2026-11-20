@@ -58,7 +58,7 @@ export function StaffLoginScreen() {
       <section className="mx-auto flex max-w-md items-center px-6 pb-24 pt-20">
         <div className="w-full">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/15 text-sky-300">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15 text-blue-400">
               <ShieldCheck size={20} />
             </span>
             <div>
@@ -94,12 +94,12 @@ export function StaffLoginScreen() {
                 autoComplete="email"
                 required
                 disabled={mfaRequired}
-                className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
               />
               <div className="mt-2 text-right">
                 <Link
                   href="/staff/forgot-password"
-                  className="text-xs font-semibold text-sky-400 hover:text-sky-300"
+                  className="text-xs font-semibold text-blue-400 hover:text-blue-300"
                 >
                   Mot de passe oublié ?
                 </Link>
@@ -121,7 +121,7 @@ export function StaffLoginScreen() {
                 autoComplete="current-password"
                 required
                 disabled={mfaRequired}
-                className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
               />
             </div>
             {mfaRequired && (
@@ -143,7 +143,7 @@ export function StaffLoginScreen() {
                   inputMode="numeric"
                   required
                   autoFocus
-                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm tracking-widest text-white transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm tracking-widest text-white transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
                 />
                 <button
                   type="button"
@@ -161,7 +161,7 @@ export function StaffLoginScreen() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
+              className="w-full rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] shadow-md shadow-blue-500/20 disabled:opacity-50"
             >
               {loading
                 ? "Vérification..."
