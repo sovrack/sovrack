@@ -52,16 +52,16 @@ export function ServerJobsPanel({
 }: ServerJobsPanelProps) {
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   return (
-    <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--hover)] p-3 bg-[var(--bg-card)]">
+    <div className="mt-4 rounded-lg border border-border bg-hover/10 p-3 bg-card">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-secondary">
           Job History
         </p>
         <button
           type="button"
           onClick={() => void onRefreshJobs(serverId)}
           disabled={isBusy}
-          className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-[11px] font-semibold text-secondary transition hover:bg-hover/10 hover:text-primary disabled:opacity-50"
         >
           {jobsLoading ? (
             <Loader2 size={12} className="animate-spin" />
@@ -73,7 +73,7 @@ export function ServerJobsPanel({
       </div>
 
       {jobs.length === 0 && !jobsLoading && (
-        <p className="mt-2 text-xs text-[var(--text-secondary)]">
+        <p className="mt-2 text-xs text-secondary">
           No jobs yet for this server.
         </p>
       )}
@@ -93,11 +93,11 @@ export function ServerJobsPanel({
             className={`mt-2 flex items-center justify-between gap-2 rounded-lg border px-3 py-2 ${
               isBlocked
                 ? "border-red-500/30 bg-red-500/10"
-                : "border-blue-500/30 bg-blue-500/10"
+                : "border-accent/30 bg-accent/10"
             }`}
           >
             <p
-              className={`text-[11px] ${isBlocked ? "text-red-300" : "text-blue-300"}`}
+              className={`text-[11px] ${isBlocked ? "text-red-300" : "text-accent"}`}
             >
               {isBlocked
                 ? "A job is stuck — the server is locked. Cancel it to unlock."
@@ -129,7 +129,7 @@ export function ServerJobsPanel({
           return (
             <div
               key={job.id}
-              className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-2"
+              className="rounded-lg border border-border bg-card p-2"
             >
               <div
                 role="button"
@@ -151,13 +151,13 @@ export function ServerJobsPanel({
                 <div className="flex items-center gap-1.5">
                   <ChevronDown
                     size={12}
-                    className={`shrink-0 text-[var(--text-secondary)] transition ${isExpanded ? "rotate-180" : ""}`}
+                    className={`shrink-0 text-secondary transition ${isExpanded ? "rotate-180" : ""}`}
                   />
                   <div>
-                    <p className="text-xs font-semibold text-[var(--text-primary)]">
+                    <p className="text-xs font-semibold text-primary">
                       {formatJobType(job.type)}
                     </p>
-                    <p className="text-[11px] text-[var(--text-secondary)]">
+                    <p className="text-[11px] text-secondary">
                       {new Date(job.createdAt).toLocaleString()} · attempts{" "}
                       {job.attempts}/{job.maxAttempts}
                     </p>
@@ -165,7 +165,7 @@ export function ServerJobsPanel({
                 </div>
                 <div className="flex items-center gap-2">
                   <span
-                    className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${getJobStatusClassName(
+                    className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${getJobStatusClassName(
                       job.status,
                     )}`}
                   >
@@ -181,7 +181,7 @@ export function ServerJobsPanel({
                         e.stopPropagation();
                         onViewSetupLogs(setup);
                       }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                      className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-[11px] font-semibold text-secondary transition hover:bg-hover/10 hover:text-primary"
                     >
                       <ScrollText size={11} />
                       Logs
@@ -213,7 +213,7 @@ export function ServerJobsPanel({
                         void onRetryJob(serverId, job.id);
                       }}
                       disabled={isBusy || retryingJobId === job.id}
-                      className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-[11px] font-semibold text-secondary transition hover:bg-hover/10 hover:text-primary disabled:opacity-50"
                     >
                       {retryingJobId === job.id ? (
                         <Loader2 size={11} className="animate-spin" />
@@ -227,7 +227,7 @@ export function ServerJobsPanel({
               </div>
 
               {!isExpanded && job.output && (
-                <p className="mt-1 line-clamp-2 text-[11px] text-[var(--text-secondary)]">
+                <p className="mt-1 line-clamp-2 text-[11px] text-secondary">
                   {job.output}
                 </p>
               )}
@@ -238,9 +238,9 @@ export function ServerJobsPanel({
               )}
 
               {isExpanded && (
-                <div className="mt-2 space-y-2 border-t border-[var(--border)] pt-2">
+                <div className="mt-2 space-y-2 border-t border-border pt-2">
                   {job.output && (
-                    <p className="whitespace-pre-wrap text-[11px] text-[var(--text-secondary)]">
+                    <p className="whitespace-pre-wrap text-[11px] text-secondary">
                       {job.output}
                     </p>
                   )}
@@ -250,7 +250,7 @@ export function ServerJobsPanel({
                     </p>
                   )}
                   {!job.output && !job.error && (
-                    <p className="text-[11px] text-[var(--text-secondary)]">
+                    <p className="text-[11px] text-secondary">
                       No output recorded for this job.
                     </p>
                   )}

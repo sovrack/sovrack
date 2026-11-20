@@ -244,7 +244,7 @@ export default function TeamDetailPage({ params }: Props) {
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-14 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--bg-card)]"
+            className="h-14 animate-pulse rounded-lg border border-border bg-card"
           />
         ))}
       </div>
@@ -253,7 +253,7 @@ export default function TeamDetailPage({ params }: Props) {
 
   if (!team) {
     return (
-      <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         <AlertTriangle size={16} className="mt-0.5 shrink-0" />
         <span>Espace de travail introuvable.</span>
       </div>
@@ -275,7 +275,7 @@ export default function TeamDetailPage({ params }: Props) {
         actions={
           <Link
             href="/admin/teams"
-            className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-secondary)]"
+            className="inline-flex items-center gap-1.5 text-sm text-secondary transition hover:text-secondary"
           >
             <ArrowLeft size={15} />
             Retour aux espaces
@@ -285,7 +285,7 @@ export default function TeamDetailPage({ params }: Props) {
 
       {toast && (
         <div
-          className={`rounded-xl px-4 py-3 text-sm font-medium ${
+          className={`rounded-lg px-4 py-3 text-sm font-medium ${
             toast.tone === "success"
               ? "border border-green-200 bg-green-50 text-green-700"
               : "border border-red-200 bg-red-50 text-red-700"
@@ -300,13 +300,13 @@ export default function TeamDetailPage({ params }: Props) {
           <form onSubmit={handleSave} className="space-y-4">
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
                   Nom <span className="text-red-500">*</span>
                 </label>
                 <input
                   value={form.name}
                   onChange={(e) => setField("name", e.target.value)}
-                  className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100"
+                  className="h-11 w-full rounded-lg border border-border bg-hover/10 px-4 text-sm text-primary outline-none transition focus:border-accent focus:bg-card focus:ring-2 focus:ring-accent/20"
                 />
                 {errors.name && (
                   <p className="mt-1 text-xs text-red-600">{errors.name}</p>
@@ -314,14 +314,14 @@ export default function TeamDetailPage({ params }: Props) {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
                   Description
                 </label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setField("description", e.target.value)}
                   rows={3}
-                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)] focus:ring-2 focus:ring-zinc-100"
+                  className="w-full rounded-lg border border-border bg-hover/10 px-4 py-3 text-sm text-primary outline-none transition focus:border-accent focus:bg-card focus:ring-2 focus:ring-accent/20"
                 />
               </div>
             </div>
@@ -330,7 +330,7 @@ export default function TeamDetailPage({ params }: Props) {
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] transition hover:bg-[var(--text-primary)] disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover disabled:opacity-60"
               >
                 {saving ? (
                   <Loader2 size={15} className="animate-spin" />
@@ -346,21 +346,21 @@ export default function TeamDetailPage({ params }: Props) {
         <SectionCard title="Informations de l’espace">
           <dl className="grid gap-4 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-[var(--text-muted)]">Nom</dt>
-              <dd className="mt-1 font-medium text-[var(--text-primary)]">
+              <dt className="text-muted">Nom</dt>
+              <dd className="mt-1 font-medium text-primary">
                 {team.name}
               </dd>
             </div>
             <div>
-              <dt className="text-[var(--text-muted)]">Votre rôle</dt>
-              <dd className="mt-1 font-medium text-[var(--text-primary)]">
+              <dt className="text-muted">Votre rôle</dt>
+              <dd className="mt-1 font-medium text-primary">
                 {workspaceRole}
               </dd>
             </div>
             {team.description && (
               <div className="sm:col-span-2">
-                <dt className="text-[var(--text-muted)]">Description</dt>
-                <dd className="mt-1 text-[var(--text-secondary)]">
+                <dt className="text-muted">Description</dt>
+                <dd className="mt-1 text-secondary">
                   {team.description}
                 </dd>
               </div>
@@ -375,7 +375,7 @@ export default function TeamDetailPage({ params }: Props) {
           description="Cet espace est limité à un seul utilisateur et ne permet pas les invitations."
         >
           <div className="space-y-3">
-            <p className="text-sm text-[var(--text-secondary)]">
+            <p className="text-sm text-secondary">
               Si vous souhaitez collaborer, convertissez-le en organisation.
               Cette conversion est définitive et conservera vos projets,
               serveurs et déploiements.
@@ -384,7 +384,7 @@ export default function TeamDetailPage({ params }: Props) {
               type="button"
               onClick={() => void handleConvert()}
               disabled={converting || workspaceRole !== "OWNER"}
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground disabled:opacity-50"
             >
               {converting && <Loader2 size={14} className="animate-spin" />}
               Convertir en organisation
@@ -394,27 +394,27 @@ export default function TeamDetailPage({ params }: Props) {
       ) : (
         <SectionCard title={`Membres (${team.members.length})`}>
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)]">
-              <Users size={18} className="text-[var(--text-secondary)]" />
+            <div className="flex items-center gap-2 text-base font-semibold text-primary">
+              <Users size={18} className="text-secondary" />
               Membres
             </div>
 
             {team.members.length === 0 ? (
-              <p className="text-sm text-[var(--text-secondary)]">
+              <p className="text-sm text-secondary">
                 Aucun membre.
               </p>
             ) : (
-              <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
+              <div className="divide-y divide-border rounded-lg border border-border">
                 {team.members.map((member) => (
                   <div
                     key={member.id}
                     className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                      <p className="text-sm font-medium text-primary">
                         {member.user.fullName}
                       </p>
-                      <p className="text-xs text-[var(--text-secondary)]">
+                      <p className="text-xs text-secondary">
                         {member.user.email}
                       </p>
                     </div>
@@ -430,7 +430,7 @@ export default function TeamDetailPage({ params }: Props) {
                                 : "ACTIVE",
                             )
                           }
-                          className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium"
+                          className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium"
                         >
                           {member.status === "ACTIVE"
                             ? "Suspendre"
@@ -445,7 +445,7 @@ export default function TeamDetailPage({ params }: Props) {
                               event.target.value as WorkspaceRole,
                             )
                           }
-                          className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs"
+                          className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs"
                         >
                           <option value="MEMBER">Membre</option>
                           {workspaceRole === "OWNER" && (
@@ -456,7 +456,7 @@ export default function TeamDetailPage({ params }: Props) {
                           )}
                         </select>
                         {workspaceRole === "OWNER" && (
-                          <label className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs">
+                          <label className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs">
                             <input
                               type="checkbox"
                               checked={member.canManageBilling}
@@ -485,11 +485,11 @@ export default function TeamDetailPage({ params }: Props) {
                         </button>
                       </div>
                     ) : (
-                      <div className="flex w-full flex-wrap gap-2 text-xs text-[var(--text-secondary)] sm:w-auto">
-                        <span className="rounded-full border border-[var(--border)] px-2.5 py-1">
+                      <div className="flex w-full flex-wrap gap-2 text-xs text-secondary sm:w-auto">
+                        <span className="rounded-md border border-border px-2.5 py-1">
                           {workspaceRoleLabel(member.role)}
                         </span>
-                        <span className="rounded-full border border-[var(--border)] px-2.5 py-1">
+                        <span className="rounded-md border border-border px-2.5 py-1">
                           {member.status === "ACTIVE" ? "Actif" : "Suspendu"}
                         </span>
                       </div>
@@ -510,14 +510,14 @@ export default function TeamDetailPage({ params }: Props) {
                   value={inviteEmail}
                   onChange={(event) => setInviteEmail(event.target.value)}
                   placeholder="member@example.com"
-                  className="h-10 min-w-64 flex-1 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 text-sm"
+                  className="h-10 min-w-64 flex-1 rounded-lg border border-border bg-hover/10 px-3 text-sm"
                 />
                 <select
                   value={inviteRole}
                   onChange={(event) =>
                     setInviteRole(event.target.value as WorkspaceRole)
                   }
-                  className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm"
+                  className="h-10 rounded-lg border border-border bg-card px-3 text-sm"
                 >
                   <option value="MEMBER">Membre</option>
                   {workspaceRole === "OWNER" && (
@@ -527,7 +527,7 @@ export default function TeamDetailPage({ params }: Props) {
                 <button
                   type="submit"
                   disabled={inviting}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 text-sm font-semibold text-[var(--bg-app)] disabled:opacity-50"
+                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground disabled:opacity-50"
                 >
                   {inviting ? (
                     <Loader2 size={14} className="animate-spin" />
@@ -541,13 +541,13 @@ export default function TeamDetailPage({ params }: Props) {
 
             {isAdmin && invitations.length > 0 && (
               <div className="space-y-2 pt-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
                   Invitations en attente
                 </p>
                 {invitations.map((invitation) => (
                   <div
                     key={invitation.id}
-                    className="flex items-center justify-between rounded-xl border border-[var(--border)] px-4 py-3 text-sm"
+                    className="flex items-center justify-between rounded-lg border border-border px-4 py-3 text-sm"
                   >
                     <span>
                       {invitation.email} · {invitation.role}
@@ -555,7 +555,7 @@ export default function TeamDetailPage({ params }: Props) {
                         className={`ml-2 text-xs ${
                           invitation.deliveryStatus === "FAILED"
                             ? "text-red-500"
-                            : "text-[var(--text-secondary)]"
+                            : "text-secondary"
                         }`}
                       >
                         Email{" "}
@@ -575,7 +575,7 @@ export default function TeamDetailPage({ params }: Props) {
                               .resendInvitation(id, invitation.id)
                               .then(() => invitationsQuery.refetch())
                           }
-                          className="text-xs font-semibold text-sky-500"
+                          className="text-xs font-semibold text-accent"
                         >
                           Renvoyer
                         </button>
@@ -613,7 +613,7 @@ export default function TeamDetailPage({ params }: Props) {
           <button
             type="button"
             onClick={() => setConfirmLeaveOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl border border-amber-500/40 px-4 py-2.5 text-sm font-semibold text-amber-500 transition hover:bg-amber-500/10"
+            className="inline-flex items-center gap-2 rounded-lg border border-amber-500/40 px-4 py-2.5 text-sm font-semibold text-amber-500 transition hover:bg-amber-500/10"
           >
             <UserMinus size={15} />
             Quitter l’organisation
@@ -630,7 +630,7 @@ export default function TeamDetailPage({ params }: Props) {
           <button
             type="button"
             onClick={() => setConfirmDeleteOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl border border-red-300 bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+            className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-card px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
           >
             <Archive size={15} />
             Archiver l’espace

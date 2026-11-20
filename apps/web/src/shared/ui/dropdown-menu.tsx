@@ -117,7 +117,7 @@ export function DropdownMenu({
             ref={menuRef}
             role="menu"
             style={{ top: coords.top, left: coords.left, width }}
-            className="fixed z-[100] rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-1.5 shadow-2xl"
+            className="fixed z-[100] rounded-lg border border-border bg-card p-1.5 shadow-theme-lg"
           >
             {children({ close })}
           </div>,
@@ -149,7 +149,7 @@ export function DropdownItem({
   const cls = `${baseItem} ${
     danger
       ? "text-red-400 hover:bg-red-500/10"
-      : "text-[var(--text-secondary)] hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+      : "text-secondary hover:bg-hover/10 hover:text-primary"
   }`;
   if (href) {
     return (
@@ -168,5 +168,5 @@ export function DropdownItem({
 }
 
 export function DropdownDivider() {
-  return <div className="my-1 border-t border-[var(--border)]" />;
+  return <div className="my-1 border-t border-border" />;
 }

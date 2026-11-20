@@ -66,7 +66,7 @@ function ConnectionStatusBadge({
 }) {
   if (isConnected) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/20 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-400">
+      <span className="inline-flex items-center gap-1.5 rounded-md border border-green-500/20 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-400">
         <CheckCircle2 size={12} />
         Connectedd
       </span>
@@ -75,7 +75,7 @@ function ConnectionStatusBadge({
 
   if (error) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-400">
+      <span className="inline-flex items-center gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-400">
         <XCircle size={12} />
         Not connected
       </span>
@@ -83,7 +83,7 @@ function ConnectionStatusBadge({
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-1 text-xs font-semibold text-[var(--text-secondary)]">
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1 text-xs font-semibold text-secondary">
       <AlertCircle size={12} />
       Not tested
     </span>
@@ -291,14 +291,14 @@ export default function RegistrySettingsPage() {
         <div className="flex items-center justify-center py-12">
           <Loader2
             size={24}
-            className="animate-spin text-[var(--text-secondary)]"
+            className="animate-spin text-secondary"
           />
         </div>
       )}
 
       {!loading && registries.length === 0 && dialogMode === null && (
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-12 text-center">
-          <p className="mb-4 text-[var(--text-secondary)]">
+        <div className="rounded-lg border border-border bg-card p-12 text-center">
+          <p className="mb-4 text-secondary">
             No registry configured
           </p>
           <Button
@@ -321,13 +321,13 @@ export default function RegistrySettingsPage() {
             }}
             aria-hidden
           />
-          <div className="relative z-10 max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
-            <div className="sticky top-0 z-10 flex items-start justify-between border-b border-[var(--border)] bg-[var(--bg-card)] px-6 py-3">
+          <div className="relative z-10 max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-card shadow-theme-lg">
+            <div className="sticky top-0 z-10 flex items-start justify-between border-b border-border bg-card px-6 py-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-secondary">
                   Settings
                 </p>
-                <h3 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+                <h3 className="mt-1 text-lg font-semibold text-primary">
                   {dialogMode === "create" ? "Add registry" : "Edit registry"}
                 </h3>
               </div>
@@ -338,7 +338,7 @@ export default function RegistrySettingsPage() {
                   setDialogMode(null);
                   setSelectedRegistry(null);
                 }}
-                className="rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                className="rounded-lg p-1.5 text-secondary transition hover:bg-hover/10 hover:text-primary"
                 aria-label="Close"
               >
                 <X size={16} />
@@ -366,28 +366,28 @@ export default function RegistrySettingsPage() {
           {registries.map((registry) => (
             <div
               key={registry.id}
-              className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-4"
+              className="rounded-lg border border-border bg-card p-4"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-lg bg-[var(--bg-secondary)] p-2">
+                  <div className="rounded-md bg-hover/10 p-2">
                     <RegistryLogo type={registry.type} />
                   </div>
 
                   <div>
-                    <h4 className="font-semibold text-[var(--text-primary)]">
+                    <h4 className="font-semibold text-primary">
                       {registry.name}
                     </h4>
-                    <p className="text-sm text-[var(--text-secondary)]">
+                    <p className="text-sm text-secondary">
                       {REGISTRY_TYPE_LABELS[registry.type]}
                       {registry.isDefault && (
-                        <span className="ml-2 inline-block rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-400">
+                        <span className="ml-2 inline-block rounded-md bg-accent/20 px-2 py-0.5 text-xs text-accent">
                           Par defaut
                         </span>
                       )}
                     </p>
                     {registry.registryUrl && (
-                      <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                      <p className="mt-1 text-xs text-secondary">
                         URL: {registry.registryUrl}
                       </p>
                     )}

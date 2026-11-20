@@ -73,10 +73,10 @@ export function RegistryForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className={`space-y-4 ${withTopDivider ? "border-t border-[var(--border)] pt-4" : ""}`}
+      className={`space-y-4 ${withTopDivider ? "border-t border-border pt-4" : ""}`}
     >
       <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)]">
+        <label className="block text-sm font-medium text-primary">
           Name
         </label>
         <input
@@ -85,14 +85,14 @@ export function RegistryForm({
           onChange={(event) =>
             setForm((previous) => ({ ...previous, name: event.target.value }))
           }
-          className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]"
+          className="mt-1 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-primary"
           placeholder="e.g. Team Docker Hub"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)]">
+        <label className="block text-sm font-medium text-primary">
           Registry type
         </label>
         <select
@@ -103,7 +103,7 @@ export function RegistryForm({
               type: event.target.value as RegistryProviderType,
             }))
           }
-          className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]"
+          className="mt-1 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-primary"
         >
           {REGISTRY_TYPE_OPTIONS.map((type) => (
             <option key={type} value={type}>
@@ -117,7 +117,7 @@ export function RegistryForm({
         form.type === "DOCKER_REGISTRY" ||
         form.type === "GITLAB") && (
         <div>
-          <label className="block text-sm font-medium text-[var(--text-primary)]">
+          <label className="block text-sm font-medium text-primary">
             Username
           </label>
           <input
@@ -129,11 +129,11 @@ export function RegistryForm({
                 username: event.target.value,
               }))
             }
-            className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]"
+            className="mt-1 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-primary"
             placeholder="Registry user"
           />
           {form.type === "GITLAB" && (
-            <p className="mt-1 text-xs text-[var(--text-muted)]">
+            <p className="mt-1 text-xs text-muted">
               GitLab : Deploy token → le <strong>nom du token</strong> · PAT →
               ton <strong>login GitLab</strong> · token de projet → le{" "}
               <strong>nom du token</strong>.
@@ -146,7 +146,7 @@ export function RegistryForm({
         form.type === "DOCKER_REGISTRY" ||
         form.type === "GITLAB") && (
         <div>
-          <label className="block text-sm font-medium text-[var(--text-primary)]">
+          <label className="block text-sm font-medium text-primary">
             Password / token
           </label>
           <input
@@ -158,13 +158,13 @@ export function RegistryForm({
                 password: event.target.value,
               }))
             }
-            className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]"
+            className="mt-1 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-primary"
             placeholder={
               mode === "edit" ? "Leave empty to keep" : "Secret token"
             }
           />
           {form.type === "GITLAB" && (
-            <p className="mt-1 text-xs text-[var(--text-muted)]">
+            <p className="mt-1 text-xs text-muted">
               Token with the <strong>read_registry</strong> scope
               (write_registry for push). Deploy token recommended (Settings →
               Repository → Deploy tokens).
@@ -175,7 +175,7 @@ export function RegistryForm({
 
       {(form.type === "DOCKER_REGISTRY" || form.type === "GITLAB") && (
         <div>
-          <label className="block text-sm font-medium text-[var(--text-primary)]">
+          <label className="block text-sm font-medium text-primary">
             Registry URL
           </label>
           <input
@@ -187,7 +187,7 @@ export function RegistryForm({
                 registryUrl: event.target.value,
               }))
             }
-            className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-3 py-2 text-sm text-[var(--text-primary)]"
+            className="mt-1 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-primary"
             placeholder="https://registry.ton-registre.com"
           />
         </div>
@@ -203,9 +203,9 @@ export function RegistryForm({
               isDefault: event.target.checked,
             }))
           }
-          className="rounded border border-[var(--border)]"
+          className="rounded border border-border"
         />
-        <span className="text-sm text-[var(--text-secondary)]">
+        <span className="text-sm text-secondary">
           Set as default registry
         </span>
       </label>

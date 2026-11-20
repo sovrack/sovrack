@@ -16,21 +16,21 @@ export function KindPicker({ onPick }: { onPick: (k: ServiceKind) => void }) {
           key={k.kind}
           type="button"
           onClick={() => onPick(k.kind)}
-          className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4 text-left transition hover:border-[var(--text-muted)] hover:bg-[var(--hover)]"
+          className="flex items-start gap-3 rounded-lg border border-border bg-app p-4 text-left transition hover:border-muted hover:bg-hover/10"
         >
-          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-secondary)]">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-secondary">
             {k.icon}
           </span>
           <span className="min-w-0">
-            <span className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+            <span className="flex items-center gap-2 text-sm font-semibold text-primary">
               {k.label}
               {k.badge && (
-                <span className="rounded-full border border-[var(--border)] bg-[var(--hover)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                <span className="rounded-md border border-border bg-hover/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted">
                   {k.badge}
                 </span>
               )}
             </span>
-            <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+            <span className="mt-0.5 block text-xs text-muted">
               {k.hint}
             </span>
           </span>
@@ -43,8 +43,8 @@ export function KindPicker({ onPick }: { onPick: (k: ServiceKind) => void }) {
 export function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <dt className="text-[var(--text-muted)]">{k}</dt>
-      <dd className="truncate font-medium text-[var(--text-primary)]">{v}</dd>
+      <dt className="text-muted">{k}</dt>
+      <dd className="truncate font-medium text-primary">{v}</dd>
     </div>
   );
 }
@@ -60,13 +60,13 @@ export function ProviderSelect({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
         Provider
       </label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
+        className="w-full rounded-lg border border-border bg-app px-3 py-2 text-sm text-primary outline-none"
       >
         {providers.length === 0 ? (
           <option value="">
@@ -129,14 +129,14 @@ export function RepoOneClickSection({
       <div className="relative">
         <Search
           size={14}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
         />
         <input
           type="text"
           value={repoSearch}
           onChange={(e) => setRepoSearch(e.target.value)}
           placeholder="Rechercher un dépôt parmi vos projets..."
-          className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] py-2 pl-9 pr-8 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--text-primary)] focus:outline-none"
+          className="w-full rounded-lg border border-border bg-app py-2 pl-9 pr-8 text-xs text-primary placeholder:text-muted focus:border-accent focus:outline-none"
         />
         {repoSearch && (
           <button
@@ -144,7 +144,7 @@ export function RepoOneClickSection({
             onClick={() => setRepoSearch("")}
             title="Effacer la recherche"
             aria-label="Effacer la recherche"
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-muted hover:text-primary"
           >
             <X size={12} />
           </button>
@@ -152,13 +152,13 @@ export function RepoOneClickSection({
       </div>
 
       {!loadingRepos && providerRepos.length > 0 && (
-        <div className="flex items-center justify-between px-1 text-[11px] text-[var(--text-muted)]">
+        <div className="flex items-center justify-between px-1 text-[11px] text-muted">
           <span>
             {filteredRepos.length}{" "}
             {filteredRepos.length > 1 ? "dépôts trouvés" : "dépôt trouvé"}
           </span>
           {repoSearch && (
-            <span className="text-[10px] font-medium text-[var(--text-secondary)]">
+            <span className="text-[10px] font-medium text-secondary">
               Filtre actif
             </span>
           )}
@@ -166,37 +166,37 @@ export function RepoOneClickSection({
       )}
 
       {loadingRepos ? (
-        <div className="flex items-center justify-center gap-2 rounded-xl border border-[var(--border)] py-8 text-xs text-[var(--text-secondary)]">
+        <div className="flex items-center justify-center gap-2 rounded-lg border border-border py-8 text-xs text-secondary">
           <Loader2
             size={16}
-            className="animate-spin text-[var(--text-primary)]"
+            className="animate-spin text-primary"
           />
           Chargement de vos dépôts {platform}...
         </div>
       ) : providerRepos.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--border)] p-4 text-center text-xs text-[var(--text-secondary)]">
+        <div className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-secondary">
           Aucun dépôt trouvé ou token en attente.{" "}
           <button
             type="button"
             onClick={() => setRepoMode("manual")}
-            className="font-semibold text-[var(--text-primary)] underline"
+            className="font-semibold text-primary underline"
           >
             Passer en mode Manuel
           </button>
         </div>
       ) : filteredRepos.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--border)] p-4 text-center text-xs text-[var(--text-secondary)]">
+        <div className="rounded-lg border border-dashed border-border p-4 text-center text-xs text-secondary">
           Aucun dépôt ne correspond à &ldquo;{repoSearch}&rdquo;.{" "}
           <button
             type="button"
             onClick={() => setRepoSearch("")}
-            className="font-semibold text-[var(--text-primary)] underline"
+            className="font-semibold text-primary underline"
           >
             Réinitialiser le filtre
           </button>
         </div>
       ) : (
-        <div className="max-h-44 divide-y divide-[var(--border)] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-app)]">
+        <div className="max-h-44 divide-y divide-border overflow-y-auto rounded-lg border border-border bg-app">
           {filteredRepos
             .map((r) => {
               const isSelected = repoPath === r.fullName;
@@ -205,10 +205,10 @@ export function RepoOneClickSection({
                   key={r.id}
                   type="button"
                   onClick={() => pickRepo(r)}
-                  className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition hover:bg-[var(--hover)] ${
+                  className={`flex w-full items-center justify-between px-3 py-2 text-left text-xs transition hover:bg-hover/10 ${
                     isSelected
-                      ? "bg-[var(--hover)] font-semibold text-[var(--text-primary)]"
-                      : "text-[var(--text-secondary)]"
+                      ? "bg-hover/10 font-semibold text-primary"
+                      : "text-secondary"
                   }`}
                 >
                   <div className="flex items-center gap-2 overflow-hidden">
@@ -216,14 +216,14 @@ export function RepoOneClickSection({
                       size={14}
                       className={
                         isSelected
-                          ? "shrink-0 text-[var(--text-primary)]"
-                          : "shrink-0 text-[var(--text-muted)]"
+                          ? "shrink-0 text-primary"
+                          : "shrink-0 text-muted"
                       }
                     />
                     <span className="truncate">{r.fullName}</span>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className="rounded bg-[var(--hover)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">
+                    <span className="rounded bg-hover/10 px-1.5 py-0.5 text-[10px] text-muted">
                       {r.defaultBranch}
                     </span>
                     {isSelected && (
@@ -237,7 +237,7 @@ export function RepoOneClickSection({
       )}
 
       {repoPath && (
-        <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-2.5 text-xs text-green-300">
+        <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-2.5 text-xs text-green-300">
           Dépôt sélectionné : <span className="font-semibold">{repoPath}</span>
         </div>
       )}

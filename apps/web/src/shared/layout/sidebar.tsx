@@ -7,7 +7,7 @@ import { useAuth } from "@/features/auth/api/use-auth";
 import { useSidebar } from "@/shared/contexts/sidebar-context";
 import { useI18n } from "@/shared/i18n/language-context";
 import { LogOut, Settings } from "lucide-react";
-import { SovrackLogo } from "@/components/marketing/sovrack-logo";
+import { SovrackLogo } from "@/shared/ui/sovrack-logo";
 import { APP_NAV_SECTIONS, isRouteActive } from "@/shared/config/navigation";
 import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import { customerAppPath } from "@/shared/config/product-urls";
@@ -39,16 +39,16 @@ function NavItem({
         "group flex items-center gap-3 rounded-md py-2 text-[15px] transition-colors duration-150",
         collapsed ? "px-3 lg:justify-center lg:px-0" : "px-3",
         isActive
-          ? "bg-[var(--sidebar-active-bg)] font-medium text-[var(--sidebar-text-active)]"
-          : "font-normal text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-text-active)]",
+          ? "bg-accent/10 font-medium text-primary"
+          : "font-normal text-secondary hover:bg-hover/10 hover:text-primary",
       )}
     >
       <Icon
         className={clsx(
           "h-5 w-5 shrink-0 transition-colors",
           isActive
-            ? "text-[var(--sidebar-text-active)]"
-            : "text-[var(--sidebar-icon)] group-hover:text-[var(--sidebar-text-active)]",
+            ? "text-primary"
+            : "text-secondary group-hover:text-primary",
         )}
       />
       <span className={clsx("truncate", collapsed && "lg:hidden")}>
@@ -68,7 +68,7 @@ function SectionLabel({
   return (
     <p
       className={clsx(
-        "mb-1 mt-5 px-3 text-xs font-medium uppercase tracking-[0.12em] text-[var(--sidebar-text-muted)]",
+        "mb-1 mt-5 px-3 text-xs font-medium uppercase tracking-[0.12em] text-muted",
         collapsed && "lg:hidden",
       )}
     >
@@ -105,7 +105,7 @@ export function Sidebar() {
       <aside
         aria-label="Navigation principale"
         className={clsx(
-          "fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-[var(--border)] bg-[var(--bg-sidebar)] transition-all duration-300 ease-in-out lg:z-40",
+          "fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-border bg-sidebar transition-all duration-300 ease-in-out lg:z-40",
           collapsed ? "lg:w-20" : "lg:w-64",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
@@ -122,10 +122,10 @@ export function Sidebar() {
               collapsed && "lg:justify-center",
             )}
           >
-            <SovrackLogo className="w-7 h-7 text-white shrink-0" />
+            <SovrackLogo className="w-7 h-7 text-primary shrink-0" />
             <span
               className={clsx(
-                "truncate text-[18px] font-semibold tracking-[-0.02em] text-white antialiased",
+                "truncate text-[18px] font-semibold tracking-[-0.02em] text-primary antialiased",
                 collapsed && "lg:hidden",
               )}
             >
@@ -170,10 +170,10 @@ export function Sidebar() {
         </div>
 
         {/* User card — click to go to platform settings */}
-        <div className="shrink-0 border-t border-[var(--border)] p-3">
+        <div className="shrink-0 border-t border-border p-3">
           <div
             className={clsx(
-              "flex items-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] transition hover:bg-[var(--sidebar-hover-bg)]",
+              "flex items-center rounded-lg border border-border bg-card transition hover:bg-hover/10",
               collapsed
                 ? "gap-3 px-3 py-2.5 lg:justify-center lg:gap-0 lg:px-0"
                 : "gap-3 px-3 py-2.5",
@@ -188,14 +188,14 @@ export function Sidebar() {
                 collapsed && "lg:justify-center",
               )}
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--text-primary)] text-[11px] font-bold text-[var(--bg-app)]">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-accent-foreground">
                 {initials}
               </div>
               <div className={clsx("min-w-0 flex-1", collapsed && "lg:hidden")}>
-                <p className="truncate text-[15px] font-medium text-[var(--sidebar-text)]">
+                <p className="truncate text-[15px] font-medium text-secondary">
                   {user?.fullName ?? "Utilisateur"}
                 </p>
-                <p className="truncate text-[12px] text-[var(--sidebar-text-muted)]">
+                <p className="truncate text-[12px] text-muted">
                   {workspaceRoleLabel(workspaceRole)}
                 </p>
               </div>
@@ -210,7 +210,7 @@ export function Sidebar() {
               <Link
                 href="/settings/account"
                 title="Réglages de la plateforme"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sidebar-text-muted)] transition hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-text-active)]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:bg-hover/10 hover:text-primary"
               >
                 <Settings size={14} />
               </Link>
@@ -218,7 +218,7 @@ export function Sidebar() {
                 type="button"
                 onClick={logout}
                 title="Se déconnecter"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sidebar-text-muted)] transition hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-text-active)]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:bg-hover/10 hover:text-primary"
               >
                 <LogOut size={14} />
               </button>

@@ -6,13 +6,13 @@ type SkeletonProps = {
 };
 
 export function Skeleton({ className, variant = "text" }: SkeletonProps) {
-  const base = "animate-pulse bg-[var(--border)] rounded-md";
+  const base = "animate-pulse bg-border rounded-md";
 
   const variants: Record<string, string> = {
     text: "h-4 w-full",
-    card: "h-40 w-full rounded-xl",
+    card: "h-40 w-full rounded-lg",
     avatar: "h-10 w-10 rounded-full",
-    button: "h-9 w-24 rounded-xl",
+    button: "h-9 w-24 rounded-lg",
     circle: "h-14 w-14 rounded-full",
   };
 
@@ -21,7 +21,7 @@ export function Skeleton({ className, variant = "text" }: SkeletonProps) {
 
 export function SkeletonCard() {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+    <div className="rounded-lg border border-border bg-card p-5">
       <div className="flex items-start gap-4">
         <Skeleton variant="avatar" />
         <div className="flex-1 space-y-3">
@@ -36,14 +36,14 @@ export function SkeletonCard() {
 
 export function SkeletonTable({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
-      <div className="border-b border-[var(--border)] px-5 py-3">
+    <div className="rounded-lg border border-border bg-card">
+      <div className="border-b border-border px-5 py-3">
         <Skeleton className="h-4 w-1/4" />
       </div>
       {Array.from({ length: rows }, (_, i) => (
         <div
           key={i}
-          className="flex items-center gap-4 border-b border-[var(--border)] px-5 py-4 last:border-0"
+          className="flex items-center gap-4 border-b border-border px-5 py-4 last:border-0"
         >
           <Skeleton variant="circle" className="h-8 w-8" />
           <div className="flex-1 space-y-2">

@@ -64,21 +64,21 @@ export function ServiceEnvironmentSelector({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] hover:bg-[var(--hover)]"
+        className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-secondary transition hover:text-primary hover:bg-hover/10"
       >
-        <Layers size={14} className="text-[var(--text-muted)]" />
+        <Layers size={14} className="text-muted" />
         {selectedEnv ? (
           <span>
             Environment: <span className="font-medium">{selectedEnv.name}</span>
           </span>
         ) : (
-          <span className="text-[var(--text-muted)]">Select environment</span>
+          <span className="text-muted">Select environment</span>
         )}
-        <ChevronDown size={14} className="text-[var(--text-muted)]" />
+        <ChevronDown size={14} className="text-muted" />
       </button>
 
       {open && (
-        <div className="absolute left-0 z-50 mt-2 w-64 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-2 shadow-2xl">
+        <div className="absolute left-0 z-50 mt-2 w-64 rounded-lg border border-border bg-card p-2 shadow-theme-lg">
           <div className="space-y-0.5">
             {links.map((link) => {
               const env = environments.find((e) => e.id === link.environmentId);
@@ -96,8 +96,8 @@ export function ServiceEnvironmentSelector({
                   className={clsx(
                     "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition",
                     selected
-                      ? "bg-[var(--hover)] text-[var(--text-primary)]"
-                      : "text-[var(--text-secondary)] hover:bg-[var(--hover)] hover:text-[var(--text-primary)]",
+                      ? "bg-hover/10 text-primary"
+                      : "text-secondary hover:bg-hover/10 hover:text-primary",
                   )}
                 >
                   {reachable !== null && (
@@ -115,15 +115,15 @@ export function ServiceEnvironmentSelector({
                   )}
                   <span
                     className={clsx(
-                      "rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
+                      "rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase",
                       ENV_BADGE[env?.name ?? ""] ??
-                        "border-zinc-500/20 bg-zinc-500/10 text-zinc-400",
+                        "border-border bg-hover/10 text-secondary",
                     )}
                   >
                     {env?.name ?? "?"}
                   </span>
                   {server && (
-                    <span className="truncate text-xs text-[var(--text-muted)]">
+                    <span className="truncate text-xs text-muted">
                       {server.name}
                     </span>
                   )}
@@ -132,11 +132,11 @@ export function ServiceEnvironmentSelector({
             })}
           </div>
 
-          <div className="mt-1.5 border-t border-[var(--border)] pt-1.5">
+          <div className="mt-1.5 border-t border-border pt-1.5">
             <Link
               href={`/projects/${projectId}?openEnvironments=true`}
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted transition hover:bg-hover/10 hover:text-primary"
             >
               <Settings size={12} />
               Manage project environments →

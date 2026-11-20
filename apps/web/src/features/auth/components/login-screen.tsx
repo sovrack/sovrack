@@ -109,31 +109,31 @@ export function LoginScreen() {
   return (
     <AuthLayout headerAction={{ label: "Créer un compte", href: registerHref }}>
       <div className="w-full">
-        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">
           Connexion à Sovrack
         </h1>
-        <p className="mt-2 text-sm text-slate-400">
+        <p className="mt-2 text-sm text-secondary">
           Connectez-vous à votre espace Sovrack.
         </p>
 
         {error && (
-          <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-xs text-red-300">
+          <div className="mt-5 rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-3 text-xs text-red-300">
             {error}
           </div>
         )}
 
         {process.env.NODE_ENV !== "production" && (
-          <div className="mt-5 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-blue-200">
+          <div className="mt-5 rounded-lg border border-accent/30 bg-accent/10 p-3.5 text-xs text-accent">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <p className="font-semibold text-white">Compte de test local</p>
-                <p className="text-slate-300 font-mono text-[11px]">owner@sovrack.test</p>
+                <p className="font-semibold text-primary">Compte de test local</p>
+                <p className="text-secondary font-mono text-[11px]">owner@sovrack.test</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handlePreFill}
-                  className="rounded-lg border border-white/15 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-200 hover:bg-white/10 transition"
+                  className="rounded-lg border border-border bg-hover/10 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-hover/15 transition"
                 >
                   Pré-remplir
                 </button>
@@ -141,7 +141,7 @@ export function LoginScreen() {
                   type="button"
                   onClick={handleLocalQuickLogin}
                   disabled={loading}
-                  className="rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1d4ed8] transition shadow-sm"
+                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground hover:bg-accent-hover transition "
                 >
                   {loading ? "Connexion..." : "Connexion 1-clic →"}
                 </button>
@@ -155,14 +155,14 @@ export function LoginScreen() {
             <>
               <GoogleLoginButton
                 nextPath={searchParams.get("next") || undefined}
-                className="rounded-xl border border-white/15 bg-white/[0.04] hover:bg-white/10 text-slate-200"
+                className="rounded-lg border border-border bg-card hover:bg-hover/15 text-primary"
               />
               <div className="relative flex items-center gap-3 py-1">
-                <span className="h-px flex-1 bg-white/10" />
-                <span className="text-xs uppercase tracking-wider text-slate-500 font-medium">
+                <span className="h-px flex-1 bg-hover/15" />
+                <span className="text-xs uppercase tracking-wider text-muted font-medium">
                   {t("or with your email")}
                 </span>
-                <span className="h-px flex-1 bg-white/10" />
+                <span className="h-px flex-1 bg-hover/15" />
               </div>
             </>
           )}
@@ -170,7 +170,7 @@ export function LoginScreen() {
           <div>
             <label
               htmlFor="email"
-              className="block text-xs font-medium uppercase tracking-wider text-slate-400"
+              className="block text-xs font-medium uppercase tracking-wider text-secondary"
             >
               Email
             </label>
@@ -182,7 +182,7 @@ export function LoginScreen() {
               placeholder="vous@entreprise.com"
               autoComplete="email"
               required
-              className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+              className="mt-1.5 w-full rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-primary placeholder:text-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
             />
           </div>
 
@@ -190,13 +190,13 @@ export function LoginScreen() {
             <div className="flex items-center justify-between">
               <label
                 htmlFor="password"
-                className="block text-xs font-medium uppercase tracking-wider text-slate-400"
+                className="block text-xs font-medium uppercase tracking-wider text-secondary"
               >
                 Mot de passe
               </label>
               <Link
                 href="/forgot-password"
-                className="text-xs text-blue-400 transition hover:text-blue-300"
+                className="text-xs text-accent transition hover:text-accent"
               >
                 Mot de passe oublié ?
               </Link>
@@ -210,7 +210,7 @@ export function LoginScreen() {
                 placeholder="Votre mot de passe"
                 autoComplete="current-password"
                 required
-                className="w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 pr-11 text-sm text-white placeholder:text-slate-500 transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                className="w-full rounded-lg border border-border bg-card px-4 py-2.5 pr-11 text-sm text-primary placeholder:text-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               />
               <button
                 type="button"
@@ -220,7 +220,7 @@ export function LoginScreen() {
                     ? "Masquer le mot de passe"
                     : "Afficher le mot de passe"
                 }
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-white"
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-secondary hover:text-primary"
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -231,7 +231,7 @@ export function LoginScreen() {
             <div>
               <label
                 htmlFor="mfa-code"
-                className="block text-xs font-medium uppercase tracking-wider text-slate-400"
+                className="block text-xs font-medium uppercase tracking-wider text-secondary"
               >
                 Code de double authentification
               </label>
@@ -245,9 +245,9 @@ export function LoginScreen() {
                 placeholder="123456 ou code de secours"
                 required
                 autoFocus
-                className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 font-mono text-sm text-white placeholder:text-slate-500 transition focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400/20"
+                className="mt-1.5 w-full rounded-lg border border-border bg-card px-4 py-2.5 font-mono text-sm text-primary placeholder:text-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               />
-              <p className="mt-1.5 text-xs text-slate-500">
+              <p className="mt-1.5 text-xs text-muted">
                 Ce champ apparaît uniquement car cette protection est activée sur votre compte.
               </p>
             </div>
@@ -256,17 +256,17 @@ export function LoginScreen() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] shadow-md shadow-blue-500/20 disabled:opacity-50"
+            className="w-full rounded-lg bg-accent py-3 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover   disabled:opacity-50"
           >
             {loading ? "Connexion..." : "Se connecter"}
           </button>
         </form>
 
-        <p className="mt-8 text-center text-xs text-slate-400">
+        <p className="mt-8 text-center text-xs text-secondary">
           Pas encore de compte ?{" "}
           <Link
             href={registerHref}
-            className="font-medium text-white transition hover:underline"
+            className="font-medium text-primary transition hover:underline"
           >
             S&rsquo;inscrire
           </Link>

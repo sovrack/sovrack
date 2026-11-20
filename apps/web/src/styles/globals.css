@@ -3,79 +3,34 @@
 @tailwind utilities;
 
 :root {
-  --font-outfit: "Avenir Next", "Segoe UI", sans-serif;
-  --font-plex-mono: "IBM Plex Mono", "SFMono-Regular", "Consolas", monospace;
-  --bg-app: #fafafa;
-  --bg-sidebar: #ffffff;
-  --bg-card: #ffffff;
-  --border: #e4e4e7;
-  --text-primary: #09090b;
-  --text-secondary: #71717a;
-  --text-muted: #a1a1aa;
-  --hover: #f4f4f5;
-  --active: #f4f4f5;
-  --sidebar-text: #3f3f46;
-  --sidebar-text-muted: #a1a1aa;
-  --sidebar-text-active: #09090b;
-  --sidebar-icon: #3f3f46;
-  --sidebar-active-bg: #f4f4f5;
-  --sidebar-hover-bg: #f4f4f5;
-  --success: #22c55e;
-  --error: #ef4444;
-  --warning: #eab308;
-  --idle: #71717a;
-  --shadow-sm: 0 1px 2px rgba(24, 24, 27, 0.08);
-  --shadow-lg: 0 10px 24px rgba(24, 24, 27, 0.1);
-  --primary: 240 5.9% 10%;
-  --primary-foreground: 0 0% 98%;
-}
+  /* Backgrounds */
+  --bg-app: 11 13 18; /* #0B0D12 */
+  --bg-sidebar: 17 20 28; /* #11141C */
+  --bg-card: 17 20 28; /* #11141C */
+  --bg-surface: 17 20 28; /* #11141C */
 
-.dark {
-  --bg-app: #0a0a0a;
-  --bg-sidebar: #0a0a0a;
-  --bg-card: #121212;
-  --border: #262626;
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --hover: #171717;
-  --active: #262626;
-  --sidebar-text: #e4e4e7;
-  --sidebar-text-muted: #71717a;
-  --sidebar-text-active: #ffffff;
-  --sidebar-icon: #a1a1aa;
-  --sidebar-active-bg: #1a1a1a;
-  --sidebar-hover-bg: rgba(26, 26, 26, 0.7);
-  --success: #22c55e;
-  --error: #ef4444;
-  --warning: #eab308;
-  --idle: #71717a;
-  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.65);
-  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.5);
-  --primary: 217 91% 60%;
-  --primary-foreground: 0 0% 100%;
-}
+  /* Borders */
+  --border: 30 36 48; /* #1E2430 */
+  --border-hover: 45 54 72; /* #2D3648 */
 
-.brand {
-  --bg-app: #0a0a0a;
-  --bg-sidebar: #0a0a0a;
-  --bg-card: #121212;
-  --border: #262626;
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --hover: #171717;
-  --active: #262626;
-  --sidebar-text: #e4e4e7;
-  --sidebar-text-muted: #71717a;
-  --sidebar-text-active: #ffffff;
-  --sidebar-icon: #2563EB;
-  --sidebar-active-bg: #1a1a1a;
-  --sidebar-hover-bg: rgba(26, 26, 26, 0.7);
-  --primary: 217 91% 60%;
-  --primary-foreground: 0 0% 100%;
-  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.65);
-  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.5);
+  /* Text */
+  --text-primary: 248 250 252; /* #F8FAFC */
+  --text-secondary: 148 163 184; /* #94A3B8 */
+  --text-muted: 148 163 184; /* #94A3B8 */
+
+  /* Brand accent */
+  --accent: 37 99 235; /* #2563EB */
+  --accent-hover: 59 130 246; /* #3B82F6 */
+  --accent-foreground: 255 255 255;
+
+  /* Functional status colors */
+  --success: 34 197 94; /* #22C55E */
+  --warning: 245 158 11; /* #F59E0B */
+  --error: 239 68 68; /* #EF4444 */
+
+  /* Interaction states */
+  --hover: 148 163 184;
+  --active: 148 163 184;
 }
 
 * {
@@ -88,23 +43,11 @@ body {
 }
 
 body {
-  color: var(--text-primary);
-  background-color: var(--bg-app);
-  font-family: var(--font-outfit), "Avenir Next", "Segoe UI", sans-serif;
+  color: rgb(var(--text-primary));
+  background-color: rgb(var(--bg-app));
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   text-rendering: geometricPrecision;
-  color-scheme: light;
-}
-
-html.dark body {
-  color: var(--text-primary);
-  background-color: var(--bg-app);
   color-scheme: dark;
-}
-
-html.light body {
-  color: var(--text-primary);
-  background-color: var(--bg-app);
-  color-scheme: light;
 }
 
 a {
@@ -121,7 +64,8 @@ a:hover {
 }
 
 .mono {
-  font-family: var(--font-plex-mono), monospace;
+  font-family: var(--font-mono), ui-monospace, "SFMono-Regular", "Consolas",
+    monospace;
 }
 
 .fade-up {
@@ -139,36 +83,9 @@ a:hover {
   }
 }
 
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0) rotate(-6deg);
-  }
-  50% {
-    transform: translateY(-16px) rotate(-4deg);
-  }
-}
-
-@keyframes float-in {
-  from {
-    opacity: 0;
-    transform: scale(0.85);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes dashmove {
-  to {
-    stroke-dashoffset: -24;
-  }
-}
-
 ::selection {
-  background: #2563EB;
-  color: #ffffff;
+  background: rgb(var(--accent));
+  color: rgb(var(--accent-foreground));
 }
 
 .no-scrollbar::-webkit-scrollbar {

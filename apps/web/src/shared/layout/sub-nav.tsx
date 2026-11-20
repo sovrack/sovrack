@@ -12,7 +12,7 @@ import clsx from "clsx";
 export function SubNav({ tabs }: { tabs: { label: string; href: string }[] }) {
   const pathname = usePathname();
   return (
-    <div className="border-b border-[var(--border)]">
+    <div className="border-b border-border">
       <nav className="flex flex-wrap gap-1">
         {tabs.map((tab) => {
           const active =
@@ -24,8 +24,8 @@ export function SubNav({ tabs }: { tabs: { label: string; href: string }[] }) {
               className={clsx(
                 "border-b-2 px-4 py-2.5 text-sm font-medium transition",
                 active
-                  ? "border-[var(--text-primary)] text-[var(--text-primary)]"
-                  : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
+                  ? "border-accent text-primary"
+                  : "border-transparent text-secondary hover:text-primary",
               )}
             >
               {tab.label}

@@ -41,7 +41,7 @@ export function ProjectMembersTab({
           <button
             type="button"
             onClick={() => setAddMemberOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:opacity-90"
+            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground  transition hover:bg-accent-hover"
           >
             <Plus size={15} />
             Add Member
@@ -64,14 +64,14 @@ export function ProjectMembersTab({
       />
 
       {isOwner && onDeleteProject && (
-        <div className="overflow-hidden rounded-2xl border border-red-500/20 bg-[var(--bg-card)]">
+        <div className="overflow-hidden rounded-lg border border-red-500/20 bg-card">
           <div className="flex items-center gap-3 border-b border-red-500/20 px-5 py-4">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
               <AlertTriangle size={15} className="text-red-400" />
             </div>
             <div>
               <p className="text-sm font-semibold text-red-300">Danger Zone</p>
-              <p className="text-xs text-[var(--text-muted)]">
+              <p className="text-xs text-muted">
                 Irreversible actions — proceed with caution
               </p>
             </div>
@@ -79,10 +79,10 @@ export function ProjectMembersTab({
           <div className="px-5 py-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                <p className="text-sm font-semibold text-primary">
                   Delete this project
                 </p>
-                <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                <p className="mt-0.5 text-xs text-muted">
                   Removes all environments, deployments, configs and files
                   permanently. This cannot be undone.
                 </p>
@@ -91,7 +91,7 @@ export function ProjectMembersTab({
                 type="button"
                 onClick={onDeleteProject}
                 disabled={deleteLoading}
-                className="flex shrink-0 items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                className="flex shrink-0 items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
               >
                 {deleteLoading ? (
                   <Loader2 size={14} className="animate-spin" />

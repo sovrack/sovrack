@@ -83,7 +83,7 @@ export function TerminalHub() {
           description="Administrators only."
         />
         <SectionCard>
-          <div className="flex items-center gap-3 text-sm text-[var(--text-secondary)]">
+          <div className="flex items-center gap-3 text-sm text-secondary">
             <AlertCircle size={16} className="text-yellow-400" />
             The SSH terminal is restricted to platform administrators.
           </div>
@@ -113,7 +113,7 @@ export function TerminalHub() {
       />
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error}
         </div>
       )}
@@ -128,18 +128,18 @@ export function TerminalHub() {
             <div className="flex items-center justify-center py-8">
               <Loader2
                 size={20}
-                className="animate-spin text-[var(--text-secondary)]"
+                className="animate-spin text-secondary"
               />
             </div>
           ) : servers.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[var(--border)] px-4 py-8 text-center">
-              <Server className="mx-auto mb-2 h-8 w-8 text-[var(--text-secondary)]" />
-              <p className="text-sm text-[var(--text-secondary)]">
+            <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center">
+              <Server className="mx-auto mb-2 h-8 w-8 text-secondary" />
+              <p className="text-sm text-secondary">
                 No VPS configured.
               </p>
               <Link
                 href="/admin/servers"
-                className="mt-3 inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
+                className="mt-3 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-primary transition hover:bg-hover/10"
               >
                 <Server size={14} /> Configure VPS
               </Link>
@@ -147,13 +147,13 @@ export function TerminalHub() {
           ) : (
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-[var(--text-secondary)]">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-secondary">
                   VPS cible
                 </label>
                 <select
                   value={selectedServerId}
                   onChange={(e) => setSelectedServerId(e.target.value)}
-                  className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20"
+                  className="h-11 w-full rounded-lg border border-border bg-card px-4 text-sm text-primary outline-none transition focus:ring-2 focus:ring-accent/20"
                 >
                   {servers.map((s) => (
                     <option key={s.id} value={s.id} disabled={!s.isVerified}>
@@ -165,23 +165,23 @@ export function TerminalHub() {
               </div>
 
               {selected && (
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-3 text-sm">
-                  <div className="grid grid-cols-2 gap-2 font-mono text-xs text-[var(--text-secondary)]">
+                <div className="rounded-lg border border-border bg-hover/10 px-4 py-3 text-sm">
+                  <div className="grid grid-cols-2 gap-2 font-mono text-xs text-secondary">
                     <span>
                       Host:{" "}
-                      <span className="text-[var(--text-primary)]">
+                      <span className="text-primary">
                         {selected.host}
                       </span>
                     </span>
                     <span>
                       Port:{" "}
-                      <span className="text-[var(--text-primary)]">
+                      <span className="text-primary">
                         {selected.port}
                       </span>
                     </span>
                     <span>
                       User:{" "}
-                      <span className="text-[var(--text-primary)]">
+                      <span className="text-primary">
                         {selected.username}
                       </span>
                     </span>

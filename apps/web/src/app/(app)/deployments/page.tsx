@@ -49,7 +49,7 @@ const STATUS_OPTIONS = [
 ] as const;
 
 const SELECT_CLASS =
-  "h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none";
+  "h-10 rounded-lg border border-border bg-card px-3 text-sm text-primary outline-none";
 
 export default function DeploymentsPage() {
   const router = useRouter();
@@ -194,18 +194,18 @@ export default function DeploymentsPage() {
             value: running + failed,
             icon: <Activity size={14} />,
             color:
-              running > 0 ? "text-blue-400" : failed > 0 ? "text-red-400" : "",
+              running > 0 ? "text-accent" : failed > 0 ? "text-red-400" : "",
           },
         ].map((stat) => (
           <div
             key={stat.label}
-            className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-4"
+            className="rounded-lg border border-border bg-card px-4 py-4"
           >
-            <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-muted)]">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted">
               {stat.icon} {stat.label}
             </div>
             <p
-              className={`mt-2 text-3xl font-bold ${stat.color || "text-[var(--text-primary)]"}`}
+              className={`mt-2 text-3xl font-bold ${stat.color || "text-primary"}`}
             >
               {stat.value}
             </p>
@@ -214,7 +214,7 @@ export default function DeploymentsPage() {
       </div>
 
       {/* Barre de filtres */}
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-card p-4 md:grid-cols-2 xl:grid-cols-5">
         <select
           value={projectFilter}
           onChange={(e) => setProjectFilter(e.target.value)}
@@ -277,14 +277,14 @@ export default function DeploymentsPage() {
       </div>
 
       {hasActiveFilter && (
-        <div className="flex items-center justify-between gap-3 text-xs text-[var(--text-secondary)]">
+        <div className="flex items-center justify-between gap-3 text-xs text-secondary">
           <span>
             {filtered.length} déploiement(s) correspondent aux filtres.
           </span>
           <button
             type="button"
             onClick={resetFilters}
-            className="rounded-lg border border-[var(--border)] px-2.5 py-1 font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
+            className="rounded-lg border border-border px-2.5 py-1 font-semibold text-primary transition hover:bg-hover/10"
           >
             Réinitialiser
           </button>

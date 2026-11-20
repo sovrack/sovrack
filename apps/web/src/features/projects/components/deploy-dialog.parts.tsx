@@ -44,7 +44,7 @@ export function DeployValidationPanel({
           {issues.map((issue, i) => (
             <div
               key={i}
-              className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3"
+              className="flex items-center justify-between gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3"
             >
               <div className="flex items-center gap-2">
                 <AlertTriangle size={14} className="shrink-0 text-amber-400" />
@@ -65,13 +65,13 @@ export function DeployValidationPanel({
       {!loading && envIds.length > 0 && (
         <div className="space-y-2">
           {validating && (
-            <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-xs text-blue-300">
+            <div className="flex items-center gap-2 rounded-lg border border-accent/20 bg-accent/10 px-4 py-3 text-xs text-accent">
               <Loader2 size={14} className="animate-spin" />
               Checking server tools…
             </div>
           )}
           {validateError && !validating && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-400">
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-400">
               Validation error: {validateError}
             </div>
           )}
@@ -84,7 +84,7 @@ export function DeployValidationPanel({
               would just look normal until the real POST /deployments failed
               with this exact same message. */}
           {validation && !validating && validation.reason && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-red-300">
                   <AlertTriangle size={14} />
@@ -106,7 +106,7 @@ export function DeployValidationPanel({
             </div>
           )}
           {validation && !validating && !isPrepared && (
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
                   <AlertTriangle size={14} />
@@ -128,9 +128,9 @@ export function DeployValidationPanel({
                   return (
                     <div key={req.binary} className="flex items-center gap-2 text-xs">
                       {isMissing ? (
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500/20 text-[10px] text-red-400">✕</span>
+                        <span className="flex h-4 w-4 items-center justify-center rounded-md bg-red-500/20 text-[10px] text-red-400">✕</span>
                       ) : (
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-green-500/20 text-[10px] text-green-400">✓</span>
+                        <span className="flex h-4 w-4 items-center justify-center rounded-md bg-green-500/20 text-[10px] text-green-400">✓</span>
                       )}
                       <span className={isMissing ? "text-red-300" : "text-green-300"}>
                         {req.label}
@@ -142,7 +142,7 @@ export function DeployValidationPanel({
             </div>
           )}
           {validation && !validating && isPrepared && missing.length > 0 && (
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
                   <AlertTriangle size={14} />
@@ -164,9 +164,9 @@ export function DeployValidationPanel({
                   return (
                     <div key={req.binary} className="flex items-center gap-2 text-xs">
                       {isMissing ? (
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500/20 text-[10px] text-red-400">✕</span>
+                        <span className="flex h-4 w-4 items-center justify-center rounded-md bg-red-500/20 text-[10px] text-red-400">✕</span>
                       ) : (
-                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-green-500/20 text-[10px] text-green-400">✓</span>
+                        <span className="flex h-4 w-4 items-center justify-center rounded-md bg-green-500/20 text-[10px] text-green-400">✓</span>
                       )}
                       <span className={isMissing ? "text-red-300" : "text-green-300"}>
                         {req.label}
@@ -178,7 +178,7 @@ export function DeployValidationPanel({
             </div>
           )}
           {validation && !validating && isPrepared && missing.length === 0 && (
-            <div className="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-xs text-green-400">
+            <div className="flex items-center gap-2 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-xs text-green-400">
               <CheckCircle2 size={14} />
               All required tools are installed on {validation.serverName}
             </div>
@@ -204,12 +204,12 @@ export function DeployEnvironmentSelector({
 }: DeployEnvironmentSelectorProps) {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-secondary">
         Environment{" "}
-        <span className="font-normal normal-case text-[var(--text-muted)]">(select one or more)</span>
+        <span className="font-normal normal-case text-muted">(select one or more)</span>
       </label>
       {environments.length === 0 ? (
-        <p className="rounded-xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-xs text-amber-300">
+        <p className="rounded-lg border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-xs text-amber-300">
           No environments. Create one in{" "}
           <Link
             href={`/projects/${projectId}?openEnvironments=true`}
@@ -231,8 +231,8 @@ export function DeployEnvironmentSelector({
                 onClick={() => toggleEnvId(env.id)}
                 className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition ${
                   selected
-                    ? "border-[var(--text-primary)]/30 bg-[var(--text-primary)]/10 text-[var(--text-primary)]"
-                    : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    ? "border-accent/30 bg-accent/10 text-primary"
+                    : "border-border text-muted hover:text-primary"
                 }`}
               >
                 {selected ? (
@@ -247,7 +247,7 @@ export function DeployEnvironmentSelector({
         </div>
       )}
       {envIds.length > 1 && (
-        <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">
+        <p className="mt-1.5 text-[10px] text-muted">
           {envIds.length} environments selected — one deployment per environment will be created.
         </p>
       )}
@@ -270,7 +270,7 @@ export function DeployServiceSelector({
   if (services.length === 0) return null;
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-secondary">
         Service
       </label>
       <div className="flex flex-wrap gap-2">
@@ -279,8 +279,8 @@ export function DeployServiceSelector({
           onClick={() => setSelectedServiceId("")}
           className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
             selectedServiceId === ""
-              ? "border-[var(--text-primary)]/30 bg-[var(--text-primary)]/10 text-[var(--text-primary)]"
-              : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              ? "border-accent/30 bg-accent/10 text-primary"
+              : "border-border text-muted hover:text-primary"
           }`}
         >
           <Layers size={12} className="mr-1.5 inline" />
@@ -296,8 +296,8 @@ export function DeployServiceSelector({
             }}
             className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
               selectedServiceId === svc.id
-                ? "border-[var(--text-primary)]/30 bg-[var(--text-primary)]/10 text-[var(--text-primary)]"
-                : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                ? "border-accent/30 bg-accent/10 text-primary"
+                : "border-border text-muted hover:text-primary"
             }`}
           >
             {svc.name}

@@ -72,12 +72,12 @@ export default function StaffUsersPage() {
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-hover/15 text-primary">
           <Users size={18} />
         </span>
         <div>
-          <h1 className="text-2xl font-bold text-white">Utilisateurs</h1>
-          <p className="text-sm text-zinc-400">
+          <h1 className="text-2xl font-bold text-primary">Utilisateurs</h1>
+          <p className="text-sm text-secondary">
             Identités clientes pouvant accéder au produit ({data?.total ?? "…"}
             ).
           </p>
@@ -95,13 +95,13 @@ export default function StaffUsersPage() {
         <label className="relative min-w-0 flex-1">
           <Search
             size={15}
-            className="pointer-events-none absolute left-3 top-3 text-zinc-500"
+            className="pointer-events-none absolute left-3 top-3 text-muted"
           />
           <input
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             placeholder="Rechercher par nom ou email"
-            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-9 pr-3 text-sm text-white outline-none focus:border-sky-500"
+            className="w-full rounded-lg border border-border bg-hover/10 py-2.5 pl-9 pr-3 text-sm text-primary outline-none focus:border-accent"
           />
         </label>
         <select
@@ -110,7 +110,7 @@ export default function StaffUsersPage() {
             setPage(1);
             setStatus(event.target.value as typeof status);
           }}
-          className="rounded-xl border border-white/10 bg-zinc-950 px-3 py-2.5 text-sm text-zinc-200"
+          className="rounded-lg border border-border bg-app px-3 py-2.5 text-sm text-primary"
         >
           <option value="">Tous les états</option>
           <option value="active">Actifs</option>
@@ -119,15 +119,15 @@ export default function StaffUsersPage() {
         </select>
         <button
           type="submit"
-          className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-zinc-950"
+          className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground"
         >
           Rechercher
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10">
+      <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-white/10 bg-white/5 text-zinc-400">
+          <thead className="border-b border-border bg-hover/10 text-secondary">
             <tr>
               <th className="px-4 py-3 font-medium">Nom</th>
               <th className="px-4 py-3 font-medium">Email</th>
@@ -139,17 +139,17 @@ export default function StaffUsersPage() {
           </thead>
           <tbody className="divide-y divide-white/5">
             {(data?.items ?? []).map((u) => (
-              <tr key={u.id} className="hover:bg-white/5">
-                <td className="px-4 py-3 font-medium text-white">
+              <tr key={u.id} className="hover:bg-hover/10">
+                <td className="px-4 py-3 font-medium text-primary">
                   <Link
                     href={`/staff/users/${u.id}`}
-                    className="hover:text-sky-300"
+                    className="hover:text-accent"
                   >
                     {u.fullName}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-zinc-400">{u.email}</td>
-                <td className="px-4 py-3 text-zinc-400">
+                <td className="px-4 py-3 text-secondary">{u.email}</td>
+                <td className="px-4 py-3 text-secondary">
                   {u.teams.length === 0
                     ? "Aucun"
                     : u.teams
@@ -161,7 +161,7 @@ export default function StaffUsersPage() {
                 </td>
                 <td className="px-4 py-3">
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${
                       u.isActive
                         ? "bg-green-500/15 text-green-400"
                         : "bg-red-500/15 text-red-400"
@@ -174,7 +174,7 @@ export default function StaffUsersPage() {
                         : "Désactivé"}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-zinc-500">
+                <td className="px-4 py-3 text-muted">
                   {new Date(u.createdAt).toLocaleDateString("fr-FR")}
                 </td>
                 <td className="px-4 py-3">
@@ -184,7 +184,7 @@ export default function StaffUsersPage() {
                         onClick={() => blockMutation.mutate(u.id)}
                         disabled={blockMutation.isPending}
                         title="Désactiver (bloquer)"
-                        className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-amber-300 disabled:opacity-40"
+                        className="rounded-lg p-1.5 text-secondary transition hover:bg-hover/15 hover:text-amber-300 disabled:opacity-40"
                       >
                         <Ban size={16} />
                       </button>
@@ -193,7 +193,7 @@ export default function StaffUsersPage() {
                         onClick={() => activateMutation.mutate(u.id)}
                         disabled={activateMutation.isPending}
                         title="Réactiver"
-                        className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-green-300 disabled:opacity-40"
+                        className="rounded-lg p-1.5 text-secondary transition hover:bg-hover/15 hover:text-green-300 disabled:opacity-40"
                       >
                         <UserCheck size={16} />
                       </button>
@@ -207,7 +207,7 @@ export default function StaffUsersPage() {
                       }}
                       disabled={!u.isActive || impersonateMutation.isPending}
                       title="Se connecter en tant que ce client"
-                      className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-white/10 hover:text-blue-300 disabled:opacity-40"
+                      className="rounded-lg p-1.5 text-secondary transition hover:bg-hover/15 hover:text-accent disabled:opacity-40"
                     >
                       <Lock size={16} />
                     </button>
@@ -217,7 +217,7 @@ export default function StaffUsersPage() {
             ))}
             {!isLoading && (data?.items ?? []).length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-muted">
                   Aucun utilisateur.
                 </td>
               </tr>
@@ -227,14 +227,14 @@ export default function StaffUsersPage() {
       </div>
 
       {isLoading && (
-        <div className="mt-4 flex items-center justify-center gap-2 py-4 text-sm text-zinc-400">
+        <div className="mt-4 flex items-center justify-center gap-2 py-4 text-sm text-secondary">
           <Loader2 size={16} className="animate-spin" />
           Chargement…
         </div>
       )}
 
       {isError && (
-        <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+        <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
           Impossible de charger les utilisateurs.
           <button
             type="button"
@@ -247,7 +247,7 @@ export default function StaffUsersPage() {
       )}
 
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm text-zinc-400">
+        <div className="mt-4 flex items-center justify-between text-sm text-secondary">
           <span>
             Page {page} / {totalPages}
           </span>
@@ -255,14 +255,14 @@ export default function StaffUsersPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="rounded-lg border border-white/10 px-3 py-1.5 hover:bg-white/5 disabled:opacity-40"
+              className="rounded-lg border border-border px-3 py-1.5 hover:bg-hover/10 disabled:opacity-40"
             >
               Précédent
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="rounded-lg border border-white/10 px-3 py-1.5 hover:bg-white/5 disabled:opacity-40"
+              className="rounded-lg border border-border px-3 py-1.5 hover:bg-hover/10 disabled:opacity-40"
             >
               Suivant
             </button>
@@ -284,27 +284,27 @@ export default function StaffUsersPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="impersonation-title"
-            className="w-full max-w-lg rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl"
+            className="w-full max-w-lg rounded-lg border border-border bg-app p-6 shadow-theme-lg"
           >
             <div className="flex items-start gap-3">
-              <span className="rounded-xl bg-amber-500/10 p-2 text-amber-300">
+              <span className="rounded-lg bg-amber-500/10 p-2 text-amber-300">
                 <ShieldAlert size={20} aria-hidden="true" />
               </span>
               <div>
                 <h2
                   id="impersonation-title"
-                  className="text-lg font-semibold text-white"
+                  className="text-lg font-semibold text-primary"
                 >
                   Ouvrir une session d’assistance
                 </h2>
-                <p className="mt-1 text-sm text-zinc-400">
+                <p className="mt-1 text-sm text-secondary">
                   Vous allez agir au nom de {impersonationTarget.name} pendant
                   15 minutes. L’ouverture et son motif seront journalisés.
                 </p>
               </div>
             </div>
 
-            <label className="mt-5 block text-sm font-medium text-zinc-200">
+            <label className="mt-5 block text-sm font-medium text-primary">
               Motif opérationnel
               <textarea
                 autoFocus
@@ -316,10 +316,10 @@ export default function StaffUsersPage() {
                 maxLength={500}
                 rows={4}
                 placeholder="Ex. Diagnostic de l’incident INC-142 demandé par le client. Ne saisissez aucun secret."
-                className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-sky-500"
+                className="mt-2 w-full resize-none rounded-lg border border-border bg-hover/10 px-3 py-2.5 text-sm text-primary outline-none transition placeholder:text-muted focus:border-accent"
               />
             </label>
-            <div className="mt-1 text-right text-xs text-zinc-500">
+            <div className="mt-1 text-right text-xs text-muted">
               {impersonationReason.trim().length}/500
             </div>
 
@@ -334,7 +334,7 @@ export default function StaffUsersPage() {
                 type="button"
                 onClick={() => setImpersonationTarget(null)}
                 disabled={impersonateMutation.isPending}
-                className="rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-white/5 disabled:opacity-40"
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-secondary transition hover:bg-hover/10 disabled:opacity-40"
               >
                 Annuler
               </button>
@@ -350,7 +350,7 @@ export default function StaffUsersPage() {
                   impersonationReason.trim().length < 10 ||
                   impersonateMutation.isPending
                 }
-                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {impersonateMutation.isPending && (
                   <Loader2 size={15} className="animate-spin" />

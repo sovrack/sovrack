@@ -29,15 +29,15 @@ export function ServerSetupHistory({
   cancelingId,
 }: Props) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+    <div className="rounded-lg border border-border bg-card p-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary">
         Setup
       </p>
-      <h3 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+      <h3 className="mt-1 text-lg font-semibold text-primary">
         History and tasks
       </h3>
       {setups.length === 0 ? (
-        <p className="mt-4 text-sm text-[var(--text-secondary)]">
+        <p className="mt-4 text-sm text-secondary">
           No setup has run yet.
         </p>
       ) : (
@@ -45,7 +45,7 @@ export function ServerSetupHistory({
           {setups.map((setup) => (
             <div
               key={setup.id}
-              className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-3"
+              className="rounded-lg border border-border bg-hover/10 p-3"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -53,13 +53,13 @@ export function ServerSetupHistory({
                     <Badge tone={tone(setup.status)}>
                       {setup.status}
                     </Badge>
-                    <span className="text-xs text-[var(--text-secondary)]">
+                    <span className="text-xs text-secondary">
                       {setup.profile} ·{" "}
                       {new Date(setup.createdAt).toLocaleString()}
                     </span>
                   </div>
                   {setup.summary && (
-                    <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                    <p className="mt-2 text-sm text-secondary">
                       {setup.summary}
                     </p>
                   )}

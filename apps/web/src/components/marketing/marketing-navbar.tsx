@@ -2,11 +2,25 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { LogOut, Menu, Settings, User, X } from "lucide-react";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
-import { SovrackLogo } from "./sovrack-logo";
+import { BRAND_CONFIG } from "@/shared/config/brand.config";
+import { SovrackLogo } from "@/shared/ui/sovrack-logo";
 import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
+
+function GitHubIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+      />
+    </svg>
+  );
+}
 
 const productLinks = isCapabilityEnabled("publicMarketingCopy")
   ? [
@@ -16,7 +30,7 @@ const productLinks = isCapabilityEnabled("publicMarketingCopy")
     ]
   : [];
 
-const resourcesLinks = [
+const resourceLinks = [
   ...(isCapabilityEnabled("publicDocumentation")
     ? [{ href: publicSitePath("/docs"), label: "Documentation" }]
     : []),
@@ -29,22 +43,32 @@ const resourcesLinks = [
 
 const publicPricingEnabled = isCapabilityEnabled("publicPricing");
 
+const desktopLinks = [
+  ...productLinks,
+  ...(isCapabilityEnabled("publicDocumentation")
+    ? [{ href: publicSitePath("/docs"), label: "Documentation" }]
+    : []),
+  ...(publicPricingEnabled
+    ? [{ href: publicSitePath("/pricing"), label: "Tarifs" }]
+    : []),
+];
+
 export function MarketingNavbar() {
   const pathname = usePathname();
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setOpenMenu(null);
+        setProfileOpen(false);
       }
     }
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setOpenMenu(null);
+        setProfileOpen(false);
         setMobileMenuOpen(false);
       }
     }
@@ -58,356 +82,198 @@ export function MarketingNavbar() {
 
   async function handleLogout() {
     await logout();
-    setOpenMenu(null);
+    setProfileOpen(false);
     setMobileMenuOpen(false);
     window.location.assign(customerAppPath("/login"));
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-brand/80 backdrop-blur-xl">
-      <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <div className="flex shrink-0">
+    <header className="sticky top-0 z-50 border-b border-border bg-app/90 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+        <div className="flex min-w-0 items-center">
           <Link
             href={publicSitePath("/")}
-            className="group flex items-center gap-2.5"
+            className="flex shrink-0 items-center gap-2.5"
           >
-            <SovrackLogo
-              className="w-7 h-7 text-white shrink-0 transition-transform duration-200 group-hover:scale-105"
-            />
-            <span className="text-[18px] font-semibold tracking-[-0.02em] text-white antialiased transition-colors group-hover:text-slate-100 select-none">
+            <SovrackLogo className="h-6 w-6 text-primary" />
+            <span className="text-[17px] font-semibold tracking-tight text-primary">
               Sovrack
             </span>
           </Link>
+
+          <nav className="ml-8 hidden items-center gap-6 text-sm text-secondary md:flex">
+            {desktopLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={
+                  pathname === link.href
+                    ? "text-primary"
+                    : "transition-colors hover:text-primary"
+                }
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
 
-        <nav className="hidden lg:flex items-center gap-8">
-          <div className="flex items-center gap-8" ref={menuRef}>
-            {productLinks.length > 0 && (
-              <div className="relative">
-                <button
-                  onMouseEnter={() => setOpenMenu("product")}
-                  onClick={() =>
-                    setOpenMenu((v) => (v === "product" ? null : "product"))
-                  }
-                  className={`flex items-center gap-1 text-base font-medium transition ${
-                    openMenu === "product"
-                      ? "text-white"
-                      : "text-slate-100 hover:text-white"
-                  }`}
-                  aria-expanded={openMenu === "product"}
-                  aria-haspopup="true"
-                >
-                  Produit
-                  <svg
-                    className={`h-4 w-4 transition ${openMenu === "product" ? "rotate-180" : ""}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-                {openMenu === "product" && (
-                  <div
-                    className="absolute left-0 top-full mt-2 w-56 rounded-xl border border-white/15 bg-brand-light p-1.5 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150"
-                    onMouseEnter={() => setOpenMenu("product")}
-                    onMouseLeave={() => setOpenMenu(null)}
-                  >
-                    {productLinks.map((l) => (
-                      <Link
-                        key={l.href}
-                        href={l.href}
-                        onClick={() => setOpenMenu(null)}
-                        className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
-                      >
-                        {l.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+        <div className="hidden items-center gap-2 md:flex">
+          <Link
+            href={BRAND_CONFIG.githubUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-[13px] font-medium text-secondary transition-colors hover:border-border-hover hover:text-primary"
+          >
+            <GitHubIcon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">GitHub</span>
+          </Link>
 
-            <div className="relative">
-              <button
-                onMouseEnter={() => setOpenMenu("resources")}
-                onClick={() =>
-                  setOpenMenu((v) => (v === "resources" ? null : "resources"))
-                }
-                className={`flex items-center gap-1 text-base font-medium transition ${
-                  openMenu === "resources"
-                    ? "text-white"
-                    : "text-slate-100 hover:text-white"
-                }`}
-                aria-expanded={openMenu === "resources"}
-                aria-haspopup="true"
-              >
-                Ressources
-                <svg
-                  className={`h-4 w-4 transition ${openMenu === "resources" ? "rotate-180" : ""}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-              {openMenu === "resources" && (
-                <div
-                  className="absolute left-0 top-full mt-2 w-56 rounded-xl border border-white/15 bg-brand-light p-1.5 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150"
-                  onMouseEnter={() => setOpenMenu("resources")}
-                  onMouseLeave={() => setOpenMenu(null)}
-                >
-                  {resourcesLinks.map((l) => (
-                    <Link
-                      key={l.href}
-                      href={l.href}
-                      onClick={() => setOpenMenu(null)}
-                      className={`block rounded-lg px-3 py-2 text-sm transition ${
-                        pathname === l.href
-                          ? "text-white"
-                          : "text-slate-200 hover:bg-white/5 hover:text-white"
-                      }`}
-                    >
-                      {l.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {publicPricingEnabled && (
-              <Link
-                href={publicSitePath("/pricing")}
-                className={`relative text-base font-medium transition ${
-                  pathname === "/pricing"
-                    ? "text-white"
-                    : "text-slate-100 hover:text-white"
-                }`}
-              >
-                Tarifs
-                {pathname === "/pricing" && (
-                  <span className="absolute -bottom-1.5 left-0 h-0.5 w-full rounded-full bg-[#2563EB]" />
-                )}
-              </Link>
-            )}
-          </div>
-        </nav>
-
-        <div className="hidden lg:flex items-center justify-end gap-3 shrink-0">
           {isAuthenticated && user ? (
             <div className="relative" ref={menuRef}>
               <button
-                onClick={() =>
-                  setOpenMenu((v) => (v === "profile" ? null : "profile"))
-                }
-                className={`flex items-center gap-2 rounded-full border border-white/15 bg-white/5 py-1.5 pl-2 pr-3 text-sm font-medium text-white transition hover:border-sky-300/50 focus:outline-none focus:ring-2 focus:ring-sky-400 ${
-                  openMenu === "profile" ? "border-sky-300/50" : ""
-                }`}
-                aria-expanded={openMenu === "profile"}
+                type="button"
+                onClick={() => setProfileOpen((v) => !v)}
+                className="flex h-8 items-center gap-2 rounded-md border border-border bg-card px-2 text-[13px] font-medium text-primary transition-colors hover:border-border-hover"
+                aria-expanded={profileOpen}
                 aria-haspopup="true"
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#2563EB] text-xs font-bold text-white">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
                   {user.fullName?.charAt(0).toUpperCase() || "?"}
                 </span>
-                <span className="hidden max-w-[120px] truncate sm:block">
+                <span className="hidden max-w-[110px] truncate sm:block">
                   {user.fullName?.split(" ")[0]}
                 </span>
-                <svg
-                  className="h-4 w-4 text-slate-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
               </button>
 
-              {openMenu === "profile" && (
-                <div className="absolute right-0 mt-2 w-56 rounded-xl border border-white/15 bg-brand-light p-1.5 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-150">
-                  <div className="border-b border-white/10 px-3 py-2">
-                    <div className="truncate text-sm font-semibold text-white">
+              {profileOpen && (
+                <div className="absolute right-0 mt-2 w-56 rounded-lg border border-border bg-card p-1.5 shadow-theme-lg">
+                  <div className="border-b border-border px-3 py-2">
+                    <div className="truncate text-sm font-semibold text-primary">
                       {user.fullName}
                     </div>
-                    <div className="truncate text-xs text-sky-300">
+                    <div className="truncate text-xs text-secondary">
                       {user.email}
                     </div>
                   </div>
                   <Link
                     href={customerAppPath("/dashboard")}
-                    className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
-                    onClick={() => setOpenMenu(null)}
+                    className="mt-1 flex items-center gap-2 rounded-md px-3 py-2 text-sm text-secondary transition-colors hover:bg-hover/10 hover:text-primary"
+                    onClick={() => setProfileOpen(false)}
                   >
+                    <User size={14} />
                     Mon espace
                   </Link>
                   <Link
                     href={customerAppPath("/settings/account")}
-                    className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
-                    onClick={() => setOpenMenu(null)}
+                    className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-secondary transition-colors hover:bg-hover/10 hover:text-primary"
+                    onClick={() => setProfileOpen(false)}
                   >
+                    <Settings size={14} />
                     Paramètres
                   </Link>
                   {isAdmin && (
                     <Link
                       href={customerAppPath("/admin/teams")}
-                      className="block rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-white/5 hover:text-white"
-                      onClick={() => setOpenMenu(null)}
+                      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-secondary transition-colors hover:bg-hover/10 hover:text-primary"
+                      onClick={() => setProfileOpen(false)}
                     >
                       Workspace
                     </Link>
                   )}
                   <button
+                    type="button"
                     onClick={handleLogout}
-                    className="mt-1 block w-full rounded-lg px-3 py-2 text-left text-sm text-red-300 hover:bg-red-500/10"
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-red-400 transition-colors hover:bg-red-500/10"
                   >
+                    <LogOut size={14} />
                     Déconnexion
                   </button>
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-3">
+            <>
               <Link
                 href={customerAppPath("/login")}
-                className="rounded-lg px-4 py-2 text-base font-medium text-slate-100 transition hover:text-white"
+                className="inline-flex h-8 items-center rounded-md px-3 text-[13px] font-medium text-secondary transition-colors hover:text-primary"
               >
                 Se connecter
               </Link>
               <Link
                 href={customerAppPath("/register")}
-                className="rounded-xl bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#1d4ed8]"
+                className="inline-flex h-8 items-center rounded-md bg-accent px-3 text-[13px] font-semibold text-accent-foreground transition-colors hover:bg-accent-hover"
               >
                 Créer un compte
               </Link>
-            </div>
+            </>
           )}
         </div>
 
         <button
+          type="button"
           onClick={() => setMobileMenuOpen((v) => !v)}
-          className="rounded-lg p-2 text-slate-100 hover:bg-white/5 lg:hidden"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-secondary transition-colors hover:bg-hover/10 hover:text-primary md:hidden"
           aria-label="Menu"
           aria-expanded={mobileMenuOpen}
         >
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            {mobileMenuOpen ? (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            ) : (
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            )}
-          </svg>
+          {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-white/10 bg-brand px-6 py-4 lg:hidden animate-in slide-in-from-top-2 duration-200">
-          <nav className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2 border-b border-white/10 pb-4 pt-2">
-              {publicPricingEnabled && (
-                <Link
-                  href={publicSitePath("/pricing")}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`text-base font-medium ${
-                    pathname === "/pricing"
-                      ? "text-white"
-                      : "text-slate-100 hover:text-white"
-                  }`}
-                >
-                  Tarifs
-                </Link>
-              )}
-              {[...productLinks, ...resourcesLinks].map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`text-base font-medium ${
-                    pathname === l.href
-                      ? "text-white"
-                      : "text-slate-100 hover:text-white"
-                  }`}
-                >
-                  {l.label}
-                </Link>
-              ))}
-            </div>
-            <div className="flex flex-col gap-3">
-              {!isAuthenticated && (
+        <div className="border-t border-border bg-app px-6 py-4 md:hidden">
+          <nav className="flex flex-col gap-1">
+            {[...productLinks, ...resourceLinks].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-md px-2 py-2 text-sm text-secondary transition-colors hover:bg-hover/10 hover:text-primary"
+              >
+                {link.label}
+              </Link>
+            ))}
+            {publicPricingEnabled && (
+              <Link
+                href={publicSitePath("/pricing")}
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-md px-2 py-2 text-sm text-secondary transition-colors hover:bg-hover/10 hover:text-primary"
+              >
+                Tarifs
+              </Link>
+            )}
+            <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
+              {!isAuthenticated ? (
                 <>
                   <Link
                     href={customerAppPath("/login")}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-base font-medium text-slate-100 hover:text-white"
+                    className="inline-flex h-8 items-center rounded-md border border-border bg-card px-3 text-[13px] font-medium text-secondary"
                   >
                     Se connecter
                   </Link>
                   <Link
                     href={customerAppPath("/register")}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="rounded-xl bg-[#2563EB] px-4 py-2.5 text-center font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#1d4ed8]"
+                    className="inline-flex h-8 items-center rounded-md bg-accent px-3 text-[13px] font-semibold text-accent-foreground"
                   >
                     Créer un compte
                   </Link>
                 </>
-              )}
-              {isAuthenticated && (
+              ) : (
                 <>
                   <Link
                     href={customerAppPath("/dashboard")}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-base font-medium text-slate-100 hover:text-white"
+                    className="inline-flex h-8 items-center rounded-md border border-border bg-card px-3 text-[13px] font-medium text-secondary"
                   >
                     Mon espace
                   </Link>
-                  <Link
-                    href={customerAppPath("/settings/account")}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-base font-medium text-slate-100 hover:text-white"
-                  >
-                    Paramètres
-                  </Link>
-                  {isAdmin && (
-                    <Link
-                      href={customerAppPath("/admin/teams")}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="text-base font-medium text-slate-100 hover:text-white"
-                    >
-                      Workspace
-                    </Link>
-                  )}
                   <button
+                    type="button"
                     onClick={handleLogout}
-                    className="text-left text-base font-medium text-red-300"
+                    className="inline-flex h-8 items-center rounded-md px-3 text-[13px] font-medium text-red-400"
                   >
                     Déconnexion
                   </button>

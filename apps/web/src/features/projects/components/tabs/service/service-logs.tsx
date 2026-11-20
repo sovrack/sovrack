@@ -33,7 +33,7 @@ export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
   if (!serviceEnvId) {
     return (
       <SectionCard title="Logs (history)">
-        <p className="text-sm text-[var(--text-muted)]">
+        <p className="text-sm text-muted">
           Link this service to an environment first to view its logs.
         </p>
       </SectionCard>
@@ -43,9 +43,9 @@ export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
   const pillBase =
     "rounded-lg border px-3 py-1.5 text-xs font-medium transition";
   const pillActive =
-    "border-[var(--text-primary)] bg-[var(--hover)] text-[var(--text-primary)]";
+    "border-accent bg-hover/10 text-primary";
   const pillIdle =
-    "border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]";
+    "border-border text-secondary hover:text-primary";
 
   return (
     <SectionCard
@@ -68,7 +68,7 @@ export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
           <div className="relative min-w-[200px] flex-1">
             <Search
               size={14}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
             />
             <input
               value={searchInput}
@@ -77,7 +77,7 @@ export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
                 if (e.key === "Enter") setSearch(searchInput);
               }}
               placeholder="Filter lines…"
-              className="h-9 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] pl-9 pr-3 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]"
+              className="h-9 w-full rounded-lg border border-border bg-app pl-9 pr-3 text-sm text-primary outline-none focus:border-muted"
             />
           </div>
 
@@ -87,14 +87,14 @@ export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
               setSearch(searchInput);
               void query.refetch();
             }}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-secondary transition hover:text-primary"
           >
             <RefreshCw size={14} /> Search
           </button>
         </div>
 
         {query.isLoading && (
-          <p className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+          <p className="flex items-center gap-2 text-sm text-muted">
             <Loader2 size={14} className="animate-spin" /> Loading…
           </p>
         )}
@@ -106,7 +106,7 @@ export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
         )}
 
         {data && !data.configured && (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
             Centralized log history is not enabled in the V1. The{" "}
             <strong>Deployments</strong> tab still shows the container&apos;s
             live tail.
@@ -123,21 +123,21 @@ export function ServiceLogs({ serviceEnvId }: { serviceEnvId: string | null }) {
           data.configured &&
           data.reachable &&
           (data.entries.length === 0 ? (
-            <p className="text-sm text-[var(--text-muted)]">
+            <p className="text-sm text-muted">
               No logs in this window{search ? " for this filter" : ""}.
             </p>
           ) : (
-            <div className="max-h-[28rem] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-3 font-mono text-xs">
-              <div className="mb-2 flex items-center gap-2 font-sans text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
+            <div className="max-h-[28rem] overflow-y-auto rounded-lg border border-border bg-app p-3 font-mono text-xs">
+              <div className="mb-2 flex items-center gap-2 font-sans text-[10px] uppercase tracking-wide text-muted">
                 <ScrollText size={12} /> {data.total} line
                 {data.total !== 1 ? "s" : ""}
               </div>
               {data.entries.map((e, i) => (
                 <div key={`${e.ts}-${i}`} className="flex gap-3 py-0.5">
-                  <span className="shrink-0 text-[var(--text-muted)]">
+                  <span className="shrink-0 text-muted">
                     {new Date(e.ts).toLocaleTimeString()}
                   </span>
-                  <span className="whitespace-pre-wrap break-all text-[var(--text-primary)]">
+                  <span className="whitespace-pre-wrap break-all text-primary">
                     {e.line}
                   </span>
                 </div>

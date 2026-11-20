@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
-import { SovrackLogo } from "./sovrack-logo";
+import { SovrackLogo } from "@/shared/ui/sovrack-logo";
 
 export default function MarketingFooter() {
   const publicMarketingEnabled = isCapabilityEnabled("publicMarketingCopy");
@@ -9,7 +9,7 @@ export default function MarketingFooter() {
   const publicPricingEnabled = isCapabilityEnabled("publicPricing");
 
   return (
-    <footer className="bg-brand pb-10 pt-14 text-slate-300">
+    <footer className="bg-app pb-10 pt-14 text-secondary">
       <div className="mx-auto max-w-7xl px-6">
         <div className="grid gap-12 lg:grid-cols-6">
           <div className="lg:col-span-2">
@@ -18,13 +18,13 @@ export default function MarketingFooter() {
               className="group mb-4 flex items-center gap-2.5 transition-opacity hover:opacity-90"
             >
               <SovrackLogo
-                className="w-7 h-7 text-white shrink-0"
+                className="w-7 h-7 text-primary shrink-0"
               />
-              <span className="text-[18px] font-semibold tracking-[-0.02em] text-white antialiased">
+              <span className="text-[18px] font-semibold tracking-[-0.02em] text-primary antialiased">
                 Sovrack
               </span>
             </Link>
-            <p className="max-w-xs text-sm leading-relaxed text-slate-400">
+            <p className="max-w-xs text-sm leading-relaxed text-secondary">
               {publicMarketingEnabled
                 ? "Déployez et exploitez vos applications Docker sur vos propres serveurs, depuis un espace unique."
                 : "Déployez vos applications sur vos propres serveurs."}
@@ -32,13 +32,13 @@ export default function MarketingFooter() {
           </div>
 
           <div>
-            <h4 className="mb-4 text-sm font-semibold text-white">Produit</h4>
+            <h4 className="mb-4 text-sm font-semibold text-primary">Produit</h4>
             <ul className="space-y-3 text-sm">
               {publicPricingEnabled && (
                 <li>
                   <Link
                     href={publicSitePath("/pricing")}
-                    className="transition hover:text-blue-400"
+                    className="transition hover:text-accent"
                   >
                     Tarifs
                   </Link>
@@ -47,7 +47,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={customerAppPath("/register")}
-                  className="transition hover:text-blue-400"
+                  className="transition hover:text-accent"
                 >
                   Créer un compte
                 </Link>
@@ -55,7 +55,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={customerAppPath("/login")}
-                  className="transition hover:text-blue-400"
+                  className="transition hover:text-accent"
                 >
                   Connexion
                 </Link>
@@ -63,7 +63,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/")}
-                  className="transition hover:text-blue-400"
+                  className="transition hover:text-accent"
                 >
                   Accueil
                 </Link>
@@ -72,7 +72,7 @@ export default function MarketingFooter() {
           </div>
 
           <div>
-            <h3 className="mb-4 text-sm font-semibold text-white">
+            <h3 className="mb-4 text-sm font-semibold text-primary">
               Ressources
             </h3>
             <ul className="space-y-3 text-sm">
@@ -80,7 +80,7 @@ export default function MarketingFooter() {
                 <li>
                   <Link
                     href={publicSitePath("/docs")}
-                    className="transition hover:text-blue-400"
+                    className="transition hover:text-accent"
                   >
                     Documentation
                   </Link>
@@ -89,7 +89,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/security")}
-                  className="transition hover:text-blue-400"
+                  className="transition hover:text-accent"
                 >
                   Sécurité
                 </Link>
@@ -97,7 +97,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/status")}
-                  className="transition hover:text-blue-400"
+                  className="transition hover:text-accent"
                 >
                   État des services
                 </Link>
@@ -105,7 +105,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/legal")}
-                  className="transition hover:text-blue-400"
+                  className="transition hover:text-accent"
                 >
                   Mentions légales
                 </Link>
@@ -114,12 +114,12 @@ export default function MarketingFooter() {
           </div>
 
           <div>
-            <h3 className="mb-4 text-sm font-semibold text-white">Contact</h3>
+            <h3 className="mb-4 text-sm font-semibold text-primary">Contact</h3>
             <ul className="space-y-3 text-sm">
               <li>
                 <a
                   href="mailto:contact@sovrack.com"
-                  className="transition hover:text-blue-400"
+                  className="transition hover:text-accent"
                 >
                   contact@sovrack.com
                 </a>
@@ -129,32 +129,32 @@ export default function MarketingFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 pt-6 text-xs text-slate-500 sm:flex-row">
+        <div className="mt-12 flex flex-col items-center justify-between gap-4 pt-6 text-xs text-muted sm:flex-row">
           <p>
             &copy; {new Date().getFullYear()} Sovrack. Tous droits réservés.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-6 sm:justify-end">
             <Link
               href={publicSitePath("/terms")}
-              className="transition hover:text-sky-300"
+              className="transition hover:text-accent"
             >
               Conditions
             </Link>
             <Link
               href={publicSitePath("/privacy")}
-              className="transition hover:text-sky-300"
+              className="transition hover:text-accent"
             >
               Confidentialité
             </Link>
             <Link
               href={publicSitePath("/cookies")}
-              className="transition hover:text-sky-300"
+              className="transition hover:text-accent"
             >
               Cookies
             </Link>
             <Link
               href={publicSitePath("/acceptable-use")}
-              className="transition hover:text-sky-300"
+              className="transition hover:text-accent"
             >
               Utilisation acceptable
             </Link>

@@ -77,15 +77,15 @@ function StaffActivationForm() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 text-zinc-100">
-      <section className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] p-7 shadow-2xl">
+    <main className="flex min-h-screen items-center justify-center bg-app px-4 text-primary">
+      <section className="w-full max-w-md rounded-lg border border-border bg-card p-7 shadow-theme-lg">
         <div className="mb-6 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
             <ShieldCheck size={20} />
           </span>
           <div>
-            <p className="font-bold text-white">Sovrack</p>
-            <p className="text-xs uppercase tracking-wider text-zinc-500">
+            <p className="font-bold text-primary">Sovrack</p>
+            <p className="text-xs uppercase tracking-wider text-muted">
               Activation back-office
             </p>
           </div>
@@ -94,14 +94,14 @@ function StaffActivationForm() {
         {activated ? (
           <div>
             <CheckCircle2 className="mb-4 text-green-400" size={34} />
-            <h1 className="text-xl font-bold text-white">Compte activé</h1>
-            <p className="mt-2 text-sm text-zinc-400">
+            <h1 className="text-xl font-bold text-primary">Compte activé</h1>
+            <p className="mt-2 text-sm text-secondary">
               Le code est maintenant consommé. Vous pouvez vous connecter avec
               votre nouveau mot de passe.
             </p>
             <Link
               href="/staff/login"
-              className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-zinc-950"
+              className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground"
             >
               Se connecter au back-office
             </Link>
@@ -109,17 +109,17 @@ function StaffActivationForm() {
         ) : (
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <h1 className="text-xl font-bold text-white">
+              <h1 className="text-xl font-bold text-primary">
                 Choisir votre mot de passe
               </h1>
-              <p className="mt-1 text-sm text-zinc-400">
+              <p className="mt-1 text-sm text-secondary">
                 Saisissez le code à 8 chiffres reçu par email, puis choisissez
                 votre premier mot de passe. Le code expire après 10 minutes.
               </p>
             </div>
 
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-zinc-400">
+              <span className="mb-1.5 block text-xs font-medium text-secondary">
                 Email Staff
               </span>
               <input
@@ -128,11 +128,11 @@ function StaffActivationForm() {
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-accent"
               />
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-zinc-400">
+              <span className="mb-1.5 block text-xs font-medium text-secondary">
                 Code d’activation
               </span>
               <input
@@ -146,12 +146,12 @@ function StaffActivationForm() {
                 onChange={(event) =>
                   setCode(event.target.value.replace(/\D/g, ""))
                 }
-                className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-center text-lg tracking-[0.35em] outline-none focus:border-blue-500"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-center text-lg tracking-[0.35em] outline-none focus:border-accent"
               />
             </label>
 
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-zinc-400">
+              <span className="mb-1.5 block text-xs font-medium text-secondary">
                 Nouveau mot de passe
               </span>
               <input
@@ -162,11 +162,11 @@ function StaffActivationForm() {
                 maxLength={SOVRACK_PASSWORD_MAX_LENGTH}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-accent"
               />
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-zinc-400">
+              <span className="mb-1.5 block text-xs font-medium text-secondary">
                 Confirmer le mot de passe
               </span>
               <input
@@ -175,7 +175,7 @@ function StaffActivationForm() {
                 required
                 value={confirmation}
                 onChange={(event) => setConfirmation(event.target.value)}
-                className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-accent"
               />
             </label>
 
@@ -188,7 +188,7 @@ function StaffActivationForm() {
             <button
               type="submit"
               disabled={submitting || code.length !== 8}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground disabled:opacity-40"
             >
               <KeyRound size={16} />
               {submitting ? "Activation…" : "Activer mon compte"}
@@ -197,7 +197,7 @@ function StaffActivationForm() {
               type="button"
               disabled={submitting}
               onClick={() => void requestCode()}
-              className="w-full text-sm font-medium text-sky-400 hover:text-sky-300 disabled:opacity-40"
+              className="w-full text-sm font-medium text-accent hover:text-accent disabled:opacity-40"
             >
               {codeRequested
                 ? "Code demandé — vérifiez votre email"

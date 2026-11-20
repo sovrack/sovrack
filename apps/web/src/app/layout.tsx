@@ -1,7 +1,20 @@
 import type { Metadata } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { ErrorBoundary } from "@/shared/common/error-boundary";
 import { Providers } from "@/shared/providers";
 import "@/styles/globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 const publicSiteUrl =
   process.env.NEXT_PUBLIC_PUBLIC_SITE_URL?.replace(/\/+$/, "") ||
@@ -61,30 +74,12 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const themeScript = `
-    (function () {
-      try {
-        var key = 'sovrack-theme';
-        var legacyKey = 'deploy-automation-theme';
-        var saved = localStorage.getItem(key) || localStorage.getItem(legacyKey);
-        var theme = saved === 'brand' || saved === 'light' || saved === 'dark' ? saved : 'brand';
-        var root = document.documentElement;
-        root.classList.remove('brand', 'light', 'dark');
-        if (theme === 'brand') root.classList.add('dark', 'brand');
-        else root.classList.add(theme);
-        root.style.colorScheme = theme === 'light' ? 'light' : 'dark';
-      } catch (_error) {
-        document.documentElement.classList.add('dark', 'brand');
-        document.documentElement.style.colorScheme = 'dark';
-      }
-    })();
-  `;
-
   return (
-    <html lang="fr" className="dark brand" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
+    <html
+      lang="fr"
+      className={`${inter.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
+    >
       <body className="app-shell">
         <Providers>
           <ErrorBoundary>{children}</ErrorBoundary>

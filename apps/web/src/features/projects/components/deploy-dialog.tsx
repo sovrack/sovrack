@@ -299,7 +299,7 @@ export function DeployDialog({
       <div className="space-y-4">
         {/* Success */}
         {success && (
-          <div className="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+          <div className="flex items-center gap-2 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-400">
             <CheckCircle2 size={16} /> Deployment launched! Redirecting to
             History…
           </div>
@@ -307,7 +307,7 @@ export function DeployDialog({
 
         {/* Error */}
         {error && (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {error}
           </div>
         )}
@@ -326,7 +326,7 @@ export function DeployDialog({
           />
 
           {!loading && (
-            <p className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-2.5 text-[11px] text-[var(--text-muted)]">
+            <p className="rounded-lg border border-border bg-hover/10 px-4 py-2.5 text-[11px] text-muted">
               Chaque service se construit avec son propre build — modifiez-le
               dans l&apos;onglet <strong>General</strong> du service.
             </p>
@@ -336,7 +336,7 @@ export function DeployDialog({
             <div className="flex justify-center py-6">
               <Loader2
                 size={20}
-                className="animate-spin text-[var(--text-muted)]"
+                className="animate-spin text-muted"
               />
             </div>
           ) : (
@@ -359,14 +359,14 @@ export function DeployDialog({
 
               {/* Branch */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-secondary">
                   Branch
                 </label>
                 {branches.length > 0 ? (
                   <select
                     value={branch}
                     onChange={(e) => setBranch(e.target.value)}
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-4 py-3 font-mono text-sm text-[var(--text-primary)] outline-none"
+                    className="w-full rounded-lg border border-border bg-app px-4 py-3 font-mono text-sm text-primary outline-none"
                   >
                     {branches.map((b) => (
                       <option key={b.name} value={b.name}>
@@ -381,7 +381,7 @@ export function DeployDialog({
                     value={branch}
                     onChange={(e) => setBranch(e.target.value)}
                     placeholder="main"
-                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-4 py-3 font-mono text-sm text-[var(--text-primary)] outline-none"
+                    className="w-full rounded-lg border border-border bg-app px-4 py-3 font-mono text-sm text-primary outline-none"
                   />
                 )}
               </div>

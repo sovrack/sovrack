@@ -216,7 +216,7 @@ export default function ServiceDetailPage({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 p-6 text-sm text-[var(--text-secondary)]">
+      <div className="flex items-center gap-2 p-6 text-sm text-secondary">
         <Loader2 size={15} className="animate-spin" /> Loading service…
       </div>
     );
@@ -252,7 +252,7 @@ export default function ServiceDetailPage({
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={`/projects/${projectId}`}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm text-secondary transition hover:text-primary"
             >
               <ArrowLeft size={14} /> {t("Project")}
             </Link>
@@ -269,7 +269,7 @@ export default function ServiceDetailPage({
                 onClick={() => void handleDelete()}
                 disabled={deleting}
                 title="Delete this service"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
               >
                 {deleting ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -305,14 +305,14 @@ export default function ServiceDetailPage({
       )}
 
       {/* Tabs */}
-      <div className="border-b border-[var(--border)]">
+      <div className="border-b border-border">
         <nav className="-mb-px flex gap-1 overflow-x-auto">
           {visibleTabs.map(({ id: tid, label, icon: Icon }) => (
             <button
               key={tid}
               type="button"
               onClick={() => setTab(tid)}
-              className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition ${activeTab === tid ? "border-[var(--text-primary)] text-[var(--text-primary)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+              className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition ${activeTab === tid ? "border-accent text-primary" : "border-transparent text-secondary hover:text-primary"}`}
             >
               <Icon size={14} /> {t(label)}
             </button>
@@ -332,9 +332,9 @@ export default function ServiceDetailPage({
                 <div className="flex items-center gap-2">
                   <TypeIcon
                     size={18}
-                    className="text-[var(--text-secondary)]"
+                    className="text-secondary"
                   />
-                  <span className="text-sm font-semibold text-[var(--text-primary)]">
+                  <span className="text-sm font-semibold text-primary">
                     {service.databaseType} {service.databaseVersion ?? ""}
                   </span>
                 </div>
@@ -355,7 +355,7 @@ export default function ServiceDetailPage({
                 />
               ) : (
                 <SectionCard title="Credentials">
-                  <p className="text-sm text-[var(--text-muted)]">
+                  <p className="text-sm text-muted">
                     Seuls les Maintainers peuvent révéler les identifiants.
                   </p>
                 </SectionCard>
@@ -375,7 +375,7 @@ export default function ServiceDetailPage({
             />
           ) : (
             <SectionCard title="Configuration">
-              <p className="text-sm text-[var(--text-muted)]">
+              <p className="text-sm text-muted">
                 Accès en lecture seule. Un Maintainer peut modifier ce service.
               </p>
             </SectionCard>

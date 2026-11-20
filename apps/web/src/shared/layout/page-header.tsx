@@ -25,20 +25,20 @@ export function PageHeader({
     >
       <div>
         {eyebrow && (
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted">
             {eyebrow}
           </p>
         )}
         <h1
           className={clsx(
-            "font-bold tracking-[-0.03em] text-[var(--text-primary)]",
+            "font-bold tracking-[-0.03em] text-primary",
             eyebrow ? "text-2xl" : "text-xl",
           )}
         >
           {title}
         </h1>
         {description && (
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+          <p className="mt-1 text-sm text-secondary">
             {description}
           </p>
         )}

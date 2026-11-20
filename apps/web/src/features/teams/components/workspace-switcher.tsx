@@ -17,8 +17,8 @@ export function WorkspaceSwitcher() {
   if (workspaces.length === 0) return null;
 
   return (
-    <label className="relative flex w-28 min-w-0 items-center gap-2 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 sm:w-auto sm:max-w-52">
-      <Building2 size={15} className="shrink-0 text-[var(--text-muted)]" />
+    <label className="relative flex w-28 min-w-0 items-center gap-2 overflow-hidden rounded-lg border border-border bg-card px-2.5 py-1.5 sm:w-auto sm:max-w-52">
+      <Building2 size={15} className="shrink-0 text-muted" />
       <select
         aria-label="Workspace actif"
         value={selectedWorkspaceId ?? ""}
@@ -28,7 +28,7 @@ export function WorkspaceSwitcher() {
           router.push("/dashboard");
           router.refresh();
         }}
-        className="w-full min-w-0 appearance-none bg-transparent pr-5 text-sm font-semibold text-[var(--text-primary)] outline-none sm:max-w-44"
+        className="w-full min-w-0 appearance-none bg-transparent pr-5 text-sm font-semibold text-primary outline-none sm:max-w-44"
       >
         {workspaces.map((workspace) => (
           <option key={workspace.id} value={workspace.id}>
@@ -38,7 +38,7 @@ export function WorkspaceSwitcher() {
       </select>
       <ChevronDown
         size={13}
-        className="pointer-events-none absolute right-2 text-[var(--text-muted)]"
+        className="pointer-events-none absolute right-2 text-muted"
       />
     </label>
   );

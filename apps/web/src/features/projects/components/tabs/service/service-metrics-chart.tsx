@@ -68,16 +68,16 @@ export function ServiceMetricsChart({
       description="Container CPU & memory over time. Vertical lines = deployments."
     >
       {isLoading ? (
-        <div className="flex items-center gap-2 py-10 text-sm text-[var(--text-secondary)]">
+        <div className="flex items-center gap-2 py-10 text-sm text-secondary">
           <Loader2 size={16} className="animate-spin" /> Loading…
         </div>
       ) : !data?.configured ? (
-        <p className="py-8 text-center text-sm text-[var(--text-muted)]">
+        <p className="py-8 text-center text-sm text-muted">
           Historical charts are not enabled in the V1. Live metrics remain
           available above.
         </p>
       ) : points.length === 0 ? (
-        <p className="py-8 text-center text-sm text-[var(--text-muted)]">
+        <p className="py-8 text-center text-sm text-muted">
           No metric points for this service yet.
         </p>
       ) : (
@@ -87,31 +87,34 @@ export function ServiceMetricsChart({
               data={points}
               margin={{ top: 8, right: 8, bottom: 4, left: -8 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="rgb(var(--border))"
+              />
               <XAxis
                 dataKey="t"
                 tickFormatter={fmtTime}
-                stroke="var(--text-muted)"
+                stroke="rgb(var(--text-muted))"
                 fontSize={11}
               />
               <YAxis
                 yAxisId="cpu"
-                stroke="var(--text-muted)"
+                stroke="rgb(var(--text-muted))"
                 fontSize={11}
                 width={38}
               />
               <YAxis
                 yAxisId="mem"
                 orientation="right"
-                stroke="var(--text-muted)"
+                stroke="rgb(var(--text-muted))"
                 fontSize={11}
                 width={44}
               />
               <Tooltip
                 labelFormatter={(t) => fmtTime(Number(t))}
                 contentStyle={{
-                  background: "var(--bg-card)",
-                  border: "1px solid var(--border)",
+                  background: "rgb(var(--bg-card))",
+                  border: "1px solid rgb(var(--border))",
                   borderRadius: 8,
                   fontSize: 12,
                 }}
@@ -126,7 +129,7 @@ export function ServiceMetricsChart({
                 yAxisId="cpu"
                 type="monotone"
                 dataKey="cpu"
-                stroke="#22c55e"
+                stroke="rgb(var(--success))"
                 dot={false}
                 strokeWidth={2}
                 isAnimationActive={false}
@@ -135,7 +138,7 @@ export function ServiceMetricsChart({
                 yAxisId="mem"
                 type="monotone"
                 dataKey="mem"
-                stroke="#3b82f6"
+                stroke="rgb(var(--accent))"
                 dot={false}
                 strokeWidth={2}
                 isAnimationActive={false}
@@ -145,26 +148,26 @@ export function ServiceMetricsChart({
                   key={m.id}
                   yAxisId="cpu"
                   x={m.t}
-                  stroke="var(--text-muted)"
+                  stroke="rgb(var(--text-muted))"
                   strokeDasharray="2 2"
                   label={{
                     value: "⬩",
-                    fill: "var(--text-muted)",
+                    fill: "rgb(var(--text-muted))",
                     fontSize: 10,
                   }}
                 />
               ))}
             </LineChart>
           </ResponsiveContainer>
-          <div className="mt-2 flex items-center gap-4 text-xs text-[var(--text-muted)]">
+          <div className="mt-2 flex items-center gap-4 text-xs text-muted">
             <span className="flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-green-500" /> CPU %
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-blue-500" /> Memory (MB)
+              <span className="h-2 w-2 rounded-full bg-accent" /> Memory (MB)
             </span>
             <span className="flex items-center gap-1">
-              <span className="text-[var(--text-muted)]">⋮</span> deployment
+              <span className="text-muted">⋮</span> deployment
             </span>
           </div>
         </div>

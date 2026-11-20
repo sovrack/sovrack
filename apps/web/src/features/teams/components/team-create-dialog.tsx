@@ -120,14 +120,14 @@ export function TeamCreateDialog({
         {error && <Alert tone="error">{error}</Alert>}
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
             Nom de l&apos;organisation <span className="text-red-400">*</span>
           </label>
           <input
             value={form.name}
             onChange={(event) => setField("name", event.target.value)}
             placeholder="Acme Engineering"
-            className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20"
+            className="h-11 w-full rounded-lg border border-border bg-card px-4 text-sm text-primary outline-none transition placeholder:text-secondary focus:ring-2 focus:ring-accent/20"
           />
           {errors.name && (
             <p className="mt-1 text-xs text-red-600">{errors.name}</p>
@@ -135,7 +135,7 @@ export function TeamCreateDialog({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
             Description
           </label>
           <textarea
@@ -143,7 +143,7 @@ export function TeamCreateDialog({
             onChange={(event) => setField("description", event.target.value)}
             placeholder="Description facultative…"
             rows={4}
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20"
+            className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-primary outline-none transition placeholder:text-secondary focus:ring-2 focus:ring-accent/20"
           />
         </div>
       </form>

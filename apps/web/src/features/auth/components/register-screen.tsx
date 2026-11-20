@@ -199,25 +199,25 @@ export function RegisterScreen() {
       <div className="w-full">
         {step === "form" ? (
           <>
-            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">
               Créer votre compte Sovrack
             </h1>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-secondary">
               Votre premier déploiement en quelques secondes.
             </p>
 
             {error && (
-              <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-xs text-red-300">
+              <div className="mt-5 rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-3 text-xs text-red-300">
                 {error}
               </div>
             )}
 
             {process.env.NODE_ENV !== "production" && (
-              <div className="mt-5 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-blue-200">
+              <div className="mt-5 rounded-lg border border-accent/30 bg-accent/10 p-3.5 text-xs text-accent">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-white">Compte de test local</p>
-                    <p className="text-slate-300 font-mono text-[11px]">
+                    <p className="font-semibold text-primary">Compte de test local</p>
+                    <p className="text-secondary font-mono text-[11px]">
                       owner@sovrack.test (accès instantané)
                     </p>
                   </div>
@@ -225,7 +225,7 @@ export function RegisterScreen() {
                     type="button"
                     onClick={handleLocalQuickLogin}
                     disabled={loading}
-                    className="rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1d4ed8] transition shadow-sm"
+                    className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground hover:bg-accent-hover transition "
                   >
                     {loading ? "Connexion..." : "Connexion Démo (1 clic) →"}
                   </button>
@@ -238,21 +238,21 @@ export function RegisterScreen() {
                 <GoogleLoginButton
                   label={t("Sign up with Google")}
                   nextPath={searchParams.get("next") || undefined}
-                  className="rounded-xl border border-white/15 bg-white/[0.04] hover:bg-white/10 text-slate-200"
+                  className="rounded-lg border border-border bg-card hover:bg-hover/15 text-primary"
                 />
                 <div className="relative flex items-center gap-3 py-1">
-                  <span className="h-px flex-1 bg-white/10" />
-                  <span className="text-xs uppercase tracking-wider text-slate-500 font-medium">
+                  <span className="h-px flex-1 bg-hover/15" />
+                  <span className="text-xs uppercase tracking-wider text-muted font-medium">
                     {t("or with your email")}
                   </span>
-                  <span className="h-px flex-1 bg-white/10" />
+                  <span className="h-px flex-1 bg-hover/15" />
                 </div>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">
+                <label className="block text-xs font-medium uppercase tracking-wider text-secondary">
                   Email
                 </label>
                 <input
@@ -262,12 +262,12 @@ export function RegisterScreen() {
                   placeholder="vous@entreprise.com"
                   autoComplete="email"
                   required
-                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                  className="mt-1.5 w-full rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-primary placeholder:text-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">
+                <label className="block text-xs font-medium uppercase tracking-wider text-secondary">
                   Mot de passe
                 </label>
                 <input
@@ -279,9 +279,9 @@ export function RegisterScreen() {
                   required
                   minLength={SOVRACK_PASSWORD_MIN_LENGTH}
                   maxLength={SOVRACK_PASSWORD_MAX_LENGTH}
-                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-slate-500 transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                  className="mt-1.5 w-full rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-primary placeholder:text-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 />
-                <p className="mt-1.5 text-xs text-slate-500">
+                <p className="mt-1.5 text-xs text-muted">
                   12 caractères minimum : majuscule, minuscule et chiffre
                 </p>
               </div>
@@ -289,14 +289,14 @@ export function RegisterScreen() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] shadow-md shadow-blue-500/20 disabled:opacity-50"
+                className="w-full rounded-lg bg-accent py-3 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover   disabled:opacity-50"
               >
                 {loading ? "Création en cours..." : "Créer mon compte"}
               </button>
 
-              <p className="text-center text-xs text-slate-500">
+              <p className="text-center text-xs text-muted">
                 En créant votre compte, vous acceptez nos{" "}
-                <Link href="/terms" className="text-slate-300 hover:text-white underline">
+                <Link href="/terms" className="text-secondary hover:text-primary underline">
                   conditions d&apos;utilisation
                 </Link>
                 .
@@ -305,26 +305,26 @@ export function RegisterScreen() {
           </>
         ) : (
           <>
-            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">
               Vérifiez votre email
             </h1>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-secondary">
               Un code de validation à 6 chiffres a été envoyé à{" "}
-              <span className="font-semibold text-white">{email}</span>.
+              <span className="font-semibold text-primary">{email}</span>.
             </p>
 
             {pendingDevCode && (
-              <div className="mt-4 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-200 flex items-center justify-between">
+              <div className="mt-4 rounded-lg border border-accent/30 bg-accent/10 p-3 text-xs text-accent flex items-center justify-between">
                 <span>
                   Code détecté (démo/dev) :{" "}
-                  <strong className="font-mono text-white text-sm tracking-widest">
+                  <strong className="font-mono text-primary text-sm tracking-widest">
                     {pendingDevCode}
                   </strong>
                 </span>
                 <button
                   type="button"
                   onClick={() => applyDigits(pendingDevCode)}
-                  className="rounded-lg bg-[#2563EB] px-2.5 py-1 text-xs font-semibold text-white hover:bg-[#1d4ed8] transition"
+                  className="rounded-lg bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground hover:bg-accent-hover transition"
                 >
                   Remplir
                 </button>
@@ -332,19 +332,19 @@ export function RegisterScreen() {
             )}
 
             {error && (
-              <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-xs text-red-300">
+              <div className="mt-5 rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-3 text-xs text-red-300">
                 {error}
               </div>
             )}
             {info && (
-              <div className="mt-5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300">
+              <div className="mt-5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300">
                 {info}
               </div>
             )}
 
             <form onSubmit={handleVerify} className="mt-6 space-y-5">
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">
+                <label className="block text-xs font-medium uppercase tracking-wider text-secondary">
                   Code de vérification
                 </label>
                 <div className="mt-2.5 flex justify-between gap-2">
@@ -362,11 +362,11 @@ export function RegisterScreen() {
                       onKeyDown={(e) => handleDigitKeyDown(index, e)}
                       onPaste={handleDigitPaste}
                       aria-label={`Chiffre ${index + 1}`}
-                      className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] text-center text-xl font-bold text-white placeholder:text-slate-500 transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                      className="h-12 w-full rounded-lg border border-border bg-card text-center text-xl font-bold text-primary placeholder:text-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                     />
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-2 text-xs text-muted">
                   Le code expire dans 10 minutes.
                 </p>
               </div>
@@ -374,7 +374,7 @@ export function RegisterScreen() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] shadow-md shadow-blue-500/20 disabled:opacity-50"
+                className="w-full rounded-lg bg-accent py-3 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover   disabled:opacity-50"
               >
                 {loading ? "Vérification..." : "Vérifier et accéder"}
               </button>
@@ -383,7 +383,7 @@ export function RegisterScreen() {
                 type="button"
                 onClick={handleResend}
                 disabled={loading}
-                className="w-full text-center text-xs font-medium text-slate-400 hover:text-white transition disabled:opacity-50"
+                className="w-full text-center text-xs font-medium text-secondary hover:text-primary transition disabled:opacity-50"
               >
                 Renvoyer le code
               </button>
@@ -391,11 +391,11 @@ export function RegisterScreen() {
           </>
         )}
 
-        <p className="mt-8 text-center text-xs text-slate-400">
+        <p className="mt-8 text-center text-xs text-secondary">
           Déjà un compte ?{" "}
           <Link
             href={loginHref}
-            className="font-medium text-white transition hover:underline"
+            className="font-medium text-primary transition hover:underline"
           >
             Se connecter
           </Link>

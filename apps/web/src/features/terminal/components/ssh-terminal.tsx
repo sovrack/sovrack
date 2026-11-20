@@ -209,8 +209,8 @@ export function SshTerminal({ serverId, onClose }: Props) {
   }, [serverId]);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-zinc-950">
-      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2">
+    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-border bg-app">
+      <div className="flex items-center justify-between border-b border-border px-4 py-2">
         <div className="flex items-center gap-2">
           <span
             className={`h-2.5 w-2.5 rounded-full ${
@@ -220,10 +220,10 @@ export function SshTerminal({ serverId, onClose }: Props) {
                   ? "animate-pulse bg-yellow-400"
                   : state === "error"
                     ? "bg-red-400"
-                    : "bg-zinc-600"
+                    : "bg-muted"
             }`}
           />
-          <span className="text-xs font-mono text-zinc-400">
+          <span className="text-xs font-mono text-secondary">
             {state === "connected"
               ? "Connected"
               : state === "connecting"
@@ -238,7 +238,7 @@ export function SshTerminal({ serverId, onClose }: Props) {
         <button
           type="button"
           onClick={disconnect}
-          className="rounded px-2 py-1 text-xs font-medium text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"
+          className="rounded px-2 py-1 text-xs font-medium text-muted transition hover:bg-hover/15 hover:text-primary"
         >
           Close
         </button>

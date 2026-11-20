@@ -87,7 +87,7 @@ export default function AdminServerDetailPage() {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="animate-spin text-[var(--text-secondary)]" />
+        <Loader2 className="animate-spin text-secondary" />
       </div>
     );
   }
@@ -101,7 +101,7 @@ export default function AdminServerDetailPage() {
           </Button>
         </Link>
         <SectionCard title="Server not found">
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-secondary">
             This server may have been deleted or you may not have access.
           </p>
         </SectionCard>
@@ -147,7 +147,7 @@ export default function AdminServerDetailPage() {
               </Button>
             )}
             {primaryAction === "detect" && (
-              <span className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-secondary)]">
+              <span className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-secondary">
                 <Loader2 size={14} className="animate-spin" />
                 Detecting server info…
               </span>
@@ -202,7 +202,7 @@ export default function AdminServerDetailPage() {
             </span>
           </div>
         )}
-        <p className="text-sm text-[var(--text-secondary)]">
+        <p className="text-sm text-secondary">
           Managed via SSH — Ansible runs on the control node, not on this VPS.
         </p>
         {readiness &&

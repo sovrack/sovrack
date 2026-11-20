@@ -56,14 +56,14 @@ export function ProviderCredentialsStep({
       {showOAuth && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Shield size={15} className="text-blue-400" />
-            <p className="text-sm font-semibold text-[var(--text-primary)]">
+            <Shield size={15} className="text-accent" />
+            <p className="text-sm font-semibold text-primary">
               Application OAuth
             </p>
           </div>
 
-          <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-4 py-3 text-xs text-[var(--text-secondary)] space-y-1">
-            <p className="font-semibold text-[var(--text-primary)]">
+          <div className="rounded-lg border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-secondary space-y-1">
+            <p className="font-semibold text-primary">
               Instructions de configuration
             </p>
             {isGithub ? (
@@ -87,7 +87,7 @@ export function ProviderCredentialsStep({
                 </p>
                 <p>
                   2. Renseignez le nom et l’URI de redirection, puis activez :{" "}
-                  <code className="font-mono bg-[var(--hover)] px-1 rounded">
+                  <code className="font-mono bg-hover/10 px-1 rounded">
                     api read_user openid
                   </code>
                 </p>
@@ -113,7 +113,7 @@ export function ProviderCredentialsStep({
               <button
                 type="button"
                 onClick={() => onCopyRedirectUri(effectiveRedirectUri)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border text-secondary transition hover:bg-hover/10 hover:text-primary"
               >
                 {copiedRedirect ? (
                   <Check size={13} className="text-green-400" />
@@ -158,20 +158,20 @@ export function ProviderCredentialsStep({
       )}
 
       {showOAuth && showPAT && (
-        <div className="border-t border-[var(--border)]" />
+        <div className="border-t border-border" />
       )}
 
       {showPAT && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Key size={15} className="text-amber-400" />
-            <p className="text-sm font-semibold text-[var(--text-primary)]">
+            <p className="text-sm font-semibold text-primary">
               Jeton d’accès personnel
             </p>
           </div>
 
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs text-[var(--text-secondary)] space-y-1">
-            <p className="font-semibold text-[var(--text-primary)]">
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs text-secondary space-y-1">
+            <p className="font-semibold text-primary">
               {isGithub
                 ? "Permissions du jeton GitHub"
                 : "Permissions requises"}
@@ -190,11 +190,11 @@ export function ProviderCredentialsStep({
                 </p>
                 <p>
                   Alternative avec un jeton classique :{" "}
-                  <code className="rounded bg-[var(--hover)] px-1">repo</code>{" "}
-                  <code className="rounded bg-[var(--hover)] px-1">
+                  <code className="rounded bg-hover/10 px-1">repo</code>{" "}
+                  <code className="rounded bg-hover/10 px-1">
                     workflow
                   </code>{" "}
-                  <code className="rounded bg-[var(--hover)] px-1">
+                  <code className="rounded bg-hover/10 px-1">
                     read:org
                   </code>
                   .
@@ -210,7 +210,7 @@ export function ProviderCredentialsStep({
                 ].map((scope) => (
                   <code
                     key={scope}
-                    className="rounded bg-[var(--hover)] px-1.5 py-0.5 font-mono"
+                    className="rounded bg-hover/10 px-1.5 py-0.5 font-mono"
                   >
                     {scope}
                   </code>
@@ -223,7 +223,7 @@ export function ProviderCredentialsStep({
                   href="https://github.com/settings/personal-access-tokens/new"
                   target="_blank"
                   rel="noreferrer"
-                  className="font-semibold text-sky-400 underline-offset-2 hover:underline"
+                  className="font-semibold text-accent underline-offset-2 hover:underline"
                 >
                   Créer un jeton à permissions fines sur GitHub
                 </a>

@@ -147,10 +147,10 @@ export function ProjectDeploymentsTab({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-semibold text-[var(--text-primary)]">
+          <p className="text-sm font-semibold text-primary">
             Déploiements
           </p>
-          <span className="rounded-full border border-[var(--border)] bg-[var(--hover)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]">
+          <span className="rounded-md border border-border bg-hover/10 px-2 py-0.5 text-[10px] font-semibold text-muted">
             {headerCount ?? deployments.length}
           </span>
         </div>
@@ -160,7 +160,7 @@ export function ProjectDeploymentsTab({
               type="button"
               onClick={onRefresh}
               disabled={loading}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--hover)] text-[var(--text-muted)] transition hover:text-[var(--text-primary)] disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-hover/10 text-muted transition hover:text-primary disabled:opacity-40"
             >
               <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
             </button>
@@ -182,11 +182,11 @@ export function ProjectDeploymentsTab({
                 key={opt.value}
                 type="button"
                 onClick={() => setStatusFilter(opt.value)}
-                className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${active ? "border-[var(--text-primary)]/30 bg-[var(--text-primary)]/10 text-[var(--text-primary)]" : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
+                className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${active ? "border-accent/30 bg-accent/10 text-primary" : "border-border text-muted hover:text-primary"}`}
               >
                 {opt.label}
                 <span
-                  className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${active ? "bg-[var(--text-primary)]/20" : "bg-[var(--hover)]"}`}
+                  className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${active ? "bg-accent/20" : "bg-hover/10"}`}
                 >
                   {count}
                 </span>
@@ -198,27 +198,27 @@ export function ProjectDeploymentsTab({
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           <XCircle size={14} className="shrink-0" /> {error}
         </div>
       )}
 
       {loading && (
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-8 text-sm text-[var(--text-secondary)]">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-8 text-sm text-secondary">
           <Loader2 size={14} className="animate-spin" /> Chargement de
           l’historique…
         </div>
       )}
 
       {!loading && !error && filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] py-14 text-center">
-          <Rocket size={28} className="mb-3 text-[var(--text-muted)]" />
-          <p className="text-sm font-semibold text-[var(--text-primary)]">
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-14 text-center">
+          <Rocket size={28} className="mb-3 text-muted" />
+          <p className="text-sm font-semibold text-primary">
             {statusFilter === "ALL"
               ? "Aucun déploiement pour le moment"
               : `Aucun déploiement ${deploymentStatusLabel(statusFilter).toLowerCase()}`}
           </p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">
+          <p className="mt-1 text-xs text-secondary">
             {statusFilter === "ALL"
               ? "Déployez votre projet pour afficher son historique ici."
               : "Essayez un autre filtre."}
@@ -228,7 +228,7 @@ export function ProjectDeploymentsTab({
 
       {/* Run list */}
       {!loading && visible.length > 0 && (
-        <div className="overflow-hidden rounded-2xl border border-[var(--border)]">
+        <div className="overflow-hidden rounded-lg border border-border">
           {visible.map((dep, i) => (
             <DeploymentRow
               key={dep.id}
@@ -262,7 +262,7 @@ export function ProjectDeploymentsTab({
       {!hideViewAllLink && projectId && filtered.length > 20 && (
         <Link
           href={`/deployments?project=${projectId}`}
-          className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--border)] py-3 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+          className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-3 text-xs text-muted transition hover:text-primary"
         >
           <ExternalLink size={11} /> Voir les {filtered.length} déploiements →
         </Link>

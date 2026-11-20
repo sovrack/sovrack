@@ -176,7 +176,7 @@ export default function AdminServersPage() {
       {servers.error && <Alert tone="error">{servers.error}</Alert>}
 
       {!servers.loading && servers.servers.length === 0 && !servers.error && (
-        <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--hover)]">
+        <div className="rounded-lg border border-dashed border-border bg-hover/10">
           <EmptyState
             icon={Server}
             title="No servers"

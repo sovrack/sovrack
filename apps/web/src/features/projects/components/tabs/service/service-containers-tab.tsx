@@ -94,7 +94,7 @@ export function ServiceContainersTab({
         title="Containers"
         description="Select an environment above to see its container."
       >
-        <p className="text-sm text-[var(--text-muted)]">
+        <p className="text-sm text-muted">
           No environment selected.
         </p>
       </SectionCard>
@@ -111,7 +111,7 @@ export function ServiceContainersTab({
           <button
             type="button"
             onClick={() => setLive((v) => !v)}
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${live ? "border-blue-500/30 bg-blue-500/10 text-blue-300" : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
+            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${live ? "border-accent/30 bg-accent/10 text-accent" : "border-border text-muted hover:text-primary"}`}
           >
             <Activity size={11} className={live ? "animate-pulse" : ""} />{" "}
             Live
@@ -120,7 +120,7 @@ export function ServiceContainersTab({
             type="button"
             onClick={() => void fetchInfo()}
             disabled={loading}
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:text-[var(--text-primary)] disabled:opacity-40"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted transition hover:text-primary disabled:opacity-40"
           >
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
           </button>

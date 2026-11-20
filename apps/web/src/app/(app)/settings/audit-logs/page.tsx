@@ -72,26 +72,26 @@ export default function AuditLogsSettingsPage() {
 
       <SectionCard contentClassName="!p-0">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-[var(--border)]">
-            <thead className="bg-[var(--bg-card)]">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-card">
               <tr>
                 {["Date", "User", "Action", "Resource", "Metadata"].map((h) => (
                   <th
                     key={h}
-                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)]"
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.12em] text-secondary"
                   >
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--border)]">
+            <tbody className="divide-y divide-border">
               {isLoading && (
                 <tr>
                   <td colSpan={5} className="px-4 py-12 text-center">
                     <Loader2
                       size={20}
-                      className="mx-auto animate-spin text-[var(--text-secondary)]"
+                      className="mx-auto animate-spin text-secondary"
                     />
                   </td>
                 </tr>
@@ -99,8 +99,8 @@ export default function AuditLogsSettingsPage() {
               {!isLoading && rows.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-12 text-center">
-                    <ClipboardList className="mx-auto h-8 w-8 text-[var(--text-secondary)]" />
-                    <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                    <ClipboardList className="mx-auto h-8 w-8 text-secondary" />
+                    <p className="mt-2 text-sm text-secondary">
                       No audit logs found.
                     </p>
                   </td>
@@ -108,23 +108,23 @@ export default function AuditLogsSettingsPage() {
               )}
               {!isLoading &&
                 rows.map((log) => (
-                  <tr key={log.id} className="bg-[var(--bg-app)]">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-[var(--text-secondary)]">
+                  <tr key={log.id} className="bg-app">
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-secondary">
                       {formatDateTime(log.createdAt)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--text-primary)]">
+                    <td className="px-4 py-3 text-sm text-primary">
                       <p className="font-medium">{log.user.fullName}</p>
-                      <p className="text-xs text-[var(--text-secondary)]">
+                      <p className="text-xs text-secondary">
                         {log.user.email}
                       </p>
                     </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-[var(--text-primary)]">
+                    <td className="px-4 py-3 text-sm font-semibold text-primary">
                       {log.action}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+                    <td className="px-4 py-3 text-sm text-secondary">
                       {log.resourceType} · {log.resourceId}
                     </td>
-                    <td className="max-w-[360px] truncate px-4 py-3 text-sm text-[var(--text-secondary)]">
+                    <td className="max-w-[360px] truncate px-4 py-3 text-sm text-secondary">
                       {metadataPreview(log.metadata)}
                     </td>
                   </tr>

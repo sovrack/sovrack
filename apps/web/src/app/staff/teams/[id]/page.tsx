@@ -31,13 +31,13 @@ export default function StaffTeamDetailPage() {
   if (query.isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="animate-spin text-zinc-400" />
+        <Loader2 className="animate-spin text-secondary" />
       </div>
     );
   }
   if (query.isError || !query.data) {
     return (
-      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-red-300">
+      <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-6 text-red-300">
         {getApiErrorMessage(query.error)}
       </div>
     );
@@ -49,14 +49,14 @@ export default function StaffTeamDetailPage() {
       <div>
         <Link
           href="/staff/teams"
-          className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-white"
+          className="inline-flex items-center gap-2 text-sm text-secondary hover:text-primary"
         >
           <ArrowLeft size={15} /> Workspaces
         </Link>
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white">{team.name}</h1>
-            <p className="text-sm text-zinc-500">
+            <h1 className="text-2xl font-bold text-primary">{team.name}</h1>
+            <p className="text-sm text-muted">
               {team.slug} ·{" "}
               {team.type === "PERSONAL" ? "Personnel" : "Organisation"}
             </p>
@@ -70,7 +70,7 @@ export default function StaffTeamDetailPage() {
             onChange={(event) =>
               statusMutation.mutate(event.target.value as WorkspaceStatus)
             }
-            className="rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-white"
+            className="rounded-lg border border-border bg-app px-3 py-2 text-sm text-primary"
           >
             <option value="ACTIVE">Actif</option>
             <option value="SUSPENDED">Suspendu</option>
@@ -95,21 +95,21 @@ export default function StaffTeamDetailPage() {
         ].map(([label, value]) => (
           <div
             key={label}
-            className="rounded-2xl border border-white/10 bg-white/5 p-4"
+            className="rounded-lg border border-border bg-hover/10 p-4"
           >
-            <p className="text-xs uppercase tracking-wide text-zinc-500">
+            <p className="text-xs uppercase tracking-wide text-muted">
               {label}
             </p>
-            <p className="mt-2 text-2xl font-bold text-white">{value}</p>
+            <p className="mt-2 text-2xl font-bold text-primary">{value}</p>
           </div>
         ))}
       </section>
 
-      <section className="rounded-2xl border border-white/10 p-5">
-        <h2 className="font-semibold text-white">Membres</h2>
+      <section className="rounded-lg border border-border p-5">
+        <h2 className="font-semibold text-primary">Membres</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="text-zinc-500">
+            <thead className="text-muted">
               <tr>
                 <th className="pb-3 font-medium">Identité</th>
                 <th className="pb-3 font-medium">Rôle</th>
@@ -123,19 +123,19 @@ export default function StaffTeamDetailPage() {
                   <td className="py-3">
                     <Link
                       href={`/staff/users/${membership.user.id}`}
-                      className="font-medium text-white hover:text-sky-300"
+                      className="font-medium text-primary hover:text-accent"
                     >
                       {membership.user.fullName}
                     </Link>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-muted">
                       {membership.user.email}
                     </p>
                   </td>
-                  <td className="py-3 text-zinc-300">{membership.role}</td>
-                  <td className="py-3 text-zinc-300">
+                  <td className="py-3 text-secondary">{membership.role}</td>
+                  <td className="py-3 text-secondary">
                     {membership.canManageBilling ? "Autorisée" : "Non"}
                   </td>
-                  <td className="py-3 text-zinc-300">{membership.status}</td>
+                  <td className="py-3 text-secondary">{membership.status}</td>
                 </tr>
               ))}
             </tbody>
@@ -144,23 +144,23 @@ export default function StaffTeamDetailPage() {
       </section>
 
       {team.type === "ORGANIZATION" && (
-        <section className="rounded-2xl border border-white/10 p-5">
-          <h2 className="font-semibold text-white">Invitations</h2>
+        <section className="rounded-lg border border-border p-5">
+          <h2 className="font-semibold text-primary">Invitations</h2>
           <div className="mt-4 space-y-2">
             {team.invitations.map((invitation) => (
               <div
                 key={invitation.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3 text-sm"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-hover/10 px-4 py-3 text-sm"
               >
                 <span>
-                  <span className="text-white">{invitation.email}</span>
-                  <span className="ml-2 text-zinc-500">{invitation.role}</span>
+                  <span className="text-primary">{invitation.email}</span>
+                  <span className="ml-2 text-muted">{invitation.role}</span>
                 </span>
                 <span
                   className={
                     invitation.deliveryStatus === "FAILED"
                       ? "text-red-300"
-                      : "text-zinc-400"
+                      : "text-secondary"
                   }
                 >
                   {invitation.status} · email {invitation.deliveryStatus}
@@ -168,15 +168,15 @@ export default function StaffTeamDetailPage() {
               </div>
             ))}
             {team.invitations.length === 0 && (
-              <p className="text-sm text-zinc-500">Aucune invitation.</p>
+              <p className="text-sm text-muted">Aucune invitation.</p>
             )}
           </div>
         </section>
       )}
 
-      <section className="rounded-2xl border border-white/10 p-5">
-        <h2 className="font-semibold text-white">Abonnement</h2>
-        <p className="mt-2 text-sm text-zinc-400">
+      <section className="rounded-lg border border-border p-5">
+        <h2 className="font-semibold text-primary">Abonnement</h2>
+        <p className="mt-2 text-sm text-secondary">
           {team.subscription
             ? `${team.subscription.plan} · ${team.subscription.status}`
             : "Aucun abonnement enregistré"}

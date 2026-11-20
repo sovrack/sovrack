@@ -38,10 +38,10 @@ const config: Record<
   },
   info: {
     icon: Info,
-    border: "border-zinc-500/20",
-    bg: "bg-[var(--text-primary)]/5",
-    text: "text-[var(--text-muted)]",
-    title: "text-[var(--text-muted)]",
+    border: "border-border",
+    bg: "bg-hover/10",
+    text: "text-secondary",
+    title: "text-primary",
   },
 };
 
@@ -56,7 +56,7 @@ export function Alert({
   return (
     <div
       className={clsx(
-        "flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 text-sm",
+        "flex items-start gap-3 rounded-lg border px-4 py-3 text-sm",
         tone === "warning" && "border-l-2 border-l-yellow-500",
         tone === "error" && "border-l-2 border-l-red-500",
         border,

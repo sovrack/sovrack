@@ -51,7 +51,7 @@ export function ServerRowActionsMenu({
       disabled={disabled}
       label={`Actions for ${server.name}`}
       trigger={() => (
-        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]">
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted transition hover:bg-hover/10 hover:text-primary">
           <MoreHorizontal size={15} />
         </span>
       )}

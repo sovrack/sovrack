@@ -28,9 +28,9 @@ import type { EnvName } from "@/features/projects/types/environment";
 const ENV_NAMES: EnvName[] = ["STAGING", "PRODUCTION", "TESTING", "PREVIEW"];
 
 const SERVICE_TYPE_STYLE: Record<string, string> = {
-  APPLICATION: "bg-blue-500/10 text-blue-300",
-  DATABASE: "bg-orange-500/10 text-orange-300",
-  MANAGED: "bg-indigo-500/10 text-indigo-300",
+  APPLICATION: "bg-accent/10 text-accent",
+  DATABASE: "bg-accent/10 text-accent",
+  MANAGED: "bg-accent/10 text-accent",
 };
 
 function AddEnvDialog({
@@ -99,13 +99,13 @@ function AddEnvDialog({
     >
       <div className="space-y-4">
         {error && (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2.5 text-sm text-red-400">
+          <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2.5 text-sm text-red-400">
             {error}
           </div>
         )}
 
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
             Environment type
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -115,15 +115,15 @@ function AddEnvDialog({
                 type="button"
                 onClick={() => setEnvName(name)}
                 className={clsx(
-                  "rounded-xl border px-3 py-2.5 text-center text-xs font-bold uppercase tracking-wide transition",
+                  "rounded-lg border px-3 py-2.5 text-center text-xs font-bold uppercase tracking-wide transition",
                   envName === name
-                    ? "border-[var(--text-primary)] bg-[var(--hover)] text-[var(--text-primary)]"
-                    : "border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]",
+                    ? "border-accent bg-hover/10 text-primary"
+                    : "border-border text-muted hover:bg-hover/10",
                 )}
               >
                 <span
                   className={clsx(
-                    "block rounded-full border px-2 py-0.5 text-[10px]",
+                    "block rounded-md border px-2 py-0.5 text-[10px]",
                     ENV_BADGE[name] ?? "",
                   )}
                 >
@@ -135,11 +135,11 @@ function AddEnvDialog({
         </div>
 
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
             Target VPS
           </p>
           {servers.length === 0 ? (
-            <p className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 py-2 text-xs text-[var(--text-muted)]">
+            <p className="rounded-lg border border-border bg-hover/10 px-3 py-2 text-xs text-muted">
               No servers yet — add one in Remote Servers, then attach it here.
             </p>
           ) : (
@@ -154,8 +154,8 @@ function AddEnvDialog({
                     className={clsx(
                       "flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition",
                       selected
-                        ? "border-[var(--text-primary)]/30 bg-[var(--text-primary)]/10 text-[var(--text-primary)]"
-                        : "border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]",
+                        ? "border-accent/30 bg-accent/10 text-primary"
+                        : "border-border text-muted hover:bg-hover/10",
                     )}
                   >
                     {selected ? (
@@ -164,7 +164,7 @@ function AddEnvDialog({
                       <Server size={13} />
                     )}
                     <span className="flex-1 truncate">{s.name}</span>
-                    <span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)]">
+                    <span className="text-[10px] uppercase tracking-wide text-muted">
                       {s.status}
                     </span>
                   </button>
@@ -232,7 +232,7 @@ export function ProjectEnvironmentsTab({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-secondary)]">
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-secondary">
         <Loader2 size={14} className="animate-spin" /> Chargement…
       </div>
     );
@@ -242,7 +242,7 @@ export function ProjectEnvironmentsTab({
     <div className="space-y-4">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs text-[var(--text-muted)]">
+          <p className="text-xs text-muted">
             {environments.length} environnement
             {environments.length !== 1 ? "s" : ""}
           </p>
@@ -250,14 +250,14 @@ export function ProjectEnvironmentsTab({
             <button
               type="button"
               onClick={() => void load()}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-secondary transition hover:text-primary"
             >
               <RefreshCw size={12} /> Refresh
             </button>
             <button
               type="button"
               onClick={() => setAddOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90"
+              className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground transition hover:bg-accent-hover"
             >
               <Plus size={12} /> Add
             </button>
@@ -265,24 +265,24 @@ export function ProjectEnvironmentsTab({
         </div>
 
         {error && (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {error}
           </div>
         )}
 
         {environments.length === 0 && !error && (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--border)] py-12 text-center">
-            <Server size={28} className="mb-3 text-[var(--text-muted)]" />
-            <p className="text-sm font-semibold text-[var(--text-primary)]">
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12 text-center">
+            <Server size={28} className="mb-3 text-muted" />
+            <p className="text-sm font-semibold text-primary">
               No environment
             </p>
-            <p className="mt-1 max-w-xs text-xs text-[var(--text-secondary)]">
+            <p className="mt-1 max-w-xs text-xs text-secondary">
               Add a STAGING or PRODUCTION environment to be able to deploy.
             </p>
             <button
               type="button"
               onClick={() => setAddOpen(true)}
-              className="mt-4 flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
+              className="mt-4 flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover"
             >
               <Plus size={14} /> Add an environment
             </button>
@@ -294,22 +294,22 @@ export function ProjectEnvironmentsTab({
           return (
             <div
               key={env.id}
-              className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4"
+              className="rounded-lg border border-border bg-card p-4"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={clsx(
-                      "rounded-full border px-2.5 py-0.5 text-xs font-bold uppercase",
+                      "rounded-md border px-2.5 py-0.5 text-xs font-bold uppercase",
                       ENV_BADGE[env.name] ??
-                        "border-zinc-500/20 bg-zinc-500/10 text-zinc-400",
+                        "border-border bg-hover/10 text-secondary",
                     )}
                   >
                     {env.name}
                   </span>
                   {/* Serveur lié — sinon avertissement (les déploiements échoueraient). */}
                   {(env.servers?.length ?? 0) > 0 ? (
-                    <span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+                    <span className="flex items-center gap-1 text-xs text-muted">
                       <Server size={11} />{" "}
                       {env.servers!.map((s) => s.name).join(", ")}
                     </span>
@@ -328,7 +328,7 @@ export function ProjectEnvironmentsTab({
                     <button
                       type="button"
                       onClick={() => onDeploy(env.id)}
-                      className="flex items-center gap-1.5 rounded-lg bg-[var(--text-primary)] px-2.5 py-1 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90"
+                      className="flex items-center gap-1.5 rounded-lg bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground transition hover:bg-accent-hover"
                     >
                       <Rocket size={11} /> Deploy
                     </button>
@@ -337,7 +337,7 @@ export function ProjectEnvironmentsTab({
                     type="button"
                     onClick={() => void handleDelete(env.id)}
                     disabled={deletingId === env.id}
-                    className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
                     title="Delete"
                   >
                     {deletingId === env.id ? (
@@ -350,14 +350,14 @@ export function ProjectEnvironmentsTab({
               </div>
 
               {envServices.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2 border-t border-[var(--border)] pt-3">
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
                   {envServices.map((link) => (
                     <div
                       key={link.id}
                       className="flex items-center gap-1.5 rounded-lg border border-green-500/20 bg-green-500/8 px-2.5 py-1 text-xs"
                     >
                       <CheckCircle2 size={10} className="text-green-400" />
-                      <span className="font-semibold text-[var(--text-primary)]">
+                      <span className="font-semibold text-primary">
                         {link.service?.name ?? "?"}
                       </span>
                       {link.service?.type && (

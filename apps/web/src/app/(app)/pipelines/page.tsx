@@ -183,12 +183,12 @@ export default function PipelinesPage() {
         ].map(({ label, value }) => (
           <div
             key={label}
-            className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3"
+            className="rounded-lg border border-border bg-card px-4 py-3"
           >
-            <p className="text-xs font-medium text-[var(--text-muted)]">
+            <p className="text-xs font-medium text-muted">
               {label}
             </p>
-            <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
+            <p className="mt-1 text-3xl font-bold text-primary">
               {value}
             </p>
           </div>
@@ -196,7 +196,7 @@ export default function PipelinesPage() {
       </div>
 
       {(error ?? triggerError) && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error ? getApiErrorMessage(error) : triggerError}
         </div>
       )}
@@ -211,7 +211,7 @@ export default function PipelinesPage() {
           <select
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
+            className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-primary outline-none"
           >
             <option value="all">Tous les projets</option>
             {projects.map((p) => (
@@ -224,7 +224,7 @@ export default function PipelinesPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
+            className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-primary outline-none"
           >
             <option value="all">Tous les états</option>
             {statusOptions.map((status) => (
@@ -237,7 +237,7 @@ export default function PipelinesPage() {
           <select
             value={branchFilter}
             onChange={(e) => setBranchFilter(e.target.value)}
-            className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
+            className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-primary outline-none"
           >
             <option value="all">Toutes les branches</option>
             {branchOptions.map((branch) => (
@@ -251,7 +251,7 @@ export default function PipelinesPage() {
             value={commitFilter}
             onChange={(e) => setCommitFilter(e.target.value)}
             placeholder="Commit SHA"
-            className="h-10 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
+            className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-primary outline-none"
           />
         </div>
       </SectionCard>
@@ -260,7 +260,7 @@ export default function PipelinesPage() {
         <div className="flex items-center justify-center py-16">
           <Loader2
             size={24}
-            className="animate-spin text-[var(--text-secondary)]"
+            className="animate-spin text-secondary"
           />
         </div>
       )}
@@ -286,21 +286,21 @@ export default function PipelinesPage() {
             return (
               <div
                 key={`${pipeline.project.id}-${pipeline.id}`}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 transition hover:border-[var(--border)]/70"
+                className="rounded-lg border border-border bg-card p-4 transition hover:border-border/70"
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/projects/${pipeline.project.id}`}
-                        className="text-sm font-semibold text-[var(--text-primary)] hover:underline"
+                        className="text-sm font-semibold text-primary hover:underline"
                       >
                         {pipeline.project.name}
                       </Link>
                       <PipelineStatusBadge status={pipeline.status} />
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--text-secondary)]">
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-secondary">
                       <span className="flex items-center gap-1">
                         <GitBranch size={11} />
                         {pipeline.ref}
@@ -337,7 +337,7 @@ export default function PipelinesPage() {
                       href={pipeline.web_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--border)]"
+                      className="flex items-center gap-1.5 rounded-lg border border-border bg-hover/10 px-3 py-1.5 text-xs font-semibold text-secondary transition hover:bg-border"
                     >
                       <ExternalLink size={12} />
                       GitLab

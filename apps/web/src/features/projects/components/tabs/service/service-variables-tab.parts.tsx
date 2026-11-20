@@ -89,7 +89,7 @@ export function EnvTextEditor({
       <div className="relative font-mono text-xs leading-5">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 overflow-hidden rounded-md"
+          className="pointer-events-none absolute inset-0 overflow-hidden rounded-full"
         >
           {lines.map((_, i) => (
             <div
@@ -107,7 +107,7 @@ export function EnvTextEditor({
           rows={Math.max(4, lines.length)}
           spellCheck={false}
           placeholder={"NAME=value\nANOTHER_NAME=another value"}
-          className="relative w-full resize-y rounded-md border border-[var(--border)] bg-transparent px-2 py-1.5 font-mono text-xs leading-5 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--text-muted)]"
+          className="relative w-full resize-y rounded-md border border-border bg-transparent px-2 py-1.5 font-mono text-xs leading-5 text-primary outline-none placeholder:text-muted focus:border-muted"
         />
       </div>
       {invalidLines.length > 0 && (
@@ -133,7 +133,7 @@ export function KvRows({
   secret?: boolean;
 }) {
   const inputCls =
-    "rounded-md border border-[var(--border)] bg-[var(--bg-app)] px-2 py-1.5 font-mono text-xs text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]";
+    "rounded-md border border-border bg-app px-2 py-1.5 font-mono text-xs text-primary outline-none focus:border-muted";
   return (
     <div className="space-y-1.5">
       {rows.map((r, i) => (
@@ -150,7 +150,7 @@ export function KvRows({
             placeholder="KEY"
             className={`${inputCls} w-1/3`}
           />
-          <span className="text-[var(--text-muted)]">=</span>
+          <span className="text-muted">=</span>
           <input
             value={r.value}
             type={secret ? "password" : "text"}
@@ -167,7 +167,7 @@ export function KvRows({
           <button
             type="button"
             onClick={() => setRows(rows.filter((_, j) => j !== i))}
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-muted)] hover:text-red-400"
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted hover:text-red-400"
           >
             <X size={12} />
           </button>
@@ -176,7 +176,7 @@ export function KvRows({
       <button
         type="button"
         onClick={() => setRows([...rows, { key: "", value: "" }])}
-        className="inline-flex items-center gap-1 rounded-md border border-dashed border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+        className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2.5 py-1 text-xs text-muted transition hover:text-primary"
       >
         <Plus size={11} /> Add a variable
       </button>

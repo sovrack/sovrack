@@ -82,13 +82,13 @@ export function ServiceCiGenerator({
   };
 
   return (
-    <div className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+    <div className="space-y-4 rounded-lg border border-border bg-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-[var(--text-primary)]">
+          <p className="text-sm font-semibold text-primary">
             {t("Standardized CI/CD config")}
           </p>
-          <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
+          <p className="mt-0.5 text-xs text-secondary">
             Génère le <code className="font-mono">Dockerfile</code>, le{" "}
             <code className="font-mono">.dockerignore</code> et le fichier CI à{" "}
             <span className="font-semibold">coller dans votre dépôt</span>.
@@ -99,7 +99,7 @@ export function ServiceCiGenerator({
           type="button"
           onClick={() => void generate()}
           disabled={loading}
-          className="flex shrink-0 items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50"
+          className="flex shrink-0 items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover disabled:opacity-50"
         >
           {loading ? (
             <Loader2 size={15} className="animate-spin" />
@@ -111,7 +111,7 @@ export function ServiceCiGenerator({
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
           <XCircle size={14} /> {error}
         </div>
       )}
@@ -119,9 +119,9 @@ export function ServiceCiGenerator({
       {files.length > 0 && (
         <>
           {/* Mode d'emploi — 1-2-3 */}
-          <ol className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--hover)]/40 p-4 text-xs text-[var(--text-secondary)]">
+          <ol className="space-y-2 rounded-lg border border-border bg-hover/10/40 p-4 text-xs text-secondary">
             <li>
-              <span className="font-semibold text-[var(--text-primary)]">
+              <span className="font-semibold text-primary">
                 {t("1. Paste each file")}
               </span>{" "}
               {t(
@@ -129,7 +129,7 @@ export function ServiceCiGenerator({
               )}
             </li>
             <li>
-              <span className="font-semibold text-[var(--text-primary)]">
+              <span className="font-semibold text-primary">
                 {t("2. Add 2 CI variables")}
               </span>{" "}
               {t(
@@ -153,7 +153,7 @@ export function ServiceCiGenerator({
               </div>
             </li>
             <li>
-              <span className="font-semibold text-[var(--text-primary)]">
+              <span className="font-semibold text-primary">
                 {t("3. Push")}
               </span>{" "}
               {t(
@@ -166,16 +166,16 @@ export function ServiceCiGenerator({
           {files.map((f) => (
             <div
               key={f.name}
-              className="overflow-hidden rounded-xl border border-[var(--border)]"
+              className="overflow-hidden rounded-lg border border-border"
             >
-              <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--hover)]/40 px-3 py-1.5">
-                <span className="flex items-center gap-1.5 font-mono text-xs text-[var(--text-secondary)]">
+              <div className="flex items-center justify-between border-b border-border bg-hover/10/40 px-3 py-1.5">
+                <span className="flex items-center gap-1.5 font-mono text-xs text-secondary">
                   <FileCode2 size={12} /> {f.name}
                 </span>
                 <button
                   type="button"
                   onClick={() => void copy(f.name, f.content)}
-                  className="flex items-center gap-1 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+                  className="flex items-center gap-1 text-xs text-muted transition hover:text-primary"
                 >
                   {copied === f.name ? (
                     <>
@@ -188,7 +188,7 @@ export function ServiceCiGenerator({
                   )}
                 </button>
               </div>
-              <pre className="max-h-64 overflow-auto whitespace-pre-wrap bg-zinc-950 p-3 font-mono text-[11px] leading-relaxed text-green-300">
+              <pre className="max-h-64 overflow-auto whitespace-pre-wrap bg-app p-3 font-mono text-[11px] leading-relaxed text-green-300">
                 {f.content}
               </pre>
             </div>
@@ -213,18 +213,18 @@ function VarLine({
   onCopy?: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5">
-      <code className="font-mono text-[11px] font-semibold text-[var(--text-primary)]">
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-1.5">
+      <code className="font-mono text-[11px] font-semibold text-primary">
         {name}
       </code>
-      <span className="truncate font-mono text-[11px] text-[var(--text-muted)]">
+      <span className="truncate font-mono text-[11px] text-muted">
         {value}
       </span>
       {copyable && onCopy && (
         <button
           type="button"
           onClick={onCopy}
-          className="ml-auto flex shrink-0 items-center gap-1 text-[11px] text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+          className="ml-auto flex shrink-0 items-center gap-1 text-[11px] text-muted transition hover:text-primary"
         >
           {copied ? <Check size={11} /> : <Copy size={11} />}
         </button>

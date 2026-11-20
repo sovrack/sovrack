@@ -115,7 +115,7 @@ export default function LandingPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   return (
-    <div className="min-h-screen bg-brand text-white">
+    <div className="min-h-screen bg-app text-primary">
       <MarketingNavbar />
 
       <main>
@@ -124,7 +124,7 @@ export default function LandingPage() {
             <h1 className="mx-auto max-w-5xl text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl lg:text-7xl">
               Déployez vos applications sur vos propres serveurs.
             </h1>
-            <p className="mx-auto mt-7 max-w-3xl text-lg leading-8 text-slate-300 sm:text-xl">
+            <p className="mx-auto mt-7 max-w-3xl text-lg leading-8 text-secondary sm:text-xl">
               Sovrack centralise la connexion à Git, la préparation de vos
               VPS, les déploiements Docker, les domaines HTTPS, les journaux et
               le suivi opérationnel. Vous gardez la maîtrise de votre
@@ -135,7 +135,7 @@ export default function LandingPage() {
                 href={customerAppPath(
                   isAuthenticated ? "/dashboard" : "/register",
                 )}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#2563EB] px-6 py-3.5 font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#1d4ed8]"
+                className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3.5 font-semibold text-accent-foreground   transition hover:bg-accent-hover"
               >
                 {isAuthenticated ? "Ouvrir mon espace" : "Créer un compte"}
                 <ArrowRight size={17} />
@@ -143,13 +143,13 @@ export default function LandingPage() {
               {!isAuthenticated && (
                 <Link
                   href={customerAppPath("/login")}
-                  className="rounded-xl border border-white/15 bg-white/5 px-6 py-3.5 font-semibold text-white transition hover:bg-white/10"
+                  className="rounded-lg border border-border bg-hover/10 px-6 py-3.5 font-semibold text-primary transition hover:bg-hover/15"
                 >
                   Se connecter
                 </Link>
               )}
             </div>
-            <p className="mt-5 text-sm text-slate-400">
+            <p className="mt-5 text-sm text-secondary">
               Commencez avec un projet et un serveur. Aucune carte bancaire
               n’est demandée.
             </p>
@@ -159,13 +159,13 @@ export default function LandingPage() {
         <section id="plateforme" className="px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <div className="max-w-3xl">
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-400">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
                 Une console, un flux cohérent
               </p>
               <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
                 Du dépôt au serveur, sans perdre le contexte.
               </h2>
-              <p className="mt-5 text-lg leading-8 text-slate-400">
+              <p className="mt-5 text-lg leading-8 text-secondary">
                 Sovrack organise les éléments nécessaires au déploiement et
                 conserve une séparation claire entre identité, espace de
                 travail, projet et environnement.
@@ -178,13 +178,13 @@ export default function LandingPage() {
               {capabilities.map(({ icon: Icon, title, description }) => (
                 <article
                   key={title}
-                  className="rounded-2xl border border-white/10 bg-[#121212] p-6 hover:border-white/20 transition"
+                  className="rounded-lg border border-border bg-card p-6 hover:border-border-hover transition"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-accent/10 text-accent">
                     <Icon size={21} />
                   </div>
                   <h3 className="mt-5 text-lg font-semibold">{title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                  <p className="mt-2 text-sm leading-6 text-secondary">
                     {description}
                   </p>
                 </article>
@@ -196,18 +196,18 @@ export default function LandingPage() {
         <section className="px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-6 lg:grid-cols-2">
-              <article className="rounded-3xl border border-white/10 bg-[#121212] p-8">
-                <UserRound className="text-blue-400" size={30} />
+              <article className="rounded-lg border border-border bg-card p-8">
+                <UserRound className="text-accent" size={30} />
                 <h2 className="mt-6 text-2xl font-bold">Démarrez seul en 1 minute</h2>
-                <p className="mt-3 leading-7 text-slate-300">
+                <p className="mt-3 leading-7 text-secondary">
                   Un espace personnel sans aucune friction. Pas de formulaires superflus :
                   déployez votre premier conteneur sur votre serveur en quelques clics.
                 </p>
               </article>
-              <article className="rounded-3xl border border-white/10 bg-[#121212] p-8">
-                <Building2 className="text-blue-400" size={30} />
+              <article className="rounded-lg border border-border bg-card p-8">
+                <Building2 className="text-accent" size={30} />
                 <h2 className="mt-6 text-2xl font-bold">Évoluez en équipe quand vous voulez</h2>
-                <p className="mt-3 leading-7 text-slate-300">
+                <p className="mt-3 leading-7 text-secondary">
                   Besoin de collaborer ? Créez des organisations depuis votre tableau de bord,
                   invitez vos collaborateurs et gérez finement les permissions d&apos;accès par rôle.
                 </p>
@@ -225,13 +225,13 @@ export default function LandingPage() {
               {steps.map((step) => (
                 <article
                   key={step.number}
-                  className="rounded-2xl border border-white/10 bg-[#121212] p-7"
+                  className="rounded-lg border border-border bg-card p-7"
                 >
-                  <span className="font-mono text-sm font-bold text-blue-400">
+                  <span className="font-mono text-sm font-bold text-accent">
                     {step.number}
                   </span>
                   <h3 className="mt-5 text-xl font-semibold">{step.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-400">
+                  <p className="mt-3 text-sm leading-6 text-secondary">
                     {step.description}
                   </p>
                 </article>
@@ -244,13 +244,13 @@ export default function LandingPage() {
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-12 lg:grid-cols-[1fr_1.2fr] lg:items-center">
               <div>
-                <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-400">
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
                   Écosystème compatible
                 </p>
                 <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
                   Vos outils, votre infrastructure.
                 </h2>
-                <p className="mt-5 text-lg leading-8 text-slate-400">
+                <p className="mt-5 text-lg leading-8 text-secondary">
                   Connectez vos sources, votre registre et votre VPS sans
                   déplacer l’hébergement de votre application vers une
                   infrastructure imposée.
@@ -260,9 +260,9 @@ export default function LandingPage() {
                 {integrations.map((integration) => (
                   <div
                     key={integration}
-                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#121212] px-5 py-4 text-slate-200"
+                    className="flex items-center gap-3 rounded-lg border border-border bg-card px-5 py-4 text-primary"
                   >
-                    <CheckCircle2 className="text-blue-400" size={19} />
+                    <CheckCircle2 className="text-accent" size={19} />
                     <span className="font-medium">{integration}</span>
                   </div>
                 ))}
@@ -273,23 +273,23 @@ export default function LandingPage() {
 
         <section className="px-6 py-24">
           <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-2">
-            <article className="rounded-3xl border border-white/10 bg-[#121212] p-8">
-              <LockKeyhole className="text-blue-400" size={30} />
+            <article className="rounded-lg border border-border bg-card p-8">
+              <LockKeyhole className="text-accent" size={30} />
               <h2 className="mt-6 text-2xl font-bold">
                 Des accès séparés et maîtrisés
               </h2>
-              <p className="mt-3 leading-7 text-slate-300">
+              <p className="mt-3 leading-7 text-secondary">
                 Les comptes clients, les organisations et le back-office sont
                 isolés. Les secrets sensibles sont chiffrés et les actions sont
                 limitées par des rôles explicites.
               </p>
             </article>
-            <article className="rounded-3xl border border-white/10 bg-[#121212] p-8">
-              <Server className="text-blue-400" size={30} />
+            <article className="rounded-lg border border-border bg-card p-8">
+              <Server className="text-accent" size={30} />
               <h2 className="mt-6 text-2xl font-bold">
                 Un serveur prêt pour Docker
               </h2>
-              <p className="mt-3 leading-7 text-slate-300">
+              <p className="mt-3 leading-7 text-secondary">
                 Utilisez un VPS Ubuntu accessible en SSH avec un utilisateur
                 autorisé à exécuter les opérations d’administration nécessaires.
                 Sovrack contrôle les prérequis avant le premier déploiement.
@@ -301,7 +301,7 @@ export default function LandingPage() {
         <section className="px-6 py-24">
           <div className="mx-auto max-w-4xl">
             <div className="text-center">
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-400">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
                 Questions fréquentes
               </p>
               <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
@@ -312,10 +312,10 @@ export default function LandingPage() {
               {questions.map((item) => (
                 <article
                   key={item.question}
-                  className="rounded-2xl border border-white/10 bg-[#121212] p-6"
+                  className="rounded-lg border border-border bg-card p-6"
                 >
                   <h3 className="text-lg font-semibold">{item.question}</h3>
-                  <p className="mt-2 leading-7 text-slate-400">{item.answer}</p>
+                  <p className="mt-2 leading-7 text-secondary">{item.answer}</p>
                 </article>
               ))}
             </div>
@@ -323,11 +323,11 @@ export default function LandingPage() {
         </section>
 
         <section className="px-6 py-24 text-center">
-          <div className="mx-auto max-w-4xl rounded-3xl border border-white/10 bg-[#121212] px-8 py-14 shadow-2xl">
+          <div className="mx-auto max-w-4xl rounded-lg border border-border bg-card px-8 py-14 shadow-theme-lg">
             <h2 className="text-3xl font-bold sm:text-4xl">
               Prêt à lancer votre premier déploiement&nbsp;?
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl leading-7 text-slate-400">
+            <p className="mx-auto mt-4 max-w-2xl leading-7 text-secondary">
               Créez votre espace, connectez un dépôt et préparez votre serveur
               depuis une console unique.
             </p>
@@ -335,7 +335,7 @@ export default function LandingPage() {
               href={customerAppPath(
                 isAuthenticated ? "/dashboard" : "/register",
               )}
-              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-[#2563EB] px-6 py-3.5 font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-[#1d4ed8]"
+              className="mt-8 inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3.5 font-semibold text-accent-foreground   transition hover:bg-accent-hover"
             >
               {isAuthenticated ? "Ouvrir mon espace" : "Créer un compte"}
               <ArrowRight size={17} />

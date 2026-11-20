@@ -81,10 +81,10 @@ export function DeploymentRow({
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3.5 transition hover:bg-[var(--hover)] ${index !== 0 ? "border-t border-[var(--border)]" : ""} border-l-[3px] ${STATUS_BORDER[dep.status] ?? "border-l-zinc-600"}`}
+      className={`flex items-center gap-3 px-4 py-3.5 transition hover:bg-hover/10 ${index !== 0 ? "border-t border-border" : ""} border-l-[3px] ${STATUS_BORDER[dep.status] ?? "border-l-border"}`}
     >
       <div
-        className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[dep.status] ?? "bg-zinc-400"} ${isLive ? "animate-pulse" : ""}`}
+        className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[dep.status] ?? "bg-muted"} ${isLive ? "animate-pulse" : ""}`}
       />
 
       {/* Main info */}
@@ -99,40 +99,40 @@ export function DeploymentRow({
       >
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className={`text-xs font-semibold ${STATUS_COLOR[dep.status] ?? "text-zinc-400"}`}
+            className={`text-xs font-semibold ${STATUS_COLOR[dep.status] ?? "text-secondary"}`}
           >
             {deploymentStatusLabel(dep.status)}
           </span>
           {!projectId && dep.project && (
             <Link
               href={`/projects/${dep.project.id}`}
-              className="text-xs font-semibold text-[var(--text-primary)] hover:underline"
+              className="text-xs font-semibold text-primary hover:underline"
             >
               {dep.project.name}
             </Link>
           )}
           {dep.environment?.name && (
             <span
-              className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${ENV_BADGE[dep.environment.name] ?? "border-zinc-500/20 bg-zinc-500/10 text-zinc-400"}`}
+              className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${ENV_BADGE[dep.environment.name] ?? "border-border bg-hover/10 text-secondary"}`}
             >
               {dep.environment.name}
             </span>
           )}
-          <span className="font-mono text-xs text-[var(--text-primary)]">
+          <span className="font-mono text-xs text-primary">
             {dep.branch}
           </span>
           {dep.service && (
-            <span className="rounded border border-[var(--border)] bg-[var(--hover)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">
+            <span className="rounded border border-border bg-hover/10 px-1.5 py-0.5 text-[10px] text-muted">
               {dep.service.name}
             </span>
           )}
           {dep.externalPipelineId && (
-            <span className="flex items-center gap-1 rounded border border-blue-500/20 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-400">
+            <span className="flex items-center gap-1 rounded border border-accent/20 bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold text-accent">
               <GitCommitHorizontal size={9} /> CI #{dep.externalPipelineId}
             </span>
           )}
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[var(--text-muted)]">
+        <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted">
           <span className="flex items-center gap-1">
             <Clock size={10} /> {timeAgo(dep.createdAt)}
           </span>
@@ -140,7 +140,7 @@ export function DeploymentRow({
             <span>
               {d}
               {isLive && (
-                <span className="ml-0.5 animate-pulse text-blue-400">…</span>
+                <span className="ml-0.5 animate-pulse text-accent">…</span>
               )}
             </span>
           )}
@@ -174,7 +174,7 @@ export function DeploymentRow({
           </span>
         )}
         {isSuperseded && (
-          <span className="hidden sm:flex items-center gap-1 text-[10px] font-semibold text-[var(--text-muted)]">
+          <span className="hidden sm:flex items-center gap-1 text-[10px] font-semibold text-muted">
             Remplacé
           </span>
         )}
@@ -182,7 +182,7 @@ export function DeploymentRow({
         <button
           type="button"
           onClick={() => onOpenDetails(dep)}
-          className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+          className="flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted transition hover:text-primary"
           title="Voir les détails du déploiement"
         >
           Détails <ChevronRight size={11} />
@@ -243,7 +243,7 @@ export function DeploymentRow({
           <button
             type="button"
             onClick={() => onRedeploy(dep)}
-            className="flex items-center gap-1 rounded-lg bg-[var(--text-primary)] px-2.5 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90"
+            className="flex items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-xs font-semibold text-accent-foreground transition hover:bg-accent-hover"
             title="Redéployer"
           >
             <Rocket size={11} />
@@ -270,7 +270,7 @@ export function DeploymentRow({
               <button
                 type="button"
                 onClick={onCancelDelete}
-                className="rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+                className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted transition hover:text-primary"
               >
                 Annuler
               </button>
@@ -279,7 +279,7 @@ export function DeploymentRow({
             <button
               type="button"
               onClick={() => onConfirmDelete(dep.id)}
-              className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-red-400"
+              className="flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted transition hover:text-red-400"
               title="Supprimer"
             >
               <Trash2 size={11} />

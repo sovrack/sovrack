@@ -41,38 +41,38 @@ export function resolveDeploymentUrl(dep: Deployment): string | null {
 
 export const ENV_BADGE: Record<string, string> = {
   PRODUCTION: "border-red-500/30 bg-red-500/10 text-red-400",
-  STAGING: "border-blue-500/30 bg-blue-500/10 text-blue-400",
+  STAGING: "border-accent/30 bg-accent/10 text-accent",
   TESTING: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-  PREVIEW: "border-indigo-500/30 bg-indigo-500/10 text-indigo-400",
+  PREVIEW: "border-accent/30 bg-accent/10 text-accent",
 };
 
 export const CONTAINER_STATUS_COLOR: Record<string, string> = {
   running: "text-green-400",
   stopped: "text-amber-400",
-  not_found: "text-zinc-400",
-  unknown: "text-zinc-400",
+  not_found: "text-secondary",
+  unknown: "text-secondary",
 };
 
 export const STATUS_COLOR: Record<string, string> = {
   SUCCESS: "text-green-400",
-  RUNNING: "text-blue-400",
+  RUNNING: "text-accent",
   FAILED: "text-red-400",
   PENDING: "text-amber-400",
-  CANCELED: "text-zinc-400",
+  CANCELED: "text-secondary",
 };
 
 export const STATUS_DOT: Record<string, string> = {
   SUCCESS: "bg-green-400",
-  RUNNING: "bg-blue-400 animate-pulse",
+  RUNNING: "bg-accent animate-pulse",
   FAILED: "bg-red-400",
   PENDING: "bg-amber-400 animate-pulse",
-  CANCELED: "bg-zinc-400",
+  CANCELED: "bg-muted",
 };
 
 export const STATUS_BORDER: Record<string, string> = {
   SUCCESS: "border-l-green-500",
-  RUNNING: "border-l-blue-500",
+  RUNNING: "border-l-accent",
   FAILED: "border-l-red-500",
   PENDING: "border-l-amber-500",
-  CANCELED: "border-l-zinc-500",
+  CANCELED: "border-l-border",
 };

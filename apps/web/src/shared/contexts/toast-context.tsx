@@ -56,7 +56,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={toast.id}
             role="alert"
             className={[
-              "flex items-start gap-3 rounded-xl border px-4 py-3 shadow-lg text-sm max-w-sm w-full backdrop-blur-sm",
+              "flex items-start gap-3 rounded-lg border px-4 py-3  text-sm max-w-sm w-full backdrop-blur-sm",
               toast.tone === "success"
                 ? "border-green-500/30 bg-green-500/10 text-green-300"
                 : "border-red-500/30 bg-red-500/10 text-red-300",

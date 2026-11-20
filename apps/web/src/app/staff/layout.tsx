@@ -17,7 +17,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { SovrackLogo } from "@/components/marketing/sovrack-logo";
+import { SovrackLogo } from "@/shared/ui/sovrack-logo";
 import { useStaffAuth } from "@/features/staff/api/use-staff-auth";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -140,7 +140,7 @@ export default function StaffLayout({
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-200">
+    <div className="min-h-screen bg-app text-primary">
       <div className="flex">
         {mobileNavOpen && (
           <button
@@ -153,7 +153,7 @@ export default function StaffLayout({
         <aside
           aria-label="Navigation du back-office"
           className={clsx(
-            "fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r border-white/10 bg-zinc-950 transition-transform lg:sticky lg:top-0 lg:z-auto lg:translate-x-0",
+            "fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r border-border bg-app transition-transform lg:sticky lg:top-0 lg:z-auto lg:translate-x-0",
             mobileNavOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >
@@ -164,10 +164,10 @@ export default function StaffLayout({
               aria-label="Accueil du back-office Sovrack"
               className="flex min-w-0 flex-1 items-center gap-2.5"
             >
-              <SovrackLogo className="w-7 h-7 text-white shrink-0" />
+              <SovrackLogo className="w-7 h-7 text-primary shrink-0" />
               <div>
-                <p className="text-[17px] font-semibold tracking-[-0.02em] text-white">Sovrack</p>
-                <p className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
+                <p className="text-[17px] font-semibold tracking-[-0.02em] text-primary">Sovrack</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted font-medium">
                   Back-office
                 </p>
               </div>
@@ -179,7 +179,7 @@ export default function StaffLayout({
                 event.preventDefault();
                 setMobileNavOpen(false);
               }}
-              className="ml-auto flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/5 hover:text-white lg:hidden"
+              className="ml-auto flex h-9 w-9 items-center justify-center rounded-lg text-secondary hover:bg-hover/10 hover:text-primary lg:hidden"
             >
               <X size={18} />
             </button>
@@ -200,8 +200,8 @@ export default function StaffLayout({
                     className={clsx(
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
                       active
-                        ? "bg-white text-zinc-950"
-                        : "text-zinc-400 hover:bg-white/5 hover:text-white",
+                        ? "bg-accent text-accent-foreground"
+                        : "text-secondary hover:bg-hover/10 hover:text-primary",
                     )}
                   >
                     <item.icon size={17} />
@@ -212,16 +212,16 @@ export default function StaffLayout({
             )}
           </nav>
 
-          <div className="border-t border-white/10 p-4">
-            <div className="mb-3 flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+          <div className="border-t border-border p-4">
+            <div className="mb-3 flex items-center gap-2 rounded-lg bg-hover/10 px-3 py-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">
                 {staff.fullName?.charAt(0).toUpperCase() || "S"}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-xs font-semibold text-white">
+                <p className="truncate text-xs font-semibold text-primary">
                   {staff.fullName}
                 </p>
-                <p className="truncate text-[11px] text-zinc-400">
+                <p className="truncate text-[11px] text-secondary">
                   {staff.email}
                 </p>
               </div>
@@ -232,7 +232,7 @@ export default function StaffLayout({
                 await logout();
                 router.replace("/staff/login");
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-secondary transition hover:bg-hover/10 hover:text-primary"
             >
               <LogOut size={16} />
               Déconnexion
@@ -241,7 +241,7 @@ export default function StaffLayout({
               href={publicSitePath("/")}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-500 transition hover:bg-white/5 hover:text-white"
+              className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted transition hover:bg-hover/10 hover:text-primary"
             >
               <Activity size={16} />
               Retour au site
@@ -249,19 +249,19 @@ export default function StaffLayout({
           </div>
         </aside>
 
-        <main className="min-h-screen min-w-0 flex-1 bg-zinc-950 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+        <main className="min-h-screen min-w-0 flex-1 bg-app px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
           <div className="mb-5 flex items-center gap-3 lg:hidden">
             <button
               type="button"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Ouvrir la navigation du back-office"
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-hover/10 text-secondary hover:bg-hover/15 hover:text-primary"
             >
               <Menu size={19} />
             </button>
             <div>
-              <p className="text-sm font-bold text-white">Sovrack</p>
-              <p className="text-[10px] uppercase tracking-wider text-zinc-500">
+              <p className="text-sm font-bold text-primary">Sovrack</p>
+              <p className="text-[10px] uppercase tracking-wider text-muted">
                 Back-office
               </p>
             </div>

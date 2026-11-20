@@ -120,7 +120,7 @@ function BillingWorkspace() {
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--text-muted)]" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted" />
       </div>
     );
   }
@@ -147,7 +147,7 @@ function BillingWorkspace() {
         title="Facturation"
         description="Gérez votre abonnement et vos factures Sovrack"
         actions={
-          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-1.5 text-sm font-medium">
+          <span className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium">
             <BadgeCheck className="h-4 w-4 text-emerald-500" />
             Plan {PLAN_META[subscription.plan].name}
           </span>
@@ -191,12 +191,12 @@ function BillingWorkspace() {
                 key={plan}
                 className={`relative flex flex-col rounded-lg border p-5 transition-colors ${
                   meta.highlight
-                    ? "border-indigo-400 bg-indigo-500/5 dark:border-indigo-500"
-                    : "border-[var(--border)] bg-[var(--bg-card)]"
+                    ? "border-accent bg-accent/5"
+                    : "border-border bg-card"
                 }`}
               >
                 {meta.highlight && (
-                  <span className="absolute -top-2.5 right-3 inline-flex items-center gap-1 rounded-full bg-indigo-500 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+                  <span className="absolute -top-2.5 right-3 inline-flex items-center gap-1 rounded-md bg-accent px-2.5 py-0.5 text-[11px] font-semibold text-accent-foreground">
                     <Zap size={11} /> Populaire
                   </span>
                 )}
@@ -208,17 +208,17 @@ function BillingWorkspace() {
                   )}
                   {meta.name}
                 </div>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                <p className="mt-1 text-xs text-secondary">
                   {meta.description}
                 </p>
                 <p className="mt-3 text-2xl font-bold tracking-tight">
                   {formatMillimes(price)}
-                  <span className="text-xs font-normal text-[var(--text-muted)]">
+                  <span className="text-xs font-normal text-muted">
                     /mois
                   </span>
                 </p>
                 {limitsForPlan && (
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">
+                  <p className="mt-2 text-xs text-muted">
                     Usage : {usage.projects}/{limitsForPlan.maxProjects} projets
                     · {usage.servers}/{limitsForPlan.maxServers} serveurs ·{" "}
                     {usage.members}/{limitsForPlan.maxTeamMembers} membres
@@ -248,17 +248,17 @@ function BillingWorkspace() {
             );
           })}
         </div>
-        <p className="mt-4 flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+        <p className="mt-4 flex items-center gap-1.5 text-xs text-muted">
           <Lock size={12} /> Paiement sécurisé · Sans engagement · Résiliation à
           tout moment depuis cette page
         </p>
         {subscription.status === "CANCELED" ? (
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3">
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-3">
             <div>
               <p className="text-sm font-semibold text-red-400">
                 Abonnement annulé
               </p>
-              <p className="text-xs text-[var(--text-secondary)]">
+              <p className="text-xs text-secondary">
                 {subscription.canceledAt
                   ? `Annulé le ${formatDate(subscription.canceledAt)}. Vos services restent accessibles jusqu'à la fin de la période en cours.`
                   : "Votre abonnement est annulé. Vous pouvez vous réabonner à tout moment."}
@@ -279,10 +279,10 @@ function BillingWorkspace() {
             </Button>
           </div>
         ) : (
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
             <div>
               <p className="text-sm font-semibold">Annuler l&apos;abonnement</p>
-              <p className="text-xs text-[var(--text-secondary)]">
+              <p className="text-xs text-secondary">
                 Votre abonnement passera au statut annulé. Vous pourrez vous
                 réabonner à tout moment.
               </p>
@@ -311,14 +311,14 @@ function BillingWorkspace() {
       >
         {invoices.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <FileText className="h-8 w-8 text-[var(--text-muted)]" />
-            <p className="text-sm text-[var(--text-secondary)]">
+            <FileText className="h-8 w-8 text-muted" />
+            <p className="text-sm text-secondary">
               Aucune facture pour le moment. Votre première facture apparaîtra
               après la souscription à un plan payant.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-[var(--border)]">
+          <div className="divide-y divide-border">
             {invoices.map((invoice) => (
               <div
                 key={invoice.id}
@@ -329,7 +329,7 @@ function BillingWorkspace() {
                     {formatDate(invoice.periodStart)} —{" "}
                     {formatDate(invoice.periodEnd)}
                   </p>
-                  <p className="text-xs text-[var(--text-muted)]">
+                  <p className="text-xs text-muted">
                     Période de facturation
                   </p>
                 </div>
@@ -338,7 +338,7 @@ function BillingWorkspace() {
                     {formatMillimes(invoice.amountMillimes)}
                   </span>
                   <span
-                    className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
+                    className={`rounded-md border px-2 py-0.5 text-xs font-medium ${
                       invoice.status === "PAID"
                         ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
                         : invoice.status === "PENDING"

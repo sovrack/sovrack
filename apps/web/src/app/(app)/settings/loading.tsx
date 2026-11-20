@@ -7,7 +7,7 @@ export default function SettingsLoading() {
         <Skeleton className="h-8 w-36" />
         <Skeleton variant="button" />
       </div>
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+      <div className="rounded-lg border border-border bg-card p-5">
         <div className="space-y-4">
           <Skeleton className="h-5 w-2/5" />
           <Skeleton className="h-4 w-full" />
@@ -18,7 +18,7 @@ export default function SettingsLoading() {
           </div>
         </div>
       </div>
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+      <div className="rounded-lg border border-border bg-card p-5">
         <div className="space-y-4">
           <Skeleton className="h-5 w-2/5" />
           <Skeleton className="h-4 w-full" />

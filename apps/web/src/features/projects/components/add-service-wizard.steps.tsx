@@ -37,7 +37,7 @@ export function DatabaseStep({
               setDatabaseType(db.type);
               setDatabaseVersion(db.defaultVersion);
             }}
-            className={`rounded-xl border p-3 text-center text-sm font-semibold transition ${databaseType === db.type ? "border-[var(--text-primary)] bg-[var(--hover)] text-[var(--text-primary)]" : "border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]"}`}
+            className={`rounded-lg border p-3 text-center text-sm font-semibold transition ${databaseType === db.type ? "border-accent bg-hover/10 text-primary" : "border-border text-muted hover:bg-hover/10"}`}
           >
             {db.label}
           </button>
@@ -92,12 +92,12 @@ export function ComposeStep({ name, composeContent, setName, setComposeContent }
     <div className="space-y-4">
       <Input label="Service name" placeholder="my-stack" value={name} onChange={(e) => setName(e.target.value)} />
       <div>
-        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">
           docker-compose.yml
         </label>
         <textarea
           rows={10}
-          className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 font-mono text-xs text-[var(--text-primary)] outline-none"
+          className="w-full rounded-lg border border-border bg-app px-3 py-2 font-mono text-xs text-primary outline-none"
           placeholder={'services:\n  app:\n    image: nginx:alpine\n    ports:\n      - "80:80"'}
           value={composeContent}
           onChange={(e) => setComposeContent(e.target.value)}
@@ -122,7 +122,7 @@ export function TemplateStep({
   templates, templateId, name, selectedTemplate, setTemplateId, setName,
 }: TemplateStepProps) {
   if (templates.length === 0) {
-    return <p className="text-sm text-[var(--text-muted)]">No template available.</p>;
+    return <p className="text-sm text-muted">No template available.</p>;
   }
   return (
     <div className="space-y-4">
@@ -134,17 +134,17 @@ export function TemplateStep({
               key={t.id}
               type="button"
               onClick={() => setTemplateId(t.id)}
-              className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${active ? "border-[var(--text-primary)] bg-[var(--hover)]" : "border-[var(--border)] bg-[var(--bg-app)] hover:bg-[var(--hover)]"}`}
+              className={`flex items-start gap-3 rounded-lg border p-4 text-left transition ${active ? "border-accent bg-hover/10" : "border-border bg-app hover:bg-hover/10"}`}
             >
-              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-secondary)]">
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-secondary">
                 <Package size={18} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-[var(--text-primary)]">{t.name}</span>
-                <span className="mt-0.5 block text-xs text-[var(--text-muted)]">{t.description}</span>
+                <span className="block text-sm font-semibold text-primary">{t.name}</span>
+                <span className="mt-0.5 block text-xs text-muted">{t.description}</span>
                 <span className="mt-1.5 flex flex-wrap gap-1">
                   {t.services.map((s) => (
-                    <span key={s.nameSuffix} className="rounded-md border border-[var(--border)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
+                    <span key={s.nameSuffix} className="rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium text-secondary">
                       {s.databaseType ?? s.nameSuffix}
                     </span>
                   ))}
@@ -157,7 +157,7 @@ export function TemplateStep({
       </div>
       <Input label="Base name" placeholder="my-stack" value={name} onChange={(e) => setName(e.target.value)} />
       {selectedTemplate && name.trim() && (
-        <p className="text-[11px] text-[var(--text-muted)]">
+        <p className="text-[11px] text-muted">
           Will create:{" "}
           {selectedTemplate.services.map((s) => `${name.trim()}-${s.nameSuffix}`).join(", ")}
         </p>
@@ -193,7 +193,7 @@ export function ReviewStep({
   selectedTemplate,
 }: ReviewStepProps) {
   return (
-    <dl className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-4 text-sm">
+    <dl className="space-y-2 rounded-lg border border-border bg-app p-4 text-sm">
       <Row k="Type" v={kindLabel} />
       {kind === "APPLICATION" && appMode === "repo" && (
         <>

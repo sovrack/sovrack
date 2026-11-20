@@ -54,8 +54,8 @@ function targetStatusIcon(status: AutomationTargetStatus) {
   if (status === "FAILED" || status === "TIMEOUT")
     return <XCircle size={13} className="text-red-400" />;
   if (status === "RUNNING")
-    return <Loader2 size={13} className="animate-spin text-blue-400" />;
-  return <Clock size={13} className="text-[var(--text-muted)]" />;
+    return <Loader2 size={13} className="animate-spin text-accent" />;
+  return <Clock size={13} className="text-muted" />;
 }
 
 function formatDate(str: string | null | undefined): string {
@@ -137,7 +137,7 @@ export default function AutomationRunDetailPage({ params }: Props) {
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader2
           size={24}
-          className="animate-spin text-[var(--text-secondary)]"
+          className="animate-spin text-secondary"
         />
       </div>
     );
@@ -152,7 +152,7 @@ export default function AutomationRunDetailPage({ params }: Props) {
           </Button>
         </Link>
         <SectionCard title="Run not found">
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-secondary">
             This automation run may have been deleted.
           </p>
         </SectionCard>
@@ -194,7 +194,7 @@ export default function AutomationRunDetailPage({ params }: Props) {
       />
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error}
         </div>
       )}
@@ -203,7 +203,7 @@ export default function AutomationRunDetailPage({ params }: Props) {
       <SectionCard title="Run details" contentClassName="p-5">
         <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+            <p className="text-xs font-semibold uppercase tracking-wide text-secondary">
               Status
             </p>
             <div className="mt-1">
@@ -211,48 +211,48 @@ export default function AutomationRunDetailPage({ params }: Props) {
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+            <p className="text-xs font-semibold uppercase tracking-wide text-secondary">
               Action
             </p>
-            <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">
+            <p className="mt-1 text-sm font-medium text-primary">
               {run.actionKey}
             </p>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+            <p className="text-xs font-semibold uppercase tracking-wide text-secondary">
               Started
             </p>
-            <p className="mt-1 text-sm text-[var(--text-primary)]">
+            <p className="mt-1 text-sm text-primary">
               {formatDate(run.startedAt)}
             </p>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+            <p className="text-xs font-semibold uppercase tracking-wide text-secondary">
               Duration
             </p>
-            <p className="mt-1 text-sm text-[var(--text-primary)]">
+            <p className="mt-1 text-sm text-primary">
               {duration(run.startedAt, run.finishedAt)}
               {isActive && (
-                <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
+                <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-accent animate-pulse" />
               )}
             </p>
           </div>
           {run.requestedBy && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-secondary">
                 Requested by
               </p>
-              <p className="mt-1 text-sm text-[var(--text-primary)]">
+              <p className="mt-1 text-sm text-primary">
                 {run.requestedBy.fullName}
               </p>
             </div>
           )}
           {run.summary && (
             <div className="col-span-2 sm:col-span-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+              <p className="text-xs font-semibold uppercase tracking-wide text-secondary">
                 Summary
               </p>
-              <p className="mt-1 text-sm text-[var(--text-primary)]">
+              <p className="mt-1 text-sm text-primary">
                 {run.summary}
               </p>
             </div>
@@ -277,22 +277,22 @@ export default function AutomationRunDetailPage({ params }: Props) {
           {run.targets.map((target) => (
             <div
               key={target.id}
-              className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-3"
+              className="flex items-center justify-between rounded-lg border border-border bg-hover/10 px-4 py-3"
             >
               <div className="flex items-center gap-3 min-w-0">
                 {targetStatusIcon(target.status)}
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                  <p className="text-sm font-semibold text-primary truncate">
                     {target.server.name}
                   </p>
-                  <p className="text-xs text-[var(--text-secondary)] font-mono">
+                  <p className="text-xs text-secondary font-mono">
                     {target.server.host}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 {target.startedAt && (
-                  <span className="text-xs text-[var(--text-muted)]">
+                  <span className="text-xs text-muted">
                     {duration(target.startedAt, target.finishedAt)}
                   </span>
                 )}
@@ -320,7 +320,7 @@ export default function AutomationRunDetailPage({ params }: Props) {
         }
       >
         {logLines.length === 0 && !isActive ? (
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-secondary">
             No logs available.
           </p>
         ) : (

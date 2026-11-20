@@ -9,15 +9,15 @@ import type { EnvOrigin } from "@/features/deployments/types";
 const ORIGIN_META: Record<EnvOrigin, { label: string; className: string }> = {
   service: {
     label: "service",
-    className: "text-blue-300 border-blue-500/30 bg-blue-500/10",
+    className: "text-accent border-accent/30 bg-accent/10",
   },
   environment: {
     label: "environment",
-    className: "text-teal-300 border-teal-500/30 bg-teal-500/10",
+    className: "text-accent border-accent/30 bg-accent/10",
   },
   serviceEnvironment: {
     label: "serviceEnv",
-    className: "text-indigo-300 border-indigo-500/30 bg-indigo-500/10",
+    className: "text-accent border-accent/30 bg-accent/10",
   },
 };
 
@@ -41,30 +41,30 @@ export function EnvVariablesPreview({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
+      <div className="flex items-center gap-2 text-xs font-medium text-secondary">
         <Variable size={13} />
         Injected variables
         {data ? (
-          <span className="text-[var(--text-muted)]">
+          <span className="text-muted">
             ({data.variables.length})
           </span>
         ) : null}
       </div>
 
       {loading ? (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-xs text-[var(--text-muted)]">
+        <div className="rounded-lg border border-border bg-card px-4 py-3 text-xs text-muted">
           Loading variables…
         </div>
       ) : null}
 
       {error ? (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-400">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs text-red-400">
           {error}
         </div>
       ) : null}
 
       {data && data.warnings.length > 0 ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
           <AlertTriangle size={13} className="mr-1 inline" />
           Some variables could not be resolved. Check the configuration before
           deploying.
@@ -77,9 +77,9 @@ export function EnvVariablesPreview({
       ) : null}
 
       {data && data.variables.length > 0 ? (
-        <div className="max-h-44 overflow-y-auto rounded-xl border border-[var(--border)]">
+        <div className="max-h-44 overflow-y-auto rounded-lg border border-border">
           <table className="w-full text-left text-xs">
-            <thead className="sticky top-0 bg-[var(--bg-elevated)] text-[var(--text-muted)]">
+            <thead className="sticky top-0 bg-card text-muted">
               <tr>
                 <th className="px-3 py-1.5 font-medium">Nom</th>
                 <th className="px-3 py-1.5 font-medium">Valeur</th>
@@ -91,11 +91,11 @@ export function EnvVariablesPreview({
                 const origin = ORIGIN_META[v.origin];
                 const show = revealed[v.key];
                 return (
-                  <tr key={v.key} className="border-t border-[var(--border)]">
-                    <td className="px-3 py-1.5 font-mono text-[var(--text-primary)]">
+                  <tr key={v.key} className="border-t border-border">
+                    <td className="px-3 py-1.5 font-mono text-primary">
                       {v.key}
                     </td>
-                    <td className="px-3 py-1.5 font-mono text-[var(--text-secondary)]">
+                    <td className="px-3 py-1.5 font-mono text-secondary">
                       <div className="flex items-center gap-1.5">
                         <span className="truncate">
                           {v.isSecret && !show ? "••••••••" : v.value}
@@ -110,7 +110,7 @@ export function EnvVariablesPreview({
                                 [v.key]: !prev[v.key],
                               }))
                             }
-                            className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                            className="text-muted hover:text-primary"
                           >
                             {show ? <EyeOff size={12} /> : <Eye size={12} />}
                           </button>
@@ -133,7 +133,7 @@ export function EnvVariablesPreview({
       ) : null}
 
       {data && data.variables.length === 0 && !loading ? (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-xs text-[var(--text-muted)]">
+        <div className="rounded-lg border border-border bg-card px-4 py-3 text-xs text-muted">
           No variables configured.
         </div>
       ) : null}

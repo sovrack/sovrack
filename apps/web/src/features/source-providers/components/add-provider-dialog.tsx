@@ -280,16 +280,16 @@ export function AddProviderDialog({
       />
 
       {/* Panel */}
-      <div className="relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
+      <div className="relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-lg border border-border bg-card shadow-theme-lg">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">
+            <h2 className="text-base font-semibold text-primary">
               {isEdit
                 ? "Modifier le fournisseur Git"
                 : "Connecter un fournisseur Git"}
             </h2>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+            <p className="mt-0.5 text-xs text-muted">
               {isEdit
                 ? "Modifiez la configuration et les identifiants du fournisseur"
                 : "Ajoutez une intégration Git réutilisable par vos projets"}
@@ -301,7 +301,7 @@ export function AddProviderDialog({
               type="button"
               onClick={onClose}
               aria-label="Fermer"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted transition hover:bg-hover/10 hover:text-primary"
             >
               <X size={13} />
             </button>
@@ -378,7 +378,7 @@ export function AddProviderDialog({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-[var(--border)] px-6 py-4">
+        <div className="border-t border-border px-6 py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               {step > (isEdit ? 2 : 1) && (

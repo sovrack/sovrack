@@ -78,12 +78,12 @@ export function ServerMonitoringDialog({
     >
       <div className="space-y-4">
         {isLoading && (
-          <p className="text-sm text-[var(--text-secondary)]">Loading…</p>
+          <p className="text-sm text-secondary">Loading…</p>
         )}
 
         {!isLoading && !installed && (
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
-            <p className="mb-3 text-sm text-[var(--text-secondary)]">
+          <div className="rounded-lg border border-border bg-hover/10 p-4">
+            <p className="mb-3 text-sm text-secondary">
               Grafana, Prometheus and Loki are not installed on this server
               yet.
             </p>
@@ -101,7 +101,7 @@ export function ServerMonitoringDialog({
 
         {!isLoading && installed && monitored && (
           <div className="space-y-3">
-            <div className="flex items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-4 py-3 font-mono text-xs text-[var(--text-secondary)]">
+            <div className="flex items-center gap-4 rounded-lg border border-border bg-hover/10 px-4 py-3 font-mono text-xs text-secondary">
               <span>CPU {pct(monitored.metrics.cpuPercent)}</span>
               <span>MEM {pct(monitored.metrics.memoryPercent)}</span>
               <span>DISK {pct(monitored.metrics.diskPercent)}</span>

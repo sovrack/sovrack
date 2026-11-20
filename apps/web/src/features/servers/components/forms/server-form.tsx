@@ -18,8 +18,8 @@ type ServerFormProps = {
 };
 
 const inputBase =
-  "w-full rounded-xl border bg-[var(--bg-card)]/5 px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:bg-[var(--bg-card)]/8 focus:ring-2";
-const inputNormal = `${inputBase} border-[var(--border)] focus:border-[var(--border)] focus:ring-zinc-500/20`;
+  "w-full rounded-lg border bg-card/5 px-4 py-3 text-sm text-primary outline-none transition focus:bg-card/8 focus:ring-2";
+const inputNormal = `${inputBase} border-border focus:border-border focus:ring-accent/20`;
 const inputError = `${inputBase} border-red-500/40 focus:border-red-500/60 focus:ring-red-500/20`;
 const inputMono = "font-mono";
 
@@ -51,7 +51,7 @@ export function ServerForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error}
         </div>
       )}
@@ -59,7 +59,7 @@ export function ServerForm({
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         {/* Name */}
         <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
             Server name <span className="text-red-400">*</span>
           </label>
           <input
@@ -76,7 +76,7 @@ export function ServerForm({
 
         {/* Host */}
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
             Host / IP <span className="text-red-400">*</span>
           </label>
           <input
@@ -93,7 +93,7 @@ export function ServerForm({
 
         {/* Port */}
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
             Port SSH
           </label>
           <input
@@ -111,7 +111,7 @@ export function ServerForm({
 
         {/* Username */}
         <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
             Username SSH
           </label>
           <input
@@ -130,7 +130,7 @@ export function ServerForm({
       <button
         type="submit"
         disabled={loading || !values.name.trim() || !values.host.trim()}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-3 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading && <Loader2 size={16} className="animate-spin" />}
         Create server

@@ -53,10 +53,10 @@ export function ResetPasswordScreen() {
   return (
     <AuthLayout headerAction={{ label: "Se connecter", href: "/login" }}>
       <div className="w-full">
-        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">
           Nouveau mot de passe
         </h1>
-        <p className="mt-2 text-sm text-zinc-400">
+        <p className="mt-2 text-sm text-secondary">
           Entrez le code reçu et définissez votre nouveau mot de passe.
         </p>
 
@@ -67,8 +67,8 @@ export function ResetPasswordScreen() {
         )}
 
         {done ? (
-          <div className="mt-6 rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-5 text-center">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20">
+          <div className="mt-6 rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-5 text-center">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-md bg-emerald-500/20">
               <CheckCircle2 className="h-5 w-5 text-emerald-400" />
             </div>
             <h2 className="mt-3 text-base font-semibold text-emerald-300">
@@ -80,7 +80,7 @@ export function ResetPasswordScreen() {
             <button
               type="button"
               onClick={() => router.replace("/login")}
-              className="mt-4 w-full rounded-lg bg-emerald-500 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-400"
+              className="mt-4 w-full rounded-lg bg-emerald-500 py-2.5 text-sm font-semibold text-primary transition hover:bg-emerald-400"
             >
               Se connecter
             </button>
@@ -90,7 +90,7 @@ export function ResetPasswordScreen() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-xs font-medium uppercase tracking-wider text-zinc-400"
+                className="block text-xs font-medium uppercase tracking-wider text-secondary"
               >
                 Email
               </label>
@@ -102,14 +102,14 @@ export function ResetPasswordScreen() {
                 placeholder="vous@entreprise.com"
                 autoComplete="email"
                 required
-                className="mt-1.5 w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-500 transition focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                className="mt-1.5 w-full rounded-lg border border-border bg-card/80 px-3.5 py-2.5 text-sm text-primary placeholder:text-muted transition focus:border-border focus:outline-none focus:ring-1 focus:ring-accent/30"
               />
             </div>
 
             <div>
               <label
                 htmlFor="code"
-                className="block text-xs font-medium uppercase tracking-wider text-zinc-400"
+                className="block text-xs font-medium uppercase tracking-wider text-secondary"
               >
                 Code reçu par email
               </label>
@@ -122,14 +122,14 @@ export function ResetPasswordScreen() {
                 onChange={(e) => setCode(e.target.value.trim())}
                 placeholder="123456"
                 required
-                className="mt-1.5 w-full rounded-lg border border-zinc-800 bg-zinc-900/80 px-3.5 py-2.5 font-mono text-sm text-white placeholder:text-zinc-500 transition focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                className="mt-1.5 w-full rounded-lg border border-border bg-card/80 px-3.5 py-2.5 font-mono text-sm text-primary placeholder:text-muted transition focus:border-border focus:outline-none focus:ring-1 focus:ring-accent/30"
               />
             </div>
 
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-medium uppercase tracking-wider text-zinc-400"
+                className="block text-xs font-medium uppercase tracking-wider text-secondary"
               >
                 Nouveau mot de passe
               </label>
@@ -143,7 +143,7 @@ export function ResetPasswordScreen() {
                   required
                   minLength={SOVRACK_PASSWORD_MIN_LENGTH}
                   maxLength={SOVRACK_PASSWORD_MAX_LENGTH}
-                  className="rounded-lg border-zinc-800 bg-zinc-900/80 focus:border-zinc-500 focus:ring-zinc-500"
+                  className="rounded-lg border-border bg-card/80 focus:border-border focus:ring-accent/30"
                 />
               </div>
             </div>
@@ -151,7 +151,7 @@ export function ResetPasswordScreen() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-xs font-medium uppercase tracking-wider text-zinc-400"
+                className="block text-xs font-medium uppercase tracking-wider text-secondary"
               >
                 Confirmer le mot de passe
               </label>
@@ -163,7 +163,7 @@ export function ResetPasswordScreen() {
                   placeholder="Confirmez le mot de passe"
                   autoComplete="new-password"
                   required
-                  className="rounded-lg border-zinc-800 bg-zinc-900/80 focus:border-zinc-500 focus:ring-zinc-500"
+                  className="rounded-lg border-border bg-card/80 focus:border-border focus:ring-accent/30"
                 />
               </div>
             </div>
@@ -171,7 +171,7 @@ export function ResetPasswordScreen() {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200 shadow-sm disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover  disabled:opacity-50"
             >
               {loading && <Loader2 size={16} className="animate-spin" />}
               Mettre à jour le mot de passe
@@ -179,10 +179,10 @@ export function ResetPasswordScreen() {
           </form>
         )}
 
-        <p className="mt-8 text-center text-xs text-zinc-400">
+        <p className="mt-8 text-center text-xs text-secondary">
           <Link
             href="/login"
-            className="inline-flex items-center gap-1 font-medium text-white transition hover:underline"
+            className="inline-flex items-center gap-1 font-medium text-primary transition hover:underline"
           >
             <ArrowLeft size={13} /> Retour à la connexion
           </Link>

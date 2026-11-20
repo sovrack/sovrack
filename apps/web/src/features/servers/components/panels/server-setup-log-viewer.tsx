@@ -51,28 +51,28 @@ export function ServerSetupLogViewer({ setup, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="absolute inset-0" onClick={onClose} aria-hidden />
-      <div className="relative z-10 flex max-h-[92vh] w-full max-w-5xl flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
-        <div className="flex items-start justify-between border-b border-[var(--border)] px-6 py-4">
+      <div className="relative z-10 flex max-h-[92vh] w-full max-w-5xl flex-col rounded-lg border border-border bg-card shadow-theme-lg">
+        <div className="flex items-start justify-between border-b border-border px-6 py-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-secondary">
               Setup logs
             </p>
-            <h2 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">
+            <h2 className="mt-1 text-xl font-semibold text-primary">
               {currentSetup.status}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+            className="rounded-lg p-1.5 text-secondary transition hover:bg-hover/10 hover:text-primary"
             aria-label="Close"
           >
             <X size={16} />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto bg-black px-4 py-3 font-mono text-xs text-zinc-100">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-black px-4 py-3 font-mono text-xs text-primary">
           {logs.length === 0 ? (
-            <p className="text-zinc-400">Waiting for logs...</p>
+            <p className="text-secondary">Waiting for logs...</p>
           ) : (
             logs.map((log) => (
               <p
@@ -82,19 +82,19 @@ export function ServerSetupLogViewer({ setup, onClose }: Props) {
                     ? "text-red-300"
                     : log.level === "WARNING"
                       ? "text-yellow-200"
-                      : "text-zinc-100"
+                      : "text-primary"
                 }
               >
-                <span className="text-zinc-500">
+                <span className="text-muted">
                   {String(log.lineNumber).padStart(4, "0")}
                 </span>{" "}
-                <span className="text-zinc-500">[{log.source}]</span>{" "}
+                <span className="text-muted">[{log.source}]</span>{" "}
                 {log.message}
               </p>
             ))
           )}
         </div>
-        <div className="flex items-center justify-end border-t border-[var(--border)] px-6 py-4">
+        <div className="flex items-center justify-end border-t border-border px-6 py-4">
           <Button type="button" variant="secondary" onClick={onClose}>
             Close
           </Button>

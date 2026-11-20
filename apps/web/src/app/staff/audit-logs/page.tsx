@@ -39,23 +39,23 @@ export default function StaffAuditLogsPage() {
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-hover/15 text-primary">
           <ClipboardList size={18} />
         </span>
         <div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-primary">
             Journal d&apos;audit
           </h1>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-secondary">
             Toutes les actions du back-office, enregistrées de manière
             append-only ({data?.total ?? "…"}).
           </p>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10">
+      <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-white/10 bg-white/5 text-zinc-400">
+          <thead className="border-b border-border bg-hover/10 text-secondary">
             <tr>
               <th className="px-4 py-3 font-medium">Action</th>
               <th className="px-4 py-3 font-medium">Acteur</th>
@@ -66,27 +66,27 @@ export default function StaffAuditLogsPage() {
           </thead>
           <tbody className="divide-y divide-white/5">
             {(data?.items ?? []).map((entry) => (
-              <tr key={entry.id} className="hover:bg-white/5">
-                <td className="px-4 py-3 font-medium text-white">
+              <tr key={entry.id} className="hover:bg-hover/10">
+                <td className="px-4 py-3 font-medium text-primary">
                   {actionLabel(entry.action)}
                 </td>
-                <td className="px-4 py-3 text-zinc-300">
+                <td className="px-4 py-3 text-secondary">
                   {entry.staff?.email ?? "—"}
                 </td>
                 <td className="px-4 py-3">
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-zinc-200">
+                  <span className="rounded-md bg-hover/15 px-2 py-0.5 text-xs font-medium text-primary">
                     {entry.resource}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-zinc-500">{entry.ip ?? "—"}</td>
-                <td className="px-4 py-3 text-zinc-500">
+                <td className="px-4 py-3 text-muted">{entry.ip ?? "—"}</td>
+                <td className="px-4 py-3 text-muted">
                   {new Date(entry.createdAt).toLocaleString("fr-FR")}
                 </td>
               </tr>
             ))}
             {!isLoading && (data?.items ?? []).length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-muted">
                   Aucune entrée de journal.
                 </td>
               </tr>
@@ -96,13 +96,13 @@ export default function StaffAuditLogsPage() {
       </div>
 
       {isLoading && (
-        <div className="mt-4 flex items-center justify-center gap-2 py-4 text-sm text-zinc-400">
+        <div className="mt-4 flex items-center justify-center gap-2 py-4 text-sm text-secondary">
           Chargement…
         </div>
       )}
 
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm text-zinc-400">
+        <div className="mt-4 flex items-center justify-between text-sm text-secondary">
           <span>
             Page {page} / {totalPages}
           </span>
@@ -110,14 +110,14 @@ export default function StaffAuditLogsPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="rounded-lg border border-white/10 px-3 py-1.5 hover:bg-white/5 disabled:opacity-40"
+              className="rounded-lg border border-border px-3 py-1.5 hover:bg-hover/10 disabled:opacity-40"
             >
               Précédent
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="rounded-lg border border-white/10 px-3 py-1.5 hover:bg-white/5 disabled:opacity-40"
+              className="rounded-lg border border-border px-3 py-1.5 hover:bg-hover/10 disabled:opacity-40"
             >
               Suivant
             </button>

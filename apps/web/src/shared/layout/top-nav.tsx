@@ -7,7 +7,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { useSidebar } from "@/shared/contexts/sidebar-context";
 import { useI18n } from "@/shared/i18n/language-context";
-import { ThemeToggle } from "@/shared/common/theme-toggle";
 import { deploymentsService } from "@/features/deployments/api/deployments.service";
 import {
   Bell,
@@ -39,7 +38,7 @@ function statusIcon(status: Deployment["status"]) {
     return <CheckCircle2 size={13} className="shrink-0 text-green-400" />;
   if (status === "FAILED" || status === "CANCELED")
     return <XCircle size={13} className="shrink-0 text-red-400" />;
-  return <Loader2 size={13} className="shrink-0 animate-spin text-blue-400" />;
+  return <Loader2 size={13} className="shrink-0 animate-spin text-accent" />;
 }
 
 function NotificationBell() {
@@ -104,37 +103,37 @@ function NotificationBell() {
       <button
         type="button"
         onClick={handleOpen}
-        className="relative flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+        className="relative flex h-9 w-9 items-center justify-center rounded-lg text-secondary transition hover:bg-hover/10 hover:text-primary"
         title="Notifications"
       >
         <Bell size={17} />
         {hasUnread && (
-          <span className="absolute right-2 top-2 flex h-2 w-2 items-center justify-center rounded-full bg-red-500 ring-2 ring-[var(--bg-app)]" />
+          <span className="absolute right-2 top-2 flex h-2 w-2 items-center justify-center rounded-full bg-red-500 ring-2 ring-app" />
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl z-50">
+        <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-border bg-card shadow-theme-lg z-50">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-            <span className="text-sm font-semibold text-[var(--text-primary)]">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <span className="text-sm font-semibold text-primary">
               {t("Recent activity")}
             </span>
             <Link
               href="/settings/account"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)] transition hover:text-[var(--text-secondary)]"
+              className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted transition hover:text-secondary"
             >
               <Settings size={10} /> {t("Configure")}
             </Link>
           </div>
 
           {/* List */}
-          <div className="max-h-80 overflow-y-auto divide-y divide-[var(--border)]">
+          <div className="max-h-80 overflow-y-auto divide-y divide-border">
             {deployments.length === 0 ? (
               <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-                <Rocket size={20} className="mb-2 text-[var(--text-muted)]" />
-                <p className="text-xs text-[var(--text-secondary)]">
+                <Rocket size={20} className="mb-2 text-muted" />
+                <p className="text-xs text-secondary">
                   {t("No recent activity")}
                 </p>
               </div>
@@ -147,26 +146,26 @@ function NotificationBell() {
                     href={`/deployments?logs=${dep.id}`}
                     onClick={() => setOpen(false)}
                     className={clsx(
-                      "flex items-start gap-3 px-4 py-3 text-left transition hover:bg-[var(--hover)]",
-                      isNew && "bg-blue-500/5",
+                      "flex items-start gap-3 px-4 py-3 text-left transition hover:bg-hover/10",
+                      isNew && "bg-accent/5",
                     )}
                   >
                     <div className="mt-0.5">{statusIcon(dep.status)}</div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold text-[var(--text-primary)]">
+                      <p className="truncate text-xs font-semibold text-primary">
                         {dep.project.name}
                         {isNew && (
-                          <span className="ml-2 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-blue-400">
+                          <span className="ml-2 rounded-md bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-accent">
                             {t("New")}
                           </span>
                         )}
                       </p>
-                      <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                      <p className="mt-0.5 text-[10px] text-muted">
                         {dep.environment.name} · {dep.branch} ·{" "}
                         {deploymentStatusLabel(dep.status)}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[10px] text-[var(--text-muted)]">
+                    <span className="shrink-0 text-[10px] text-muted">
                       {timeAgoCompact(dep.createdAt)}
                     </span>
                   </Link>
@@ -176,11 +175,11 @@ function NotificationBell() {
           </div>
 
           {/* Footer */}
-          <div className="border-t border-[var(--border)] px-4 py-2.5">
+          <div className="border-t border-border px-4 py-2.5">
             <Link
               href="/deployments"
               onClick={() => setOpen(false)}
-              className="text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+              className="text-xs font-semibold text-secondary transition hover:text-primary"
             >
               {t("View all deployments →")}
             </Link>
@@ -230,12 +229,12 @@ export function TopNav() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-app)]/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-border bg-app/90 backdrop-blur-xl">
       <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
         <button
           type="button"
           onClick={toggleMobileSidebar}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] lg:hidden"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-secondary transition hover:bg-hover/10 hover:text-primary lg:hidden"
           title="Ouvrir la navigation"
           aria-label="Ouvrir la navigation"
         >
@@ -244,7 +243,7 @@ export function TopNav() {
         <button
           type="button"
           onClick={toggleSidebar}
-          className="hidden h-9 w-9 items-center justify-center rounded-lg text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] lg:flex"
+          className="hidden h-9 w-9 items-center justify-center rounded-lg text-secondary transition hover:bg-hover/10 hover:text-primary lg:flex"
           title="Réduire ou agrandir la navigation"
           aria-label="Réduire ou agrandir la navigation"
         >
@@ -259,43 +258,42 @@ export function TopNav() {
             rel="noopener noreferrer"
             title="Ouvrir le site public"
             aria-label="Ouvrir le site public dans un nouvel onglet"
-            className="hidden h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] min-[400px]:flex"
+            className="hidden h-9 w-9 items-center justify-center rounded-lg text-secondary transition hover:bg-hover/10 hover:text-primary min-[400px]:flex"
           >
             <Globe2 size={17} />
           </Link>
-          <ThemeToggle />
           <NotificationBell />
 
           <div ref={dropdownRef} className="relative">
             <button
               type="button"
               onClick={() => setDropdownOpen((v) => !v)}
-              className="flex items-center gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-sm transition hover:bg-[var(--hover)]"
+              className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-sm transition hover:bg-hover/10"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--text-primary)] text-[11px] font-bold text-[var(--bg-app)]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-accent-foreground">
                 {initials}
               </div>
               <div className="hidden text-left md:block">
-                <p className="max-w-[140px] truncate text-sm font-semibold text-[var(--text-primary)]">
+                <p className="max-w-[140px] truncate text-sm font-semibold text-primary">
                   {user?.fullName ?? "Utilisateur"}
                 </p>
-                <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-muted">
                   {workspaceRoleLabel(workspaceRole)}
                 </p>
               </div>
               <ChevronDown
                 size={14}
-                className="hidden text-[var(--text-muted)] md:block"
+                className="hidden text-muted md:block"
               />
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-2 shadow-2xl z-50">
-                <div className="rounded-lg bg-[var(--hover)] px-3 py-2.5">
-                  <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
+              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-border bg-card p-2 shadow-theme-lg z-50">
+                <div className="rounded-lg bg-hover/10 px-3 py-2.5">
+                  <p className="truncate text-sm font-semibold text-primary">
                     {user?.fullName}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-[var(--text-secondary)]">
+                  <p className="mt-0.5 truncate text-xs text-secondary">
                     {user?.email}
                   </p>
                 </div>
@@ -306,9 +304,9 @@ export function TopNav() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setDropdownOpen(false)}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-secondary transition hover:bg-hover/10 hover:text-primary"
                   >
-                    <Globe2 size={14} className="text-[var(--text-muted)]" />
+                    <Globe2 size={14} className="text-muted" />
                     Site public
                   </Link>
                   <button
@@ -317,9 +315,9 @@ export function TopNav() {
                       setDropdownOpen(false);
                       router.push("/settings/account");
                     }}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-secondary transition hover:bg-hover/10 hover:text-primary"
                   >
-                    <User size={14} className="text-[var(--text-muted)]" />
+                    <User size={14} className="text-muted" />
                     {t("Settings")}
                   </button>
                   <button

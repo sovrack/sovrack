@@ -34,15 +34,15 @@ function Chip({
     green: "border-green-500/20 bg-green-500/10 text-green-400",
     amber: "border-amber-500/20 bg-amber-500/10 text-amber-300",
     red: "border-red-500/20 bg-red-500/10 text-red-400",
-    blue: "border-blue-500/20 bg-blue-500/10 text-blue-400",
-    purple: "border-indigo-500/20 bg-indigo-500/10 text-indigo-400",
+    blue: "border-accent/20 bg-accent/10 text-accent",
+    purple: "border-accent/20 bg-accent/10 text-accent",
     default:
-      "border-[var(--border)] bg-[var(--hover)] text-[var(--text-secondary)]",
+      "border-border bg-hover/10 text-secondary",
   };
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+        "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
         map[color],
       )}
     >
@@ -113,7 +113,7 @@ function CapabilitiesRow() {
       {meta.capabilities.map((cap) => (
         <span
           key={cap}
-          className="rounded border border-[var(--border)] bg-[var(--hover)] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-[var(--text-muted)]"
+          className="rounded border border-border bg-hover/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-muted"
         >
           {cap}
         </span>
@@ -178,12 +178,12 @@ export function ProviderCard({
     new Date(provider.oauthExpiresAt) < new Date();
 
   return (
-    <article className="group relative rounded-xl border border-[var(--border)] bg-[var(--bg-card)] transition-shadow hover:shadow-md">
+    <article className="group relative rounded-lg border border-border bg-card transition-colors hover:border-border-hover">
       {/* ─── Top strip: logo + name + status + actions ─── */}
       <div className="flex items-start gap-4 p-5">
         {/* Logo */}
         <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${meta.borderColor} ${meta.bgColor}`}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border ${meta.borderColor} ${meta.bgColor}`}
         >
           <ProviderLogo
             type={providerType as import("./provider-meta").ProviderType}
@@ -194,10 +194,10 @@ export function ProviderCard({
         {/* Name + URL + status */}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+            <h3 className="text-sm font-semibold text-primary">
               {provider.name}
             </h3>
-            <span className="text-xs text-[var(--text-muted)]">
+            <span className="text-xs text-muted">
               {meta.label}
             </span>
           </div>
@@ -206,7 +206,7 @@ export function ProviderCard({
             href={provider.providerUrl}
             target="_blank"
             rel="noreferrer"
-            className="mt-0.5 flex items-center gap-1 font-mono text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="mt-0.5 flex items-center gap-1 font-mono text-xs text-secondary hover:text-primary transition-colors"
           >
             {provider.providerUrl}
             <ExternalLink size={10} />
@@ -226,7 +226,7 @@ export function ProviderCard({
               onClick={() => void onTest(provider.id)}
               disabled={testingThis}
               title="Tester la connexion"
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-secondary)] transition hover:border-green-500/30 hover:bg-green-500/10 hover:text-green-400 disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-secondary transition hover:border-green-500/30 hover:bg-green-500/10 hover:text-green-400 disabled:opacity-40"
             >
               {testingThis ? (
                 <Loader2 size={13} className="animate-spin" />
@@ -250,7 +250,7 @@ export function ProviderCard({
                       : "Actualiser OAuth"
                     : "Connecter avec OAuth"
                 }
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-secondary)] transition hover:border-blue-500/30 hover:bg-blue-500/10 hover:text-blue-400 disabled:opacity-40"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-secondary transition hover:border-accent/30 hover:bg-accent/10 hover:text-accent disabled:opacity-40"
               >
                 {oauthingThis ? (
                   <Loader2 size={13} className="animate-spin" />
@@ -265,7 +265,7 @@ export function ProviderCard({
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-secondary transition hover:bg-hover/10 hover:text-primary"
               >
                 <MoreHorizontal size={13} />
               </button>
@@ -276,14 +276,14 @@ export function ProviderCard({
                     className="fixed inset-0 z-10"
                     onClick={() => setMenuOpen(false)}
                   />
-                  <div className="absolute right-0 top-9 z-20 min-w-[160px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)] py-1 shadow-lg">
+                  <div className="absolute right-0 top-9 z-20 min-w-[160px] overflow-hidden rounded-lg border border-border bg-card py-1 ">
                     <button
                       type="button"
                       onClick={() => {
                         setMenuOpen(false);
                         onEdit(provider);
                       }}
-                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-secondary transition hover:bg-hover/10 hover:text-primary"
                     >
                       <Pencil size={13} /> Modifier
                     </button>
@@ -296,7 +296,7 @@ export function ProviderCard({
                           void onSetDefault(provider.id);
                         }}
                         disabled={defaultingThis}
-                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-40"
+                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-secondary transition hover:bg-hover/10 hover:text-primary disabled:opacity-40"
                       >
                         {defaultingThis ? (
                           <Loader2 size={13} className="animate-spin" />
@@ -307,7 +307,7 @@ export function ProviderCard({
                       </button>
                     )}
 
-                    <div className="my-1 border-t border-[var(--border)]" />
+                    <div className="my-1 border-t border-border" />
 
                     <button
                       type="button"
@@ -328,17 +328,17 @@ export function ProviderCard({
       </div>
 
       {/* ─── Auth methods summary row ─── */}
-      <div className="border-t border-[var(--border)] px-5 py-3">
-        <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--text-muted)]">
+      <div className="border-t border-border px-5 py-3">
+        <div className="flex flex-wrap items-center gap-4 text-xs text-muted">
           {providerType === "GITLAB" && (
             <span className="flex items-center gap-1.5">
               <Shield
                 size={11}
-                className={provider.applicationId ? "text-blue-400" : ""}
+                className={provider.applicationId ? "text-accent" : ""}
               />
               OAuth
               {provider.applicationId ? (
-                <span className="text-[var(--text-secondary)]">
+                <span className="text-secondary">
                   — application configurée
                 </span>
               ) : (
@@ -372,7 +372,7 @@ export function ProviderCard({
           {isSelfHosted && provider.internalUrl && (
             <span className="flex items-center gap-1.5">
               URL interne :
-              <span className="font-mono text-[var(--text-secondary)]">
+              <span className="font-mono text-secondary">
                 {provider.internalUrl}
               </span>
             </span>
@@ -381,20 +381,20 @@ export function ProviderCard({
       </div>
 
       {/* ─── Expandable details ─── */}
-      <div className="border-t border-[var(--border)]">
+      <div className="border-t border-border">
         <button
           type="button"
           onClick={() => setDetailsOpen((v) => !v)}
-          className="flex w-full items-center justify-between px-5 py-2.5 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-secondary)]"
+          className="flex w-full items-center justify-between px-5 py-2.5 text-xs text-muted transition hover:text-secondary"
         >
           <span>Capacités et détails</span>
           {detailsOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
         </button>
 
         {detailsOpen && (
-          <div className="border-t border-[var(--border)] px-5 pb-4 pt-3 space-y-3">
+          <div className="border-t border-border px-5 pb-4 pt-3 space-y-3">
             <div>
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted">
                 Capacités
               </p>
               <CapabilitiesRow />
@@ -402,10 +402,10 @@ export function ProviderCard({
 
             {provider.groupNames && (
               <div>
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted">
                   Groupes autorisés
                 </p>
-                <p className="font-mono text-xs text-[var(--text-secondary)]">
+                <p className="font-mono text-xs text-secondary">
                   {provider.groupNames}
                 </p>
               </div>
@@ -413,16 +413,16 @@ export function ProviderCard({
 
             {provider.redirectUri && (
               <div>
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted">
                   OAuth Redirect URI
                 </p>
-                <p className="break-all font-mono text-xs text-[var(--text-secondary)]">
+                <p className="break-all font-mono text-xs text-secondary">
                   {provider.redirectUri}
                 </p>
               </div>
             )}
 
-            <div className="flex items-center gap-4 text-[10px] text-[var(--text-muted)]">
+            <div className="flex items-center gap-4 text-[10px] text-muted">
               <span>
                 ID:{" "}
                 <span className="font-mono">{provider.id.slice(0, 8)}…</span>

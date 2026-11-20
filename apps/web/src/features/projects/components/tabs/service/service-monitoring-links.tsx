@@ -28,7 +28,7 @@ export function ServiceMonitoringLinks({
 
   if (!data.installed) {
     return (
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--hover)]/40 px-4 py-2.5 text-xs text-[var(--text-secondary)]">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-hover/10/40 px-4 py-2.5 text-xs text-secondary">
         <Activity size={13} className="shrink-0" />
         Monitoring stack not installed on this server
         {data.serverHost ? ` (${data.serverHost})` : ""} — install it from
@@ -39,11 +39,11 @@ export function ServiceMonitoringLinks({
   }
 
   const linkClass =
-    "inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition hover:bg-[var(--hover)]";
+    "inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-hover/10";
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5">
-      <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5">
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted">
         Server monitoring
         {data.serverHost ? ` — ${data.serverHost}` : ""}
       </span>

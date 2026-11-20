@@ -65,9 +65,9 @@ export function ServiceWebhook({
   };
 
   const primaryBtn =
-    "inline-flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50";
+    "inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover disabled:opacity-50";
   const ghostBtn =
-    "inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] disabled:opacity-50";
+    "inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-secondary transition hover:text-primary disabled:opacity-50";
 
   return (
     <SectionCard
@@ -76,10 +76,10 @@ export function ServiceWebhook({
     >
       {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
       {loading ? (
-        <p className="text-sm text-[var(--text-muted)]">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       ) : !status?.configured ? (
         <div className="space-y-3">
-          <p className="text-sm text-[var(--text-secondary)]">
+          <p className="text-sm text-secondary">
             No webhook configured for this service.
           </p>
           <button
@@ -102,26 +102,26 @@ export function ServiceWebhook({
             <span
               className={
                 status.isActive
-                  ? "rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400"
-                  : "rounded-full border border-[var(--border)] bg-[var(--hover)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]"
+                  ? "rounded-md border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400"
+                  : "rounded-md border border-border bg-hover/10 px-2 py-0.5 text-[10px] font-semibold text-muted"
               }
             >
               {status.isActive ? "Active" : "Paused"}
             </span>
             {status.provider && (
-              <span className="text-xs uppercase tracking-wide text-[var(--text-muted)]">
+              <span className="text-xs uppercase tracking-wide text-muted">
                 {status.provider}
               </span>
             )}
             {status.lastEventAt && (
-              <span className="text-xs text-[var(--text-muted)]">
+              <span className="text-xs text-muted">
                 Last event: {new Date(status.lastEventAt).toLocaleString()}
               </span>
             )}
           </div>
 
           <div>
-            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted">
               Webhook URL — paste it in GitLab → Settings → Webhooks (Pipeline
               event)
             </label>
@@ -129,7 +129,7 @@ export function ServiceWebhook({
               <input
                 readOnly
                 value={status.webhookUrl ?? ""}
-                className="w-full flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 font-mono text-xs text-[var(--text-primary)] outline-none"
+                className="w-full flex-1 rounded-lg border border-border bg-app px-3 py-2 font-mono text-xs text-primary outline-none"
               />
               <button
                 type="button"
@@ -166,7 +166,7 @@ export function ServiceWebhook({
             </button>
           </div>
 
-          <p className="text-xs text-[var(--text-muted)]">
+          <p className="text-xs text-muted">
             Then enable <strong>Auto-deploy</strong> + the trigger branch in
             the <strong>Variables</strong> tab.
           </p>

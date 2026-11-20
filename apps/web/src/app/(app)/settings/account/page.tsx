@@ -1,15 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  KeyRound,
-  Loader2,
-  Moon,
-  Palette,
-  Sun,
-  Trash2,
-  User,
-} from "lucide-react";
+import { KeyRound, Loader2, Trash2, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { useAuthStore } from "@/stores/auth.store";
@@ -25,7 +17,6 @@ import { SectionCard } from "@/shared/layout/section-card";
 import { Alert } from "@/shared/ui/alert";
 import { PasswordInput } from "@/shared/ui/password-input";
 import { useI18n } from "@/shared/i18n/language-context";
-import { useThemeContext } from "@/shared/contexts/theme-context";
 import { CustomerMfaSettings } from "@/features/auth/components/customer-mfa-settings";
 import { workspaceRoleLabel } from "@/shared/i18n/product-labels";
 
@@ -36,7 +27,6 @@ import { workspaceRoleLabel } from "@/shared/i18n/product-labels";
  */
 export default function MyAccountPage() {
   const { t } = useI18n();
-  const { theme, setTheme } = useThemeContext();
   const { user, workspaceRole } = useAuth();
   const router = useRouter();
 
@@ -158,14 +148,14 @@ export default function MyAccountPage() {
         description={t("Connected user information.")}
       >
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--text-primary)] text-xs font-bold text-[var(--bg-app)]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">
             <User size={16} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[var(--text-primary)]">
+            <p className="text-sm font-semibold text-primary">
               {user?.fullName}
             </p>
-            <p className="text-xs text-[var(--text-secondary)]">
+            <p className="text-xs text-secondary">
               {user?.email} · {workspaceRoleLabel(workspaceRole)}
             </p>
           </div>
@@ -222,7 +212,7 @@ export default function MyAccountPage() {
             <button
               type="submit"
               disabled={savingPassword}
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover disabled:opacity-50"
             >
               {savingPassword ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -236,33 +226,6 @@ export default function MyAccountPage() {
       </SectionCard>
 
       <SectionCard
-        title={t("Preferences")}
-        description="Apparence enregistrée dans ce navigateur."
-      >
-        <div className="flex flex-wrap items-center gap-3">
-          {[
-            { id: "brand" as const, label: "Sovrack", icon: Palette },
-            { id: "dark" as const, label: t("Dark theme"), icon: Moon },
-            { id: "light" as const, label: t("Light theme"), icon: Sun },
-          ].map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTheme(id)}
-              aria-pressed={theme === id}
-              className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition ${
-                theme === id
-                  ? "border-sky-400 bg-sky-400/10 text-[var(--text-primary)]"
-                  : "border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:bg-[var(--hover)]"
-              }`}
-            >
-              <Icon size={14} /> {label}
-            </button>
-          ))}
-        </div>
-      </SectionCard>
-
-      <SectionCard
         title={t("Danger zone")}
         description={t(
           "Schedule deletion of your identity after a 30-day recovery period.",
@@ -270,7 +233,7 @@ export default function MyAccountPage() {
       >
         {!codeSent ? (
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-[var(--text-secondary)]">
+            <p className="text-sm text-secondary">
               {t(
                 "A confirmation code will be sent by email. Confirmation immediately signs you out and disables access. Organizations are preserved; your personal workspace is deleted after 30 days. Transfer ownership first if you are the last owner of an organization.",
               )}
@@ -279,7 +242,7 @@ export default function MyAccountPage() {
               type="button"
               onClick={() => void handleRequestDeletion()}
               disabled={deleting}
-              className="inline-flex items-center gap-2 rounded-xl border border-red-500/40 px-4 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-red-500/40 px-4 py-2 text-sm font-semibold text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
             >
               {deleting ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -296,7 +259,7 @@ export default function MyAccountPage() {
           >
             <div className="w-full sm:max-w-xs">
               <label
-                className="block text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
+                className="block text-xs font-semibold uppercase tracking-wide text-muted"
                 htmlFor="delete-code"
               >
                 {t("Confirmation code")}
@@ -313,13 +276,13 @@ export default function MyAccountPage() {
                   setDeleteCode(e.target.value.replace(/\D/g, ""))
                 }
                 placeholder="123456"
-                className="mt-1 w-full rounded-xl border border-red-500/40 bg-[var(--bg-app)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-red-500/60"
+                className="mt-1 w-full rounded-lg border border-red-500/40 bg-app px-3 py-2 text-sm text-primary outline-none focus:border-red-500/60"
               />
             </div>
             <button
               type="submit"
               disabled={deleting}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-red-600 disabled:opacity-50"
             >
               {deleting ? (
                 <Loader2 size={14} className="animate-spin" />

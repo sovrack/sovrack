@@ -9,11 +9,11 @@ import { SectionCard } from "@/shared/layout/section-card";
 
 function Stat({ k, v }: { k: string; v: string }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+    <div className="rounded-lg border border-border bg-card px-3 py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
         {k}
       </p>
-      <p className="mt-1 font-mono text-sm font-bold capitalize text-[var(--text-primary)]">
+      <p className="mt-1 font-mono text-sm font-bold capitalize text-primary">
         {v}
       </p>
     </div>
@@ -56,7 +56,7 @@ export function ServiceMonitoring({
   if (!deploymentId)
     return (
       <SectionCard title={t("Monitoring")}>
-        <p className="text-sm text-[var(--text-muted)]">{t("No deployment yet.")}</p>
+        <p className="text-sm text-muted">{t("No deployment yet.")}</p>
       </SectionCard>
     );
 
@@ -71,17 +71,17 @@ export function ServiceMonitoring({
           <button
             type="button"
             onClick={() => setLive((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${live ? "border-green-500/30 bg-green-500/10 text-green-400" : "border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${live ? "border-green-500/30 bg-green-500/10 text-green-400" : "border-border text-secondary hover:text-primary"}`}
           >
             <span
-              className={`h-1.5 w-1.5 rounded-full ${live ? "animate-pulse bg-green-400" : "bg-[var(--text-muted)]"}`}
+              className={`h-1.5 w-1.5 rounded-full ${live ? "animate-pulse bg-green-400" : "bg-muted"}`}
             />
             {live ? t("Live") : t("Paused")}
           </button>
           <button
             type="button"
             onClick={() => void fetchInfo()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-secondary transition hover:text-primary"
           >
             <RefreshCw size={11} /> {t("Refresh")}
           </button>
@@ -96,7 +96,7 @@ export function ServiceMonitoring({
           </div>
         )}
         {info && !info.stats && (
-          <p className="text-xs text-[var(--text-muted)]">
+          <p className="text-xs text-muted">
             {running
               ? "Metrics are being collected…"
               : "Container not started — metrics unavailable."}

@@ -36,7 +36,7 @@ export function ServerTerminalDialog({
         server ? `${server.username}@${server.host}:${server.port}` : undefined
       }
       icon={
-        <TerminalSquare size={16} className="text-[var(--text-secondary)]" />
+        <TerminalSquare size={16} className="text-secondary" />
       }
       contentClassName="!p-0"
     >

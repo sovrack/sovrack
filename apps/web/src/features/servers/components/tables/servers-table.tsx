@@ -33,7 +33,7 @@ function ReachabilityDot({ value }: { value: boolean | undefined }) {
       }
       className={`h-2 w-2 shrink-0 rounded-full ${
         value === undefined
-          ? "bg-zinc-400"
+          ? "bg-muted"
           : value
             ? "bg-green-500"
             : "bg-red-500"
@@ -42,14 +42,14 @@ function ReachabilityDot({ value }: { value: boolean | undefined }) {
   );
 }
 
-const th = "px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
+const th = "px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted";
 const td = "px-3 py-2.5 align-middle";
 
 function SshVerifiedBadge({ isVerified }: { isVerified: boolean | null }) {
   if (isVerified === null) {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
-        <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" />
+      <span className="inline-flex items-center gap-1 text-xs text-muted">
+        <span className="h-1.5 w-1.5 rounded-full bg-muted" />
         Pending
       </span>
     );
@@ -101,17 +101,17 @@ export function ServersTable({
   };
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-sm touch-pan-x">
-      <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--hover)]/40 px-3.5 py-1.5 text-[11px] text-[var(--text-muted)] md:hidden">
+    <div className="overflow-x-auto rounded-lg border border-border bg-card  touch-pan-x">
+      <div className="flex items-center justify-between border-b border-border bg-hover/10/40 px-3.5 py-1.5 text-[11px] text-muted md:hidden">
         <span>↔ {viewMode === "table" ? "Faites défiler horizontalement" : "Vue en cartes activée"}</span>
-        <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--bg-app)] p-0.5">
+        <div className="flex items-center rounded-lg border border-border bg-app p-0.5">
           <button
             type="button"
             onClick={() => setViewMode("table")}
             className={`rounded px-2 py-0.5 text-[10px] font-medium transition ${
               viewMode === "table"
-                ? "bg-[var(--text-primary)] text-[var(--bg-app)] shadow-xs"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                ? "bg-accent text-accent-foreground "
+                : "text-muted hover:text-primary"
             }`}
           >
             Table
@@ -121,8 +121,8 @@ export function ServersTable({
             onClick={() => setViewMode("cards")}
             className={`rounded px-2 py-0.5 text-[10px] font-medium transition ${
               viewMode === "cards"
-                ? "bg-[var(--text-primary)] text-[var(--bg-app)] shadow-xs"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                ? "bg-accent text-accent-foreground "
+                : "text-muted hover:text-primary"
             }`}
           >
             Cartes
@@ -137,16 +137,16 @@ export function ServersTable({
             return (
               <div
                 key={server.id}
-                className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-3.5 shadow-sm"
+                className="space-y-3 rounded-lg border border-border bg-app p-3.5 "
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2">
                     <ReachabilityDot value={isReachable[server.id]} />
                     <ServerIcon
                       size={15}
-                      className="shrink-0 text-[var(--text-muted)]"
+                      className="shrink-0 text-muted"
                     />
-                    <span className="truncate font-semibold text-sm text-[var(--text-primary)]">
+                    <span className="truncate font-semibold text-sm text-primary">
                       {server.name}
                     </span>
                   </div>
@@ -156,42 +156,42 @@ export function ServersTable({
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center justify-between rounded-lg bg-[var(--hover)]/60 px-2.5 py-1.5">
-                    <span className="text-[var(--text-muted)]">IP</span>
+                  <div className="flex items-center justify-between rounded-lg bg-hover/10/60 px-2.5 py-1.5">
+                    <span className="text-muted">IP</span>
                     <button
                       type="button"
                       onClick={() => handleCopyIp(server.id, server.host)}
-                      className="flex items-center gap-1 font-mono text-[var(--text-primary)] hover:underline"
+                      className="flex items-center gap-1 font-mono text-primary hover:underline"
                       title="Copier l'adresse IP"
                     >
                       {server.host}
                       {copiedId === server.id ? (
                         <Check size={11} className="text-green-400" />
                       ) : (
-                        <Copy size={11} className="text-[var(--text-muted)]" />
+                        <Copy size={11} className="text-muted" />
                       )}
                     </button>
                   </div>
-                  <div className="flex items-center justify-between rounded-lg bg-[var(--hover)]/60 px-2.5 py-1.5">
-                    <span className="text-[var(--text-muted)]">Port</span>
-                    <span className="font-mono text-[var(--text-primary)]">
+                  <div className="flex items-center justify-between rounded-lg bg-hover/10/60 px-2.5 py-1.5">
+                    <span className="text-muted">Port</span>
+                    <span className="font-mono text-primary">
                       {server.port}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between rounded-lg bg-[var(--hover)]/60 px-2.5 py-1.5">
-                    <span className="text-[var(--text-muted)]">User</span>
-                    <span className="font-mono text-[var(--text-primary)] truncate max-w-[80px]">
+                  <div className="flex items-center justify-between rounded-lg bg-hover/10/60 px-2.5 py-1.5">
+                    <span className="text-muted">User</span>
+                    <span className="font-mono text-primary truncate max-w-[80px]">
                       {server.username}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between rounded-lg bg-[var(--hover)]/60 px-2.5 py-1.5">
-                    <span className="text-[var(--text-muted)]">SSH</span>
+                  <div className="flex items-center justify-between rounded-lg bg-hover/10/60 px-2.5 py-1.5">
+                    <span className="text-muted">SSH</span>
                     <SshVerifiedBadge isVerified={server.isVerified} />
                   </div>
                 </div>
 
                 {!readOnly && (
-                  <div className="flex items-center justify-end border-t border-[var(--border)] pt-2">
+                  <div className="flex items-center justify-end border-t border-border pt-2">
                     <ServerRowActionsMenu
                       server={server}
                       disabled={getServerBusy(server)}
@@ -217,7 +217,7 @@ export function ServersTable({
         }`}
       >
         <thead>
-          <tr className="border-b border-[var(--border)]">
+          <tr className="border-b border-border">
             <th className={th}>Name</th>
             <th className={th}>Status</th>
             <th className={th}>IP Address</th>
@@ -236,13 +236,13 @@ export function ServersTable({
             return (
               <tr
                 key={server.id}
-                className="border-b border-[var(--border)] transition last:border-0 hover:bg-[var(--hover)]"
+                className="border-b border-border transition last:border-0 hover:bg-hover/10"
               >
                 <td className={td}>
                   <div className="flex items-center gap-2">
                     <ReachabilityDot value={isReachable[server.id]} />
-                    <ServerIcon size={14} className="shrink-0 text-[var(--text-muted)]" />
-                    <span className="truncate font-medium text-[var(--text-primary)]">
+                    <ServerIcon size={14} className="shrink-0 text-muted" />
+                    <span className="truncate font-medium text-primary">
                       {server.name}
                     </span>
                   </div>
@@ -252,26 +252,26 @@ export function ServersTable({
                     {status.label}
                   </Badge>
                 </td>
-                <td className={`${td} font-mono text-xs text-[var(--text-secondary)]`}>
+                <td className={`${td} font-mono text-xs text-secondary`}>
                   {server.host}
                 </td>
-                <td className={`${td} font-mono text-xs text-[var(--text-secondary)]`}>
+                <td className={`${td} font-mono text-xs text-secondary`}>
                   {server.port}
                 </td>
-                <td className={`${td} font-mono text-xs text-[var(--text-secondary)]`}>
+                <td className={`${td} font-mono text-xs text-secondary`}>
                   {server.username}
                 </td>
                 <td className={td}>
                   {hasSshKey ? (
                     <Check size={15} className="text-green-400" aria-label="SSH key configured" />
                   ) : (
-                    <X size={15} className="text-[var(--text-muted)]" aria-label="No SSH key" />
+                    <X size={15} className="text-muted" aria-label="No SSH key" />
                   )}
                 </td>
                 <td className={td}>
                   <SshVerifiedBadge isVerified={server.isVerified} />
                 </td>
-                <td className={`${td} text-xs text-[var(--text-secondary)]`}>
+                <td className={`${td} text-xs text-secondary`}>
                   {new Date(server.createdAt).toLocaleDateString("en-GB", {
                     day: "2-digit",
                     month: "short",

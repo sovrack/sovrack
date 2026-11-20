@@ -65,15 +65,17 @@ const nextConfig = {
           {
             // CSP : directives compatibles Next.js 15 (styles + scripts inline
             // nécessaires à l'hydratation) et WebSocket pour les logs temps réel.
-            // Les images utilisateurs peuvent venir de sources distantes.
+            // En mode dev, Next.js Fast Refresh requiert 'unsafe-eval' pour évaluer les chunks.
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
+              process.env.NODE_ENV === 'production'
+                ? "script-src 'self' 'unsafe-inline'"
+                : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' ws: wss:",
+              "connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:*",
               "frame-src 'none'",
               "object-src 'none'",
               "frame-ancestors 'none'",

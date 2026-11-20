@@ -24,7 +24,7 @@ import { STATUS_COLOR } from "@/features/deployments/utils";
 const LINE_COLOR: Record<string, string> = {
   error: "text-red-400",
   success: "text-green-400",
-  info: "text-[var(--text-secondary)]",
+  info: "text-secondary",
 };
 
 type Props = {
@@ -105,39 +105,39 @@ export function DeploymentLogsDialog({
 
       {/* Panel */}
       <div
-        className="relative z-10 flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl"
+        className="relative z-10 flex w-full max-w-4xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-theme-lg"
         style={{ maxHeight: "95vh" }}
       >
         {/* Header */}
-        <div className="flex items-center gap-3 border-b border-[var(--border)] px-5 py-4">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--hover)]">
-            <Terminal size={15} className="text-[var(--text-secondary)]" />
+        <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-hover/10">
+            <Terminal size={15} className="text-secondary" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold text-[var(--text-primary)]">
+              <p className="text-sm font-semibold text-primary">
                 Deployment logs
               </p>
               {currentStatus && (
                 <span
-                  className={`text-xs font-semibold ${STATUS_COLOR[currentStatus] ?? "text-zinc-400"}`}
+                  className={`text-xs font-semibold ${STATUS_COLOR[currentStatus] ?? "text-secondary"}`}
                 >
                   {currentStatus}
                 </span>
               )}
               {deployment?.branch && (
-                <span className="font-mono text-xs text-[var(--text-muted)]">
+                <span className="font-mono text-xs text-muted">
                   {deployment.branch}
                 </span>
               )}
               {deployment?.environment?.name && (
-                <span className="rounded border border-[var(--border)] bg-[var(--hover)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">
+                <span className="rounded border border-border bg-hover/10 px-1.5 py-0.5 text-[10px] text-muted">
                   {deployment.environment.name}
                 </span>
               )}
             </div>
             {deployment?.startedAt && (
-              <p className="mt-0.5 flex items-center gap-1 text-xs text-[var(--text-muted)]">
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted">
                 <Clock size={10} />
                 {new Date(deployment.startedAt).toLocaleString()}
                 {deployment.finishedAt && (
@@ -156,7 +156,7 @@ export function DeploymentLogsDialog({
           </div>
           <div className="flex items-center gap-2">
             {liveActive && (
-              <div className="flex items-center gap-1.5 rounded-lg border border-blue-500/20 bg-blue-500/8 px-2.5 py-1 text-xs text-blue-300">
+              <div className="flex items-center gap-1.5 rounded-lg border border-accent/20 bg-accent/8 px-2.5 py-1 text-xs text-accent">
                 {isConnected ? (
                   <>
                     <Wifi size={10} className="animate-pulse" /> Live
@@ -172,7 +172,7 @@ export function DeploymentLogsDialog({
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-muted)] hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+              className="rounded-lg border border-border p-1.5 text-muted hover:bg-hover/10 hover:text-primary"
             >
               <X size={15} />
             </button>
@@ -218,31 +218,31 @@ export function DeploymentLogsDialog({
             const cond = conditions[0];
             const sha = deployment.imageSha ?? null;
             return (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-[var(--border)] bg-[var(--hover)]/40 px-5 py-2.5 text-[11px]">
-                <span className="font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-border bg-hover/10/40 px-5 py-2.5 text-[11px]">
+                <span className="font-semibold uppercase tracking-wide text-muted">
                   Release
                 </span>
                 {typeof build.buildSource === "string" && (
-                  <span className="text-[var(--text-secondary)]">
+                  <span className="text-secondary">
                     Build:{" "}
-                    <span className="font-mono text-[var(--text-primary)]">
+                    <span className="font-mono text-primary">
                       {build.buildSource}
                     </span>
                   </span>
                 )}
                 {typeof source.branch === "string" && (
-                  <span className="text-[var(--text-secondary)]">
+                  <span className="text-secondary">
                     Ref:{" "}
-                    <span className="font-mono text-[var(--text-primary)]">
+                    <span className="font-mono text-primary">
                       {source.branch}
                     </span>
                   </span>
                 )}
                 {sha && (
-                  <span className="text-[var(--text-secondary)]">
+                  <span className="text-secondary">
                     Digest:{" "}
                     <span
-                      className="font-mono text-[var(--text-primary)]"
+                      className="font-mono text-primary"
                       title={sha}
                     >
                       {sha.replace("sha256:", "").slice(0, 12)}
@@ -257,7 +257,7 @@ export function DeploymentLogsDialog({
                         ? "bg-green-500/10 text-green-400"
                         : cond.type === "Degraded"
                           ? "bg-red-500/10 text-red-400"
-                          : "bg-blue-500/10 text-blue-300",
+                          : "bg-accent/10 text-accent",
                     )}
                     title={
                       typeof cond.message === "string"
@@ -274,9 +274,9 @@ export function DeploymentLogsDialog({
           })()}
 
         {/* Log output */}
-        <div className="flex-1 overflow-y-auto bg-zinc-950 p-4 font-mono text-xs leading-relaxed">
+        <div className="flex-1 overflow-y-auto bg-app p-4 font-mono text-xs leading-relaxed">
           {fetchingLogs && (
-            <div className="flex items-center gap-2 text-[var(--text-muted)]">
+            <div className="flex items-center gap-2 text-muted">
               <Loader2 size={12} className="animate-spin" /> Loading logs…
             </div>
           )}
@@ -286,14 +286,14 @@ export function DeploymentLogsDialog({
             </div>
           )}
           {!fetchingLogs && logs.length === 0 && (
-            <span className="text-zinc-600">No logs yet…</span>
+            <span className="text-muted">No logs yet…</span>
           )}
           {logs.map((line, i) => (
             <div
               key={i}
               className={clsx("flex gap-3", LINE_COLOR[line.level ?? "info"])}
             >
-              <span className="shrink-0 text-zinc-600 select-none">
+              <span className="shrink-0 text-muted select-none">
                 {new Date(line.timestamp).toLocaleTimeString("en-GB", {
                   hour12: false,
                 })}
@@ -307,8 +307,8 @@ export function DeploymentLogsDialog({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-[var(--border)] px-5 py-3">
-          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+        <div className="flex items-center justify-between border-t border-border px-5 py-3">
+          <div className="flex items-center gap-2 text-xs text-muted">
             {currentStatus === "SUCCESS" && (
               <>
                 <CheckCircle2 size={12} className="text-green-400" /> Deployment
@@ -331,7 +331,7 @@ export function DeploymentLogsDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-[var(--border)] px-4 py-1.5 text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+            className="rounded-lg border border-border px-4 py-1.5 text-xs font-medium text-muted hover:text-primary transition"
           >
             Close
           </button>

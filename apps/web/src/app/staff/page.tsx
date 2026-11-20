@@ -22,7 +22,7 @@ export default function StaffDashboardPage() {
 
   if (isError || !data) {
     return (
-      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-sm text-red-300">
+      <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-6 text-sm text-red-300">
         Impossible de charger la vue d&apos;ensemble. Vérifiez votre session ou
         réessayez.
         <button
@@ -60,8 +60,8 @@ export default function StaffDashboardPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Vue d&apos;ensemble</h1>
-        <p className="mt-1 text-sm text-zinc-400">
+        <h1 className="text-2xl font-bold text-primary">Vue d&apos;ensemble</h1>
+        <p className="mt-1 text-sm text-secondary">
           Supervision globale de la plateforme : comptes clients et abonnements.
         </p>
       </div>
@@ -70,33 +70,33 @@ export default function StaffDashboardPage() {
         {cards.map((c) => (
           <div
             key={c.label}
-            className="rounded-2xl border border-white/10 bg-white/5 p-5"
+            className="rounded-lg border border-border bg-hover/10 p-5"
           >
-            <div className="flex items-center gap-2 text-zinc-400">
+            <div className="flex items-center gap-2 text-secondary">
               <c.icon size={16} />
               <p className="text-sm font-medium">{c.label}</p>
             </div>
-            <p className="mt-3 text-3xl font-bold text-white">{c.value}</p>
-            <p className="mt-1 text-xs text-zinc-500">{c.sub}</p>
+            <p className="mt-3 text-3xl font-bold text-primary">{c.value}</p>
+            <p className="mt-1 text-xs text-muted">{c.sub}</p>
           </div>
         ))}
       </div>
 
       <div className="mt-10">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className="text-lg font-semibold text-primary">
             Derniers comptes créés
           </h2>
           <Link
             href="/staff/users"
-            className="text-sm font-medium text-blue-400 hover:text-blue-300"
+            className="text-sm font-medium text-accent hover:text-accent"
           >
             Voir tous les utilisateurs
           </Link>
         </div>
-        <div className="overflow-hidden rounded-2xl border border-white/10">
+        <div className="overflow-hidden rounded-lg border border-border">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-white/10 bg-white/5 text-zinc-400">
+            <thead className="border-b border-border bg-hover/10 text-secondary">
               <tr>
                 <th className="px-4 py-3 font-medium">Nom</th>
                 <th className="px-4 py-3 font-medium">Email</th>
@@ -107,18 +107,18 @@ export default function StaffDashboardPage() {
             </thead>
             <tbody className="divide-y divide-white/5">
               {data.recentUsers.map((u) => (
-                <tr key={u.id} className="hover:bg-white/5">
-                  <td className="px-4 py-3 text-white">{u.fullName}</td>
-                  <td className="px-4 py-3 text-zinc-400">{u.email}</td>
-                  <td className="px-4 py-3 text-zinc-400">{u._count.teams}</td>
-                  <td className="px-4 py-3 text-zinc-400">
+                <tr key={u.id} className="hover:bg-hover/10">
+                  <td className="px-4 py-3 text-primary">{u.fullName}</td>
+                  <td className="px-4 py-3 text-secondary">{u.email}</td>
+                  <td className="px-4 py-3 text-secondary">{u._count.teams}</td>
+                  <td className="px-4 py-3 text-secondary">
                     {u.deletionScheduledFor
                       ? "Suppression programmée"
                       : u.isActive
                         ? "Actif"
                         : "Désactivé"}
                   </td>
-                  <td className="px-4 py-3 text-zinc-500">
+                  <td className="px-4 py-3 text-muted">
                     {new Date(u.createdAt).toLocaleDateString("fr-FR")}
                   </td>
                 </tr>
@@ -127,7 +127,7 @@ export default function StaffDashboardPage() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-4 py-8 text-center text-zinc-500"
+                    className="px-4 py-8 text-center text-muted"
                   >
                     Aucun compte pour l&apos;instant.
                   </td>

@@ -37,7 +37,7 @@ export function Pagination({
         type="button"
         onClick={() => onPageChange(page - 1)}
         disabled={page === 1}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-40"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-secondary transition hover:bg-hover/10 hover:text-primary disabled:opacity-40"
       >
         <ChevronLeft size={16} />
       </button>
@@ -46,7 +46,7 @@ export function Pagination({
         item === "..." ? (
           <span
             key={`e-${idx}`}
-            className="px-1 text-sm text-[var(--text-muted)]"
+            className="px-1 text-sm text-muted"
           >
             …
           </span>
@@ -58,8 +58,8 @@ export function Pagination({
             className={clsx(
               "flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition",
               item === page
-                ? "bg-[var(--text-primary)] text-[var(--bg-app)] shadow"
-                : "text-[var(--text-secondary)] hover:bg-[var(--hover)] hover:text-[var(--text-primary)]",
+                ? "bg-accent text-accent-foreground"
+                : "text-secondary hover:bg-hover/10 hover:text-primary",
             )}
           >
             {item}
@@ -71,7 +71,7 @@ export function Pagination({
         type="button"
         onClick={() => onPageChange(page + 1)}
         disabled={page === totalPages}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)] disabled:opacity-40"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-secondary transition hover:bg-hover/10 hover:text-primary disabled:opacity-40"
       >
         <ChevronRight size={16} />
       </button>

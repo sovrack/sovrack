@@ -172,7 +172,7 @@ export function ServerUpsertDialog({
               until the next deploy. */}
           {mode === "create" && (
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+              <label className="block text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
                 SSH Key <span className="text-red-400">*</span>
               </label>
               <div className="relative">
@@ -180,7 +180,7 @@ export function ServerUpsertDialog({
                   value={values.sshKeyId}
                   onChange={(e) => set("sshKeyId", e.target.value)}
                   disabled={keysLoading}
-                  className="h-11 w-full appearance-none rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 pr-10 text-sm text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-zinc-500/20 disabled:opacity-50"
+                  className="h-11 w-full appearance-none rounded-lg border border-border bg-card px-4 pr-10 text-sm text-primary outline-none transition focus:ring-2 focus:ring-accent/20 disabled:opacity-50"
                 >
                   <option value="">
                     {keysLoading ? "Loading SSH keys…" : "— Select a SSH key —"}
@@ -193,18 +193,18 @@ export function ServerUpsertDialog({
                 </select>
                 <ChevronDown
                   size={14}
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-secondary"
                 />
               </div>
               {formErrors.sshKeyId && (
                 <p className="text-xs text-red-400">{formErrors.sshKeyId}</p>
               )}
               {sshKeys.length === 0 && !keysLoading && (
-                <p className="text-xs text-[var(--text-secondary)]">
+                <p className="text-xs text-secondary">
                   No SSH keys found. Go to{" "}
                   <a
                     href="/settings/ssh-keys"
-                    className="underline hover:text-[var(--text-primary)]"
+                    className="underline hover:text-primary"
                   >
                     Settings › SSH Keys
                   </a>{" "}

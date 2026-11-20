@@ -6,15 +6,15 @@ type Props = {
 
 export function ServerCapabilitiesCard({ capabilities }: Props) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+    <div className="rounded-lg border border-border bg-card p-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary">
         Capabilities
       </p>
-      <h3 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+      <h3 className="mt-1 text-lg font-semibold text-primary">
         Detected server facts
       </h3>
       {capabilities.length === 0 ? (
-        <p className="mt-4 text-sm text-[var(--text-secondary)]">
+        <p className="mt-4 text-sm text-secondary">
           No capabilities detected yet.
         </p>
       ) : (
@@ -22,12 +22,12 @@ export function ServerCapabilitiesCard({ capabilities }: Props) {
           {capabilities.map((capability) => (
             <div
               key={capability.id}
-              className="rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 py-2"
+              className="rounded-lg border border-border bg-hover/10 px-3 py-2"
             >
-              <p className="font-mono text-xs text-[var(--text-secondary)]">
+              <p className="font-mono text-xs text-secondary">
                 {capability.key}
               </p>
-              <p className="mt-1 text-sm font-semibold text-[var(--text-primary)]">
+              <p className="mt-1 text-sm font-semibold text-primary">
                 {capability.value}
               </p>
             </div>

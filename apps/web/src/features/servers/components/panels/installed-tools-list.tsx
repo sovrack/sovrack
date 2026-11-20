@@ -7,15 +7,15 @@ type Props = {
 
 export function InstalledToolsList({ tools }: Props) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+    <div className="rounded-lg border border-border bg-card p-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary">
         Installed tools
       </p>
-      <h3 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+      <h3 className="mt-1 text-lg font-semibold text-primary">
         Tool inventory
       </h3>
       {tools.length === 0 ? (
-        <p className="mt-4 text-sm text-[var(--text-secondary)]">
+        <p className="mt-4 text-sm text-secondary">
           No tools detected yet.
         </p>
       ) : (
@@ -23,13 +23,13 @@ export function InstalledToolsList({ tools }: Props) {
           {tools.map((tool) => (
             <div
               key={tool.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--hover)] px-3 py-2"
+              className="flex items-center justify-between gap-3 rounded-lg border border-border bg-hover/10 px-3 py-2"
             >
               <div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                <p className="text-sm font-semibold text-primary">
                   {tool.displayName}
                 </p>
-                <p className="text-xs text-[var(--text-secondary)]">
+                <p className="text-xs text-secondary">
                   {tool.version || "Version unknown"}
                 </p>
               </div>

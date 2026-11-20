@@ -21,20 +21,20 @@ export function SectionCard({
   return (
     <section
       className={clsx(
-        "rounded-lg border border-[var(--border)] bg-[var(--bg-card)] shadow-sm",
+        "rounded-lg border border-border bg-card ",
         className,
       )}
     >
       {(title || description || actions) && (
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div>
             {title && (
-              <h2 className="text-base font-semibold tracking-[-0.02em] text-[var(--text-primary)]">
+              <h2 className="text-base font-semibold tracking-[-0.02em] text-primary">
                 {title}
               </h2>
             )}
             {description && (
-              <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
+              <p className="mt-0.5 text-sm text-secondary">
                 {description}
               </p>
             )}

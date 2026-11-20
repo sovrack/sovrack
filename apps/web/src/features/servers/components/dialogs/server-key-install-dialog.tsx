@@ -73,8 +73,8 @@ export function ServerKeyInstallDialog({
       title="Install SSH Key"
       description={`${server.username}@${server.host}:${server.port}`}
       icon={
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--text-primary)]/15">
-          <KeyRound size={16} className="text-[var(--text-secondary)]" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10">
+          <KeyRound size={16} className="text-secondary" />
         </div>
       }
       footer={
@@ -105,13 +105,13 @@ export function ServerKeyInstallDialog({
       >
         {error && <Alert tone="error">{error}</Alert>}
 
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+        <div className="rounded-lg border border-border bg-hover/10 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
             Generated public key
           </p>
           {publicKey ? (
             <>
-              <p className="mt-2 break-all rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 font-mono text-xs text-[var(--text-primary)]">
+              <p className="mt-2 break-all rounded-lg border border-border bg-card px-3 py-2 font-mono text-xs text-primary">
                 {publicKey}
               </p>
               <Button
@@ -134,7 +134,7 @@ export function ServerKeyInstallDialog({
 
         {requiresPasswordInstall && (
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
               Temporary VPS password <span className="text-red-500">*</span>
             </label>
             <input
@@ -142,20 +142,20 @@ export function ServerKeyInstallDialog({
               value={temporaryPassword}
               onChange={(event) => setTemporaryPassword(event.target.value)}
               placeholder="Temporary SSH password"
-              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20"
+              className="h-11 w-full rounded-lg border border-border bg-card px-4 text-sm text-primary outline-none transition placeholder:text-secondary focus:border-accent focus:ring-2 focus:ring-accent/20"
             />
-            <p className="mt-1 text-xs text-[var(--text-secondary)]">
+            <p className="mt-1 text-xs text-secondary">
               Used once to append the platform public key in{" "}
               <code className="font-mono">~/.ssh/authorized_keys</code>.
             </p>
           </div>
         )}
 
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+        <div className="rounded-lg border border-border bg-hover/10 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
             Manual installation command
           </p>
-          <p className="mt-2 break-all rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 font-mono text-xs text-[var(--text-primary)]">
+          <p className="mt-2 break-all rounded-lg border border-border bg-card px-3 py-2 font-mono text-xs text-primary">
             {manualCommand || "Public key unavailable"}
           </p>
         </div>

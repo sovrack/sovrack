@@ -30,10 +30,10 @@ export function ProviderTypeStep({
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted">
           Sélection du fournisseur
         </p>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+        <p className="mt-1 text-sm text-secondary">
           Choisissez la plateforme Git à connecter.
         </p>
       </div>
@@ -49,17 +49,17 @@ export function ProviderTypeStep({
               onClick={() => meta.available && onSelectType(type)}
               disabled={!meta.available}
               className={clsx(
-                "relative flex flex-col items-center gap-2.5 rounded-xl border p-4 text-center transition",
+                "relative flex flex-col items-center gap-2.5 rounded-lg border p-4 text-center transition",
                 active
-                  ? "border-[var(--text-primary)] bg-[var(--hover)]"
+                  ? "border-accent bg-hover/10"
                   : meta.available
-                    ? "border-[var(--border)] hover:border-[var(--text-secondary)] hover:bg-[var(--hover)]"
-                    : "cursor-not-allowed border-[var(--border)] opacity-50",
+                    ? "border-border hover:border-secondary hover:bg-hover/10"
+                    : "cursor-not-allowed border-border opacity-50",
               )}
             >
               <div
                 className={clsx(
-                  "flex h-10 w-10 items-center justify-center rounded-xl border",
+                  "flex h-10 w-10 items-center justify-center rounded-lg border",
                   meta.bgColor,
                   meta.borderColor,
                 )}
@@ -70,20 +70,20 @@ export function ProviderTypeStep({
                 />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                <p className="text-sm font-semibold text-primary">
                   {meta.label}
                 </p>
-                <p className="text-[10px] text-[var(--text-muted)]">
+                <p className="text-[10px] text-muted">
                   {meta.tagline}
                 </p>
               </div>
               {!meta.available && (
-                <span className="absolute right-2 top-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-400">
+                <span className="absolute right-2 top-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-400">
                   {meta.badge ?? "Bientôt"}
                 </span>
               )}
               {meta.available && meta.badge && !active && (
-                <span className="absolute right-2 top-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-teal-400">
+                <span className="absolute right-2 top-2 rounded-md border border-accent/30 bg-accent/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-teal-400">
                   {meta.badge}
                 </span>
               )}
@@ -129,10 +129,10 @@ export function InstanceConfigStep({
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted">
           Configuration de l’instance
         </p>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+        <p className="mt-1 text-sm text-secondary">
           Donnez un nom à la connexion et indiquez l’URL de l’instance.
         </p>
       </div>
@@ -202,10 +202,10 @@ export function AuthMethodStep({
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted">
           Méthode d’authentification
         </p>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+        <p className="mt-1 text-sm text-secondary">
           {isGithub
             ? "GitHub utilise en V1 un jeton personnel limité aux dépôts nécessaires."
             : "Choisissez la méthode utilisée par Sovrack pour s’authentifier."}
@@ -228,7 +228,7 @@ export function AuthMethodStep({
       </div>
 
       {isGithub && (
-        <p className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-xs leading-5 text-[var(--text-secondary)]">
+        <p className="rounded-lg border border-accent/20 bg-accent/5 px-4 py-3 text-xs leading-5 text-secondary">
           OAuth GitHub n’est pas inclus dans la V1. Le jeton est chiffré avant
           stockage, n’est jamais réaffiché et peut être remplacé à tout moment.
         </p>

@@ -26,7 +26,7 @@ const EMPTY_FORM: EmailForm = {
 };
 
 const fieldClass =
-  "w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none transition focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50";
+  "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-primary outline-none transition focus:border-accent disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function StaffEmailSettingsPage() {
   const { staff } = useStaffAuth();
@@ -115,12 +115,12 @@ export default function StaffEmailSettingsPage() {
   };
 
   if (isLoading) {
-    return <p className="text-sm text-zinc-400">Chargement…</p>;
+    return <p className="text-sm text-secondary">Chargement…</p>;
   }
 
   if (error || !data) {
     return (
-      <p className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+      <p className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
         {getApiErrorMessage(error)}
       </p>
     );
@@ -129,12 +129,12 @@ export default function StaffEmailSettingsPage() {
   return (
     <div className="max-w-4xl">
       <div className="mb-6 flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-hover/15 text-primary">
           <Mail size={18} />
         </span>
         <div>
-          <h1 className="text-2xl font-bold text-white">Configuration email</h1>
-          <p className="text-sm text-zinc-400">
+          <h1 className="text-2xl font-bold text-primary">Configuration email</h1>
+          <p className="text-sm text-secondary">
             Paramètres SMTP globaux pour les validations, invitations et
             alertes.
           </p>
@@ -154,7 +154,7 @@ export default function StaffEmailSettingsPage() {
       </div>
 
       {data.source === "environment" && canEdit ? (
-        <div className="mb-5 flex gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200">
+        <div className="mb-5 flex gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200">
           <ShieldAlert className="mt-0.5 shrink-0" size={18} />
           <p>
             La configuration actuelle vient de l’environnement. Le premier
@@ -167,14 +167,14 @@ export default function StaffEmailSettingsPage() {
 
       <form
         onSubmit={submit}
-        className="space-y-5 rounded-2xl border border-white/10 bg-white/[0.03] p-6"
+        className="space-y-5 rounded-lg border border-border bg-card p-6"
       >
-        <label className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-zinc-900/60 p-4">
+        <label className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card/60 p-4">
           <span>
-            <span className="block text-sm font-semibold text-white">
+            <span className="block text-sm font-semibold text-primary">
               Activer l’envoi d’emails
             </span>
-            <span className="mt-1 block text-xs text-zinc-400">
+            <span className="mt-1 block text-xs text-secondary">
               Les parcours transactionnels échouent explicitement si le service
               est désactivé.
             </span>
@@ -189,7 +189,7 @@ export default function StaffEmailSettingsPage() {
                 enabled: event.target.checked,
               }))
             }
-            className="h-5 w-5 accent-blue-500"
+            className="h-5 w-5 accent-accent"
           />
         </label>
 
@@ -300,7 +300,7 @@ export default function StaffEmailSettingsPage() {
         </div>
 
         {data.passwordConfigured && canEdit ? (
-          <label className="flex items-center gap-2 text-xs text-zinc-400">
+          <label className="flex items-center gap-2 text-xs text-secondary">
             <input
               type="checkbox"
               checked={Boolean(form.clearPassword)}
@@ -335,7 +335,7 @@ export default function StaffEmailSettingsPage() {
 
         {message ? (
           <p
-            className={`rounded-xl border p-3 text-sm ${
+            className={`rounded-lg border p-3 text-sm ${
               message.kind === "success"
                 ? "border-green-500/20 bg-green-500/10 text-green-300"
                 : "border-red-500/20 bg-red-500/10 text-red-300"
@@ -345,18 +345,18 @@ export default function StaffEmailSettingsPage() {
           </p>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-3 border-t border-white/10 pt-5">
+        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-5">
           {canEdit ? (
             <button
               type="submit"
               disabled={!isDirty || saveMutation.isPending}
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-zinc-950 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground disabled:cursor-not-allowed disabled:opacity-40"
             >
               <CheckCircle2 size={16} />
               {saveMutation.isPending ? "Enregistrement…" : "Enregistrer"}
             </button>
           ) : (
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted">
               Un ADMIN peut consulter et tester. Seul ROOT peut modifier.
             </p>
           )}
@@ -367,7 +367,7 @@ export default function StaffEmailSettingsPage() {
               setMessage(null);
               testMutation.mutate();
             }}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Send size={16} />
             {testMutation.isPending
@@ -387,9 +387,9 @@ export default function StaffEmailSettingsPage() {
 
 function StatusCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-      <p className="text-xs uppercase tracking-wide text-zinc-500">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-white">{value}</p>
+    <div className="rounded-lg border border-border bg-card p-4">
+      <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-primary">{value}</p>
     </div>
   );
 }
@@ -407,12 +407,12 @@ function Field({
 }) {
   return (
     <label className={className}>
-      <span className="mb-1.5 block text-xs font-medium text-zinc-400">
+      <span className="mb-1.5 block text-xs font-medium text-secondary">
         {label}
       </span>
       {children}
       {hint ? (
-        <span className="mt-1.5 block text-xs text-zinc-500">{hint}</span>
+        <span className="mt-1.5 block text-xs text-muted">{hint}</span>
       ) : null}
     </label>
   );

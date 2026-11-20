@@ -9,7 +9,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
     <div
       role="group"
       aria-label="Language selection"
-      className={`inline-flex items-center rounded-lg border border-white/10 bg-white/[0.04] p-0.5 text-xs font-medium backdrop-blur-md ${className}`}
+      className={`inline-flex items-center rounded-lg border border-border bg-card p-0.5 text-xs font-medium backdrop-blur-md ${className}`}
     >
       <button
         type="button"
@@ -17,8 +17,8 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
         aria-pressed={lang === "fr"}
         className={`rounded-md px-2 py-1 transition-all duration-200 ${
           lang === "fr"
-            ? "border border-cyan-400/40 bg-white/15 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)] font-semibold"
-            : "text-slate-300 hover:text-white hover:bg-white/5"
+            ? "border border-accent/50 bg-hover/20 text-accent font-semibold"
+            : "text-secondary hover:text-primary hover:bg-hover/10"
         }`}
       >
         FR
@@ -29,8 +29,8 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
         aria-pressed={lang === "en"}
         className={`rounded-md px-2 py-1 transition-all duration-200 ${
           lang === "en"
-            ? "border border-cyan-400/40 bg-white/15 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)] font-semibold"
-            : "text-slate-300 hover:text-white hover:bg-white/5"
+            ? "border border-accent/50 bg-hover/20 text-accent font-semibold"
+            : "text-secondary hover:text-primary hover:bg-hover/10"
         }`}
       >
         EN

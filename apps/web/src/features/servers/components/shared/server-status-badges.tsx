@@ -9,10 +9,10 @@ function ToolBadge({ label, active }: BadgeProps) {
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold",
+        "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold",
         active
           ? "border border-green-500/20 bg-green-500/10 text-green-400"
-          : "border border-zinc-500/20 bg-[var(--text-primary)]/10 text-[var(--text-muted)]",
+          : "border border-border bg-hover/10 text-muted",
       )}
     >
       {active ? <CheckCircle size={11} /> : <CircleDashed size={11} />}
@@ -131,7 +131,7 @@ export function ServerOverallStatusBadge({ server }: { server: Server }) {
       <Badge tone={status.tone} dot>
         {status.label}
       </Badge>
-      <p className="text-[11px] text-[var(--text-secondary)]">
+      <p className="text-[11px] text-secondary">
         {status.description}
       </p>
     </div>
@@ -159,7 +159,7 @@ export function ServerToolBadges({ server }: { server: Server }) {
   const tools = server.installedTools ?? [];
   if (tools.length === 0) {
     return (
-      <p className="text-[11px] text-[var(--text-secondary)]">
+      <p className="text-[11px] text-secondary">
         No tools detected yet — detection runs automatically after SSH validation.
       </p>
     );
@@ -188,7 +188,7 @@ export function ServerWorkflowBadges({ server }: { server: Server }) {
       <ToolBadge label="SSH" active={server.isVerified} />
       <ToolBadge label="Docker" active={server.hasDocker} />
       <ToolBadge label="Runner" active={server.hasRunner} />
-      <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[11px] font-semibold text-blue-300">
+      <span className="inline-flex items-center gap-1 rounded-md border border-accent/20 bg-accent/10 px-2.5 py-1 text-[11px] font-semibold text-accent">
         <CheckCircle size={11} /> Managed by control-node Ansible
       </span>
     </div>

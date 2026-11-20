@@ -31,7 +31,7 @@ export function PasswordInput({
       {label && (
         <label
           htmlFor={inputId}
-          className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
+          className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted"
         >
           {label}
         </label>
@@ -42,9 +42,9 @@ export function PasswordInput({
           id={inputId}
           type={revealed ? "text" : "password"}
           className={clsx(
-            "w-full rounded-md border border-[var(--border)] bg-[var(--bg-card)] py-2.5 pr-10 text-sm text-[var(--text-primary)] outline-none transition",
-            "placeholder:text-[var(--text-muted)]",
-            "focus:outline-none focus:ring-1 focus:ring-zinc-400",
+            "w-full rounded-md border border-border bg-card py-2.5 pr-10 text-sm text-primary outline-none transition",
+            "placeholder:text-muted",
+            "focus:border-border-hover focus:outline-none focus:ring-1 focus:ring-accent/30",
             "disabled:cursor-not-allowed disabled:opacity-50",
             error ? "border-red-500/40 focus:ring-red-500/40" : "",
             "pl-3.5",
@@ -57,14 +57,14 @@ export function PasswordInput({
             revealed ? "Masquer le mot de passe" : "Afficher le mot de passe"
           }
           onClick={() => setRevealed((v) => !v)}
-          className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+          className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted transition hover:text-primary"
         >
           {revealed ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>
       </div>
       {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
       {hint && !error && (
-        <p className="mt-1.5 text-xs text-[var(--text-secondary)]">{hint}</p>
+        <p className="mt-1.5 text-xs text-secondary">{hint}</p>
       )}
     </div>
   );

@@ -15,8 +15,8 @@ export function ActivityChart({ data }: Props) {
   const max = Math.max(...data.map((d) => d.total), 1);
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-      <p className="mb-4 text-sm font-semibold text-[var(--text-primary)]">
+    <div className="rounded-lg border border-border bg-card p-4">
+      <p className="mb-4 text-sm font-semibold text-primary">
         Activité — 7 derniers jours
       </p>
       <div className="flex h-32 items-end gap-2">
@@ -33,13 +33,13 @@ export function ActivityChart({ data }: Props) {
               className="group relative flex flex-1 flex-col items-center gap-1"
             >
               {/* Tooltip */}
-              <div className="pointer-events-none absolute bottom-full mb-2 hidden rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1.5 text-xs shadow-lg group-hover:block z-10 min-w-[120px]">
-                <p className="font-semibold text-[var(--text-primary)]">
+              <div className="pointer-events-none absolute bottom-full mb-2 hidden rounded-lg border border-border bg-card px-2 py-1.5 text-xs  group-hover:block z-10 min-w-[120px]">
+                <p className="font-semibold text-primary">
                   {fmt(day.date)}
                 </p>
                 <p className="text-emerald-400">{day.success} réussis</p>
                 <p className="text-red-400">{day.failed} échoués</p>
-                <p className="text-[var(--text-secondary)]">
+                <p className="text-secondary">
                   {day.total} au total
                 </p>
               </div>
@@ -52,7 +52,7 @@ export function ActivityChart({ data }: Props) {
                 }}
               >
                 {day.total === 0 ? (
-                  <div className="h-full w-full bg-[var(--border)] opacity-40 rounded" />
+                  <div className="h-full w-full bg-border opacity-40 rounded" />
                 ) : (
                   <div className="flex h-full flex-col">
                     <div
@@ -68,7 +68,7 @@ export function ActivityChart({ data }: Props) {
               </div>
 
               {/* Label */}
-              <span className="text-[10px] text-[var(--text-secondary)] truncate w-full text-center">
+              <span className="text-[10px] text-secondary truncate w-full text-center">
                 {fmt(day.date)}
               </span>
             </div>
@@ -77,7 +77,7 @@ export function ActivityChart({ data }: Props) {
       </div>
 
       {/* Legend */}
-      <div className="mt-3 flex items-center gap-4 text-xs text-[var(--text-secondary)]">
+      <div className="mt-3 flex items-center gap-4 text-xs text-secondary">
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-emerald-500/70" />
           Réussis

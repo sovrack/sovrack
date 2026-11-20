@@ -3,7 +3,7 @@
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
 const inputClass =
-  "w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]";
+  "w-full rounded-lg border border-border bg-app px-3 py-2 text-sm text-primary outline-none focus:border-muted";
 
 // Build-time variables are edited as ordered rows (a Record can't hold a
 // half-typed duplicate key while editing) and collapsed back to a map on save,
@@ -39,7 +39,7 @@ export function RootDirField({
   return (
     <div className="sm:col-span-2">
       <label
-        className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]"
+        className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-secondary"
         htmlFor="svc-rootdir"
       >
         Root directory (monorepo)
@@ -51,7 +51,7 @@ export function RootDirField({
         placeholder="apps/web — leave empty to build from the repo root"
         onChange={(e) => onChange(e.target.value)}
       />
-      <p className="mt-1 text-xs text-[var(--text-muted)]">
+      <p className="mt-1 text-xs text-muted">
         Build only this subfolder of the repo (e.g. a Next.js app in a
         monorepo). Empty = repo root.
       </p>
@@ -78,7 +78,7 @@ export function RegistryImageFields({
     <>
       <div>
         <label
-          className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]"
+          className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-secondary"
           htmlFor="svc-regimage"
         >
           Image registre
@@ -93,7 +93,7 @@ export function RegistryImageFields({
       </div>
       <div>
         <label
-          className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]"
+          className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-secondary"
           htmlFor="svc-regtag"
         >
           Tag
@@ -106,9 +106,9 @@ export function RegistryImageFields({
           onChange={(e) => setTag(e.target.value)}
         />
       </div>
-      <div className="sm:col-span-2 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2.5 text-xs text-[var(--text-muted)]">
+      <div className="sm:col-span-2 rounded-lg border border-border bg-app px-3 py-2.5 text-xs text-muted">
         In{" "}
-        <span className="font-semibold text-[var(--text-secondary)]">
+        <span className="font-semibold text-secondary">
           Registry
         </span>{" "}
         mode, the image is pulled from the registry at deploy time. Leave empty
@@ -142,17 +142,17 @@ export function BuildArgsEditor({
 
   return (
     <div className="sm:col-span-2">
-      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-secondary">
         Build-time variables
       </span>
-      <p className="mb-2 text-xs text-[var(--text-muted)]">
+      <p className="mb-2 text-xs text-muted">
         Frozen into the image at build time (e.g.{" "}
         <span className="font-mono">NEXT_PUBLIC_*</span>,{" "}
         <span className="font-mono">VITE_*</span>). They are{" "}
         <span className="font-semibold">public</span> — visible in the image, so
         never put secrets here (use runtime variables for those).
         {isRegistryMode && (
-          <span className="mt-1 block text-[var(--warn,#93691f)]">
+          <span className="mt-1 block text-warning">
             Ignored in Registry mode — your CI builds the image, so it must
             inject these itself.
           </span>
@@ -181,7 +181,7 @@ export function BuildArgsEditor({
                   type="button"
                   aria-label="Remove variable"
                   onClick={() => remove(i)}
-                  className="shrink-0 rounded-lg border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+                  className="shrink-0 rounded-lg border border-border p-2 text-muted transition hover:text-primary"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -198,7 +198,7 @@ export function BuildArgsEditor({
         <button
           type="button"
           onClick={add}
-          className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)]"
+          className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-secondary transition hover:bg-hover/10"
         >
           <Plus size={14} /> Add variable
         </button>
@@ -235,15 +235,15 @@ export function AutoDeployControl({
 }: AutoDeployControlProps) {
   if (!environmentId) {
     return (
-      <p className="mt-1 text-xs text-[var(--text-muted)]">
+      <p className="mt-1 text-xs text-muted">
         Select an environment above to configure.
       </p>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2">
-      <label className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-app px-3 py-2">
+      <label className="flex items-center gap-2 text-sm text-primary">
         <input
           type="checkbox"
           checked={autoDeploy}
@@ -252,20 +252,20 @@ export function AutoDeployControl({
         />
         Enabled
       </label>
-      <span className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+      <span className="flex items-center gap-1.5 text-xs text-muted">
         branch
         <input
           value={autoBranch}
           onChange={(e) => setAutoBranch(e.target.value)}
           placeholder="main"
           disabled={!autoDeploy || disabled}
-          className="w-32 rounded-md border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1 font-mono text-xs text-[var(--text-primary)] outline-none disabled:opacity-50"
+          className="w-32 rounded-md border border-border bg-card px-2 py-1 font-mono text-xs text-primary outline-none disabled:opacity-50"
         />
       </span>
       {isBusy && (
         <Loader2
           size={13}
-          className="animate-spin text-[var(--text-muted)]"
+          className="animate-spin text-muted"
         />
       )}
     </div>

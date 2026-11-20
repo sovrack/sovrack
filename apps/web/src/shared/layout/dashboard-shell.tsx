@@ -34,7 +34,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)]">
+    <div className="flex min-h-screen bg-app text-primary">
       <Sidebar />
       <div
         className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ease-in-out ${
@@ -47,7 +47,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             {session?.authenticationType === "staff-impersonation" && (
               <div
                 role="alert"
-                className="mb-5 flex flex-col gap-3 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between dark:text-red-200"
+                className="mb-5 flex flex-col gap-3 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between"
               >
                 <span className="flex items-center gap-2">
                   <ShieldAlert size={18} aria-hidden="true" />

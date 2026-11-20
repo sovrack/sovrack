@@ -90,14 +90,14 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       <div className="flex items-center justify-center py-20">
         <Loader2
           size={24}
-          className="animate-spin text-[var(--text-secondary)]"
+          className="animate-spin text-secondary"
         />
       </div>
     );
 
   if (error || !project)
     return (
-      <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-center text-sm text-red-300">
+      <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6 text-center text-sm text-red-300">
         {error ?? "Project not found."}
         <div className="mt-3">
           <Link href="/projects" className="text-xs text-red-300 underline">
@@ -124,7 +124,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/projects"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm text-secondary transition hover:text-primary"
             >
               <ArrowLeft size={15} /> Projects
             </Link>
@@ -133,7 +133,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
             {canManageProject && <button
               type="button"
               onClick={() => setEnvOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)]"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-primary transition hover:bg-hover/10"
             >
               <Layers size={15} /> Project Environment
             </button>}
@@ -142,7 +142,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
             {canManageProject && <button
               type="button"
               onClick={() => openCreate()}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover"
             >
               <Plus size={15} /> Create Service
             </button>}
@@ -152,7 +152,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
               type="button"
               onClick={() => setSettingsOpen(true)}
               title="Project settings"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-secondary transition hover:text-primary"
             >
               <Settings size={16} />
             </button>
@@ -162,19 +162,19 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
 
       {/* Status badges */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--hover)] px-2.5 py-1 text-xs text-[var(--text-muted)]">
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-hover/10 px-2.5 py-1 text-xs text-muted">
           {environments.length} environment
           {environments.length !== 1 ? "s" : ""}
         </span>
         {currentMember && (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--hover)] px-2.5 py-1 text-xs text-[var(--text-muted)]">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-hover/10 px-2.5 py-1 text-xs text-muted">
             {currentMember.role}
           </span>
         )}
       </div>
 
       {deleteError && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           <span>{deleteError}</span>
           <button
             type="button"

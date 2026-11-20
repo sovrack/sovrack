@@ -27,7 +27,7 @@ export function GoogleLoginButton({
   return (
     <a
       href={href}
-      className={`flex w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-slate-100 transition hover:bg-white/10 ${className}`}
+      className={`flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-hover/10 px-4 py-2.5 text-sm font-medium text-primary transition hover:bg-hover/15 ${className}`}
     >
       <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
         <path

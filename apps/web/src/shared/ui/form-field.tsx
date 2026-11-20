@@ -22,7 +22,7 @@ export function FormField({
   return (
     <div className="space-y-1.5">
       <label className="block space-y-1.5">
-        <span className="flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)]">
+        <span className="flex items-center gap-1 text-xs font-semibold text-secondary">
           {label}
           {required && <span className="text-red-400">*</span>}
         </span>
@@ -31,7 +31,7 @@ export function FormField({
       {error ? (
         <p className="text-xs text-red-400">{error}</p>
       ) : (
-        hint && <p className="text-xs text-[var(--text-muted)]">{hint}</p>
+        hint && <p className="text-xs text-muted">{hint}</p>
       )}
     </div>
   );

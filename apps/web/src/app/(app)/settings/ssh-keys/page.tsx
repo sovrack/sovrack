@@ -120,24 +120,24 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="absolute inset-0" onClick={onClose} aria-hidden />
 
-      <div className="relative z-10 max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
+      <div className="relative z-10 max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-card shadow-theme-lg">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-[var(--border)] bg-[var(--bg-card)] px-6 py-3">
+        <div className="sticky top-0 z-10 flex items-start justify-between border-b border-border bg-card px-6 py-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-secondary">
               Settings
             </p>
-            <h2 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">
+            <h2 className="mt-1 text-lg font-semibold text-primary">
               Add SSH Key
             </h2>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            <p className="mt-1 text-sm text-secondary">
               Generate or paste an SSH key pair to use for deployments.
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+            className="rounded-lg p-1.5 text-secondary transition hover:bg-hover/10 hover:text-primary"
             aria-label="Close"
           >
             <X size={16} />
@@ -149,7 +149,7 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
 
           {/* Generate buttons */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
               Generate key pair
             </p>
             <div className="flex gap-2">
@@ -157,7 +157,7 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
                 type="button"
                 onClick={() => void handleGenerate("ed25519")}
                 disabled={genState === "generating"}
-                className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)] disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-primary transition hover:bg-hover/10 disabled:opacity-50"
               >
                 {genState === "generating" && keyType === "ed25519" ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -170,7 +170,7 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
                 type="button"
                 onClick={() => void handleGenerate("rsa")}
                 disabled={genState === "generating"}
-                className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--hover)] disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-primary transition hover:bg-hover/10 disabled:opacity-50"
               >
                 {genState === "generating" && keyType === "rsa" ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -184,7 +184,7 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
 
           {/* Name */}
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
               Key name <span className="text-red-400">*</span>
             </label>
             <input
@@ -193,14 +193,14 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="My Deploy Key"
-              className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20"
+              className="h-11 w-full rounded-lg border border-border bg-card px-4 text-sm text-primary outline-none transition placeholder:text-secondary focus:ring-2 focus:ring-accent/20"
             />
           </div>
 
           {/* Private key */}
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <label className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+              <label className="text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
                 Private key <span className="text-red-400">*</span>
               </label>
               {privateKey && (
@@ -208,14 +208,14 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
                   <button
                     type="button"
                     onClick={() => copyToClipboard(privateKey)}
-                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-secondary transition hover:bg-hover/10 hover:text-primary"
                   >
                     <Copy size={11} /> Copy
                   </button>
                   <button
                     type="button"
                     onClick={() => downloadText("id_" + keyType, privateKey)}
-                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-secondary transition hover:bg-hover/10 hover:text-primary"
                   >
                     <Download size={11} /> Download
                   </button>
@@ -227,14 +227,14 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
               onChange={(e) => setPrivateKey(e.target.value)}
               placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
               rows={6}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 font-mono text-xs text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20"
+              className="w-full rounded-lg border border-border bg-card px-4 py-3 font-mono text-xs text-primary outline-none transition placeholder:text-secondary focus:ring-2 focus:ring-accent/20"
             />
           </div>
 
           {/* Public key */}
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <label className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]">
+              <label className="text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
                 Public key <span className="text-red-400">*</span>
               </label>
               {publicKey && (
@@ -242,7 +242,7 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
                   <button
                     type="button"
                     onClick={() => copyToClipboard(publicKey)}
-                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-secondary transition hover:bg-hover/10 hover:text-primary"
                   >
                     <Copy size={11} /> Copy
                   </button>
@@ -251,7 +251,7 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
                     onClick={() =>
                       downloadText("id_" + keyType + ".pub", publicKey)
                     }
-                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-secondary transition hover:bg-hover/10 hover:text-primary"
                   >
                     <Download size={11} /> Download
                   </button>
@@ -263,13 +263,13 @@ function AddSshKeyDialog({ open, onClose, onCreated }: DialogProps) {
               onChange={(e) => setPublicKey(e.target.value)}
               placeholder="ssh-ed25519 AAAA..."
               rows={3}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 font-mono text-xs text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-zinc-500/20"
+              className="w-full rounded-lg border border-border bg-card px-4 py-3 font-mono text-xs text-primary outline-none transition placeholder:text-secondary focus:ring-2 focus:ring-accent/20"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-[var(--border)] bg-[var(--bg-card)] px-6 py-3">
+        <div className="sticky bottom-0 flex items-center justify-end gap-2 border-t border-border bg-card px-6 py-3">
           <Button
             type="button"
             variant="secondary"
@@ -326,8 +326,8 @@ export default function SshKeysPage() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded-lg bg-[var(--hover)]" />
-        <div className="h-32 animate-pulse rounded-2xl bg-[var(--hover)]" />
+        <div className="h-8 w-48 animate-pulse rounded-lg bg-hover/10" />
+        <div className="h-32 animate-pulse rounded-lg bg-hover/10" />
       </div>
     );
   }
@@ -349,14 +349,14 @@ export default function SshKeysPage() {
       {error && <Alert tone="error">{error}</Alert>}
 
       {keys.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg-card)] py-16">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-app)]">
-            <KeyRound className="h-6 w-6 text-[var(--text-secondary)]" />
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card py-16">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg border border-border bg-app">
+            <KeyRound className="h-6 w-6 text-secondary" />
           </div>
-          <p className="mb-2 text-sm font-medium text-[var(--text-primary)]">
+          <p className="mb-2 text-sm font-medium text-primary">
             No SSH keys yet
           </p>
-          <p className="mb-6 text-sm text-[var(--text-secondary)]">
+          <p className="mb-6 text-sm text-secondary">
             Add an SSH key to authenticate with your servers.
           </p>
           <Button onClick={() => setDialogOpen(true)}>
@@ -369,27 +369,27 @@ export default function SshKeysPage() {
           {keys.map((key) => (
             <div
               key={key.id}
-              className="flex items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4"
+              className="flex items-center gap-4 rounded-lg border border-border bg-card p-4"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-app)]">
-                <KeyRound className="h-5 w-5 text-[var(--text-secondary)]" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-app">
+                <KeyRound className="h-5 w-5 text-secondary" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-[var(--text-primary)]">
+                <p className="text-sm font-semibold text-primary">
                   {key.name}
                 </p>
-                <p className="mt-0.5 truncate font-mono text-xs text-[var(--text-secondary)]">
+                <p className="mt-0.5 truncate font-mono text-xs text-secondary">
                   {key.publicKey.slice(0, 60)}…
                 </p>
               </div>
-              <span className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--bg-app)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+              <span className="shrink-0 rounded-md border border-border bg-app px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-secondary">
                 {key.keyType}
               </span>
               <button
                 type="button"
                 onClick={() => void handleDelete(key.id)}
                 disabled={deletingId === key.id}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-secondary)] transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-secondary transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
                 title="Delete key"
               >
                 {deletingId === key.id ? (

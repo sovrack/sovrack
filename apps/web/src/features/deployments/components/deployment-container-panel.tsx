@@ -82,12 +82,12 @@ export function DeploymentContainerPanel({
   }, [active, live, fetchInfo]);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]">
-      <div className="flex items-center justify-end gap-2 border-b border-[var(--border)] px-4 py-2.5">
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="flex items-center justify-end gap-2 border-b border-border px-4 py-2.5">
         <button
           type="button"
           onClick={() => setLive((v) => !v)}
-          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${live ? "border-blue-500/30 bg-blue-500/10 text-blue-300" : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
+          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${live ? "border-accent/30 bg-accent/10 text-accent" : "border-border text-muted hover:text-primary"}`}
         >
           <Activity size={11} className={live ? "animate-pulse" : ""} /> Live
         </button>
@@ -95,7 +95,7 @@ export function DeploymentContainerPanel({
           type="button"
           onClick={() => void fetchInfo()}
           disabled={loading}
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:text-[var(--text-primary)] disabled:opacity-40"
+          className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted transition hover:text-primary disabled:opacity-40"
           aria-label="Refresh container stats"
         >
           <RefreshCw size={12} className={loading ? "animate-spin" : ""} />

@@ -34,12 +34,12 @@ function StepIndicator({ current }: { current: number }) {
           <div key={step.id} className="flex items-center shrink-0">
             <div
               className={clsx(
-                "flex h-8 w-8 items-center justify-center rounded-full border text-xs font-bold transition-all",
+                "flex h-8 w-8 items-center justify-center rounded-md border text-xs font-bold transition-all",
                 active
-                  ? "border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-app)]"
+                  ? "border-accent bg-accent text-accent-foreground"
                   : done
                     ? "border-green-500/50 bg-green-500/10 text-green-400"
-                    : "border-[var(--border)] text-[var(--text-muted)]",
+                    : "border-border text-muted",
               )}
             >
               {done ? <Check size={12} /> : step.icon}
@@ -48,7 +48,7 @@ function StepIndicator({ current }: { current: number }) {
               <span
                 className={clsx(
                   "ml-1.5 hidden text-xs font-semibold sm:block",
-                  active ? "text-[var(--text-primary)]" : "text-green-400",
+                  active ? "text-primary" : "text-green-400",
                 )}
               >
                 {step.label}
@@ -58,7 +58,7 @@ function StepIndicator({ current }: { current: number }) {
               <div
                 className={clsx(
                   "mx-2 h-px w-8 transition-all",
-                  done ? "bg-green-500/40" : "bg-[var(--border)]",
+                  done ? "bg-green-500/40" : "bg-border",
                 )}
               />
             )}
@@ -86,7 +86,7 @@ function Input({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] transition focus:border-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--text-secondary)]/10 disabled:opacity-60"
+      className="w-full rounded-lg border border-border bg-app px-3 py-2.5 text-sm text-primary outline-none placeholder:text-muted transition focus:border-secondary focus:ring-2 focus:ring-secondary/10 disabled:opacity-60"
     />
   );
 }
@@ -110,10 +110,10 @@ function Step1({
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-base font-semibold text-[var(--text-primary)]">
+        <h3 className="text-base font-semibold text-primary">
           New project
         </h3>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+        <p className="mt-1 text-sm text-secondary">
           Un projet est un <strong>conteneur logique</strong>. Donnez-lui un nom
           — vous ajouterez vos applications et leurs sources Git ensuite.
         </p>
@@ -134,15 +134,15 @@ function Step1({
           onChange={(e) => setState({ description: e.target.value })}
           placeholder="Description courte..."
           rows={3}
-          className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] transition focus:border-[var(--text-secondary)] resize-none"
+          className="w-full rounded-lg border border-border bg-app px-3 py-2.5 text-sm text-primary outline-none placeholder:text-muted transition focus:border-secondary resize-none"
         />
       </FormField>
 
-      <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">
-        <p className="text-xs font-semibold text-blue-400">
+      <div className="rounded-lg border border-accent/20 bg-accent/5 px-4 py-3">
+        <p className="text-xs font-semibold text-accent">
           Next steps (in the project):
         </p>
-        <ul className="mt-1.5 space-y-1 text-xs text-[var(--text-secondary)]">
+        <ul className="mt-1.5 space-y-1 text-xs text-secondary">
           <li className="flex items-start gap-1.5">
             <Check size={11} className="mt-0.5 shrink-0 text-green-400" /> Add
             an application and connect its source (GitHub / GitLab)
@@ -177,9 +177,9 @@ function StepResult({
       <div className="flex flex-col items-center justify-center py-10 text-center gap-4">
         <Loader2
           size={32}
-          className="animate-spin text-[var(--text-secondary)]"
+          className="animate-spin text-secondary"
         />
-        <p className="text-base font-semibold text-[var(--text-primary)]">
+        <p className="text-base font-semibold text-primary">
           Creating the project…
         </p>
       </div>
@@ -189,14 +189,14 @@ function StepResult({
   if (result.project) {
     return (
       <div className="flex flex-col items-center justify-center py-6 text-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-green-500/30 bg-green-500/10">
+        <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-green-500/30 bg-green-500/10">
           <CheckCircle2 size={32} className="text-green-400" />
         </div>
         <div>
-          <p className="text-base font-semibold text-[var(--text-primary)]">
+          <p className="text-base font-semibold text-primary">
             Project created successfully!
           </p>
-          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+          <p className="mt-1 text-sm text-secondary">
             <strong>{result.project.name}</strong> is ready. Open it to add an
             application and connect its Git source.
           </p>
@@ -208,7 +208,7 @@ function StepResult({
   return (
     <div className="space-y-4">
       {result.error && (
-        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {result.error}
         </div>
       )}
@@ -296,16 +296,16 @@ export function ProjectSetupWizard({
         aria-hidden
       />
       <div
-        className="relative z-10 flex w-full max-w-lg flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl"
+        className="relative z-10 flex w-full max-w-lg flex-col rounded-lg border border-border bg-card shadow-theme-lg"
         style={{ maxHeight: "92vh" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">
+            <h2 className="text-base font-semibold text-primary">
               New project
             </h2>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+            <p className="mt-0.5 text-xs text-muted">
               A container for your applications
             </p>
           </div>
@@ -314,21 +314,21 @@ export function ProjectSetupWizard({
             onClick={onClose}
             disabled={creating}
             aria-label="Close"
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:bg-[var(--hover)] disabled:opacity-40"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted transition hover:bg-hover/10 disabled:opacity-40"
           >
             <X size={13} />
           </button>
         </div>
 
         {/* Step indicator */}
-        <div className="border-b border-[var(--border)] px-6 py-3">
+        <div className="border-b border-border px-6 py-3">
           <StepIndicator current={step} />
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           {createError && step === 1 && (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
               {createError}
             </div>
           )}
@@ -341,12 +341,12 @@ export function ProjectSetupWizard({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-[var(--border)] px-6 py-4">
+        <div className="flex items-center justify-between border-t border-border px-6 py-4">
           <button
             type="button"
             onClick={onClose}
             disabled={creating}
-            className="flex items-center gap-2 rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--hover)] disabled:opacity-40"
+            className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-secondary transition hover:bg-hover/10 disabled:opacity-40"
           >
             {step === 2 && createdProject ? "Close" : "Cancel"}
           </button>
@@ -356,7 +356,7 @@ export function ProjectSetupWizard({
               type="button"
               onClick={() => void handleCreate()}
               disabled={!canCreate || creating}
-              className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-5 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-40"
+              className="flex items-center gap-2 rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover disabled:opacity-40"
             >
               {creating ? (
                 <>
@@ -374,7 +374,7 @@ export function ProjectSetupWizard({
             <button
               type="button"
               onClick={() => onCreated(createdProject.id)}
-              className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
+              className="flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2 text-sm font-semibold text-primary transition hover:bg-green-700"
             >
               <Rocket size={14} /> Ouvrir le projet
             </button>

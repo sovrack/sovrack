@@ -43,7 +43,7 @@ export default function EditProjectPage({ params }: EditProjectPageProps) {
       <div className="flex items-center justify-center py-20">
         <Loader2
           size={24}
-          className="animate-spin text-[var(--text-secondary)]"
+          className="animate-spin text-secondary"
         />
       </div>
     );
@@ -51,7 +51,7 @@ export default function EditProjectPage({ params }: EditProjectPageProps) {
 
   if (!project) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700">
         Project not found.
       </div>
     );
@@ -66,7 +66,7 @@ export default function EditProjectPage({ params }: EditProjectPageProps) {
         actions={
           <Link
             href={`/projects/${id}`}
-            className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-secondary)]"
+            className="inline-flex items-center gap-1.5 text-sm text-secondary transition hover:text-secondary"
           >
             <ArrowLeft size={15} />
             Back to {project.name}

@@ -71,11 +71,11 @@ export function ServiceDomains({
 
       {!serviceEnvId ? (
         envsLoading ? (
-          <p className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+          <p className="flex items-center gap-2 text-sm text-muted">
             <Loader2 size={14} className="animate-spin" /> Loading environments…
           </p>
         ) : (
-          <p className="text-sm text-[var(--text-muted)]">
+          <p className="text-sm text-muted">
             Link this service to an environment first (the &quot;Environments
             &amp; variables&quot; tab).
           </p>
@@ -90,13 +90,13 @@ export function ServiceDomains({
                 if (e.key === "Enter") void add();
               }}
               placeholder="app.mydomain.com"
-              className="w-full flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 font-mono text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]"
+              className="w-full flex-1 rounded-lg border border-border bg-app px-3 py-2 font-mono text-sm text-primary outline-none focus:border-muted"
             />
             <button
               type="button"
               onClick={() => void add()}
               disabled={adding || !name.trim()}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover disabled:opacity-50"
             >
               {adding ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -108,9 +108,9 @@ export function ServiceDomains({
           </div>
 
           {loading ? (
-            <p className="text-sm text-[var(--text-muted)]">Loading…</p>
+            <p className="text-sm text-muted">Loading…</p>
           ) : domains.length === 0 ? (
-            <p className="text-sm text-[var(--text-muted)]">
+            <p className="text-sm text-muted">
               No domains yet. Add one above.
             </p>
           ) : (
@@ -118,20 +118,20 @@ export function ServiceDomains({
               {domains.map((d) => (
                 <li
                   key={d.id}
-                  className="flex items-center justify-between rounded-lg border border-[var(--border)] px-3 py-2"
+                  className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
                 >
                   <span className="flex items-center gap-2 text-sm">
-                    <Globe size={14} className="text-[var(--text-muted)]" />
+                    <Globe size={14} className="text-muted" />
                     <a
                       href={`https://${d.name}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 font-medium text-[var(--text-primary)] hover:underline"
+                      className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
                     >
                       {d.name} <ExternalLink size={11} />
                     </a>
                     {d.verified && (
-                      <span className="rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">
+                      <span className="rounded-md border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">
                         verified
                       </span>
                     )}
@@ -154,7 +154,7 @@ export function ServiceDomains({
             </ul>
           )}
 
-          <p className="text-xs text-[var(--text-muted)]">
+          <p className="text-xs text-muted">
             The domain must point (DNS A/CNAME) to the environment&apos;s
             server, and the platform must be publicly reachable for the
             Let&apos;s Encrypt certificate.

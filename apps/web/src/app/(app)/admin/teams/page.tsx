@@ -49,13 +49,13 @@ export default function AdminTeamsPage() {
       />
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error}
         </div>
       )}
 
       {loading ? (
-        <p className="text-sm text-[var(--text-secondary)]">Chargement…</p>
+        <p className="text-sm text-secondary">Chargement…</p>
       ) : teams.length === 0 ? (
         <EmptyState
           icon={Users2}
@@ -79,24 +79,24 @@ export default function AdminTeamsPage() {
             <Link
               key={team.id}
               href={`/admin/teams/${team.id}`}
-              className="block rounded-lg border border-[var(--border)] bg-[var(--hover)] px-4 py-3 transition hover:border-[var(--text-muted)]"
+              className="block rounded-lg border border-border bg-hover/10 px-4 py-3 transition hover:border-muted"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                  <p className="text-sm font-semibold text-primary truncate">
                     {team.name}
                   </p>
                   {team.description && (
-                    <p className="mt-0.5 text-xs text-[var(--text-muted)] line-clamp-2">
+                    <p className="mt-0.5 text-xs text-muted line-clamp-2">
                       {team.description}
                     </p>
                   )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
+                  <span className="rounded-md border border-border bg-card px-2 py-0.5 text-xs text-secondary">
                     {team.type === "PERSONAL" ? "Personnel" : "Organisation"}
                   </span>
-                  <span className="rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-2 py-0.5 text-xs text-[var(--text-secondary)]">
+                  <span className="rounded-md border border-border bg-card px-2 py-0.5 text-xs text-secondary">
                     {team.role}
                   </span>
                 </div>

@@ -91,19 +91,19 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
     <div
       ref={terminalRef}
       className={clsx(
-        "rounded-2xl border border-[var(--border)] bg-black text-[var(--text-primary)] shadow-sm",
+        "rounded-lg border border-border bg-black text-primary ",
         isFullscreen && "h-screen w-screen rounded-none",
       )}
     >
-      <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
-          <TerminalSquare size={16} className="text-[var(--text-primary)]" />
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+          <TerminalSquare size={16} className="text-primary" />
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-secondary">
             Deployment terminal
           </p>
           {isLive && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--text-primary)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--text-muted)]" />
+            <span className="inline-flex items-center gap-1 rounded-md bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-secondary">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted" />
               Live
             </span>
           )}
@@ -113,7 +113,7 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
           <button
             type="button"
             onClick={() => void copyLogs()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border)] hover:bg-[var(--bg-card)]"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-primary transition hover:border-border hover:bg-card"
           >
             {copied ? <Check size={12} /> : <Copy size={12} />}
             {copied ? "Copied" : "Copy"}
@@ -121,7 +121,7 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
           <button
             type="button"
             onClick={() => void toggleFullscreen()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border)] hover:bg-[var(--bg-card)]"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-primary transition hover:border-border hover:bg-card"
           >
             {isFullscreen ? <Minimize2 size={12} /> : <Expand size={12} />}
             {isFullscreen ? "Collapse" : "Fullscreen"}
@@ -137,7 +137,7 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
         )}
       >
         {logs.length === 0 ? (
-          <p className="text-[var(--text-secondary)]">No logs available yet.</p>
+          <p className="text-secondary">No logs available yet.</p>
         ) : (
           logs.map((line, index) => (
             <p
@@ -146,10 +146,10 @@ export function LogTerminal({ logs, isLive }: LogTerminalProps) {
                 "whitespace-pre-wrap break-words",
                 line.level === "error" && "text-red-400",
                 line.level === "success" && "text-green-400",
-                line.level === "info" && "text-[var(--text-primary)]",
+                line.level === "info" && "text-primary",
               )}
             >
-              <span className="mr-2 text-[var(--text-secondary)]">
+              <span className="mr-2 text-secondary">
                 [{formatTime(line.timestamp)}]
               </span>
               {line.message}

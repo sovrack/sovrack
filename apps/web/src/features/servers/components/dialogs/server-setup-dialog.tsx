@@ -113,14 +113,14 @@ export function ServerSetupDialog({
       }
     >
       <div className="space-y-5">
-        <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
+        <div className="rounded-lg border border-accent/20 bg-accent/10 px-4 py-3 text-sm text-accent">
           Managed via SSH from the control node — the fixed set below is
           installed as-is, in full.
         </div>
 
         {/* Ce que Setup Server installe (lecture seule, aucun choix). */}
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-secondary)]">
+        <div className="rounded-lg border border-border bg-hover/10 p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-secondary">
             Installs
           </p>
           <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5">
@@ -131,7 +131,7 @@ export function ServerSetupDialog({
                   className="shrink-0 text-green-400"
                   aria-hidden
                 />
-                <span className="font-semibold text-[var(--text-primary)]">
+                <span className="font-semibold text-primary">
                   {label}
                 </span>
               </li>

@@ -22,21 +22,21 @@ export default function StaffTeamsPage() {
   return (
     <div>
       <div className="mb-6 flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-hover/15 text-primary">
           <Rocket size={18} />
         </span>
         <div>
-          <h1 className="text-2xl font-bold text-white">Espaces</h1>
-          <p className="text-sm text-zinc-400">
+          <h1 className="text-2xl font-bold text-primary">Espaces</h1>
+          <p className="text-sm text-secondary">
             Espaces personnels et organisations de la plateforme (
             {data?.total ?? "…"}).
           </p>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10">
+      <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-white/10 bg-white/5 text-zinc-400">
+          <thead className="border-b border-border bg-hover/10 text-secondary">
             <tr>
               <th className="px-4 py-3 font-medium">Nom</th>
               <th className="px-4 py-3 font-medium">Type</th>
@@ -49,31 +49,31 @@ export default function StaffTeamsPage() {
           </thead>
           <tbody className="divide-y divide-white/5">
             {(data?.items ?? []).map((t) => (
-              <tr key={t.id} className="hover:bg-white/5">
-                <td className="px-4 py-3 font-medium text-white">
+              <tr key={t.id} className="hover:bg-hover/10">
+                <td className="px-4 py-3 font-medium text-primary">
                   <Link
                     href={`/staff/teams/${t.id}`}
-                    className="hover:text-sky-300"
+                    className="hover:text-accent"
                   >
                     {t.name}
                   </Link>
-                  <p className="text-xs font-normal text-zinc-600">{t.slug}</p>
+                  <p className="text-xs font-normal text-muted">{t.slug}</p>
                 </td>
-                <td className="px-4 py-3 text-zinc-400">
+                <td className="px-4 py-3 text-secondary">
                   {t.type === "PERSONAL" ? "Personnel" : "Organisation"}
                 </td>
-                <td className="px-4 py-3 text-zinc-400">{t.status}</td>
-                <td className="px-4 py-3 text-zinc-400">{t._count.members}</td>
-                <td className="px-4 py-3 text-zinc-400">{t._count.projects}</td>
-                <td className="px-4 py-3 text-zinc-400">{t._count.servers}</td>
-                <td className="px-4 py-3 text-zinc-500">
+                <td className="px-4 py-3 text-secondary">{t.status}</td>
+                <td className="px-4 py-3 text-secondary">{t._count.members}</td>
+                <td className="px-4 py-3 text-secondary">{t._count.projects}</td>
+                <td className="px-4 py-3 text-secondary">{t._count.servers}</td>
+                <td className="px-4 py-3 text-muted">
                   {new Date(t.createdAt).toLocaleDateString("fr-FR")}
                 </td>
               </tr>
             ))}
             {!isLoading && (data?.items ?? []).length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-muted">
                   Aucun espace.
                 </td>
               </tr>
@@ -83,10 +83,10 @@ export default function StaffTeamsPage() {
       </div>
 
       {isLoading && (
-        <p className="mt-4 text-center text-sm text-zinc-500">Chargement…</p>
+        <p className="mt-4 text-center text-sm text-muted">Chargement…</p>
       )}
       {isError && (
-        <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+        <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
           Impossible de charger les workspaces.
           <button
             type="button"
@@ -99,7 +99,7 @@ export default function StaffTeamsPage() {
       )}
 
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm text-zinc-400">
+        <div className="mt-4 flex items-center justify-between text-sm text-secondary">
           <span>
             Page {page} / {totalPages}
           </span>
@@ -107,14 +107,14 @@ export default function StaffTeamsPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="rounded-lg border border-white/10 px-3 py-1.5 hover:bg-white/5 disabled:opacity-40"
+              className="rounded-lg border border-border px-3 py-1.5 hover:bg-hover/10 disabled:opacity-40"
             >
               Précédent
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="rounded-lg border border-white/10 px-3 py-1.5 hover:bg-white/5 disabled:opacity-40"
+              className="rounded-lg border border-border px-3 py-1.5 hover:bg-hover/10 disabled:opacity-40"
             >
               Suivant
             </button>

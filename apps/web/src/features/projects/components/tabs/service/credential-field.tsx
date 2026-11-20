@@ -39,13 +39,13 @@ export function CredentialField({
   const display = shown ? value : "•".repeat(Math.min(value.length || 8, 24));
 
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2">
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+    <div className="rounded-lg border border-border bg-card px-3 py-2">
+      <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">
         {label}
       </div>
       <div className="mt-0.5 flex items-center gap-2">
         <span
-          className={`min-w-0 flex-1 truncate text-[var(--text-primary)] ${mono ? "font-mono text-xs" : "text-sm"}`}
+          className={`min-w-0 flex-1 truncate text-primary ${mono ? "font-mono text-xs" : "text-sm"}`}
           title={shown ? value : undefined}
         >
           {display}
@@ -55,7 +55,7 @@ export function CredentialField({
             type="button"
             onClick={() => setRevealed((r) => !r)}
             aria-label={revealed ? "Hide value" : "Reveal value"}
-            className="shrink-0 rounded-md p-1 text-[var(--text-muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+            className="shrink-0 rounded-md p-1 text-muted transition hover:bg-hover/10 hover:text-primary"
           >
             {revealed ? <EyeOff size={13} /> : <Eye size={13} />}
           </button>
@@ -64,7 +64,7 @@ export function CredentialField({
           type="button"
           onClick={() => void copy()}
           aria-label={`Copy ${label}`}
-          className="shrink-0 rounded-md p-1 text-[var(--text-muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+          className="shrink-0 rounded-md p-1 text-muted transition hover:bg-hover/10 hover:text-primary"
         >
           {copied ? (
             <Check size={13} className="text-green-500" />

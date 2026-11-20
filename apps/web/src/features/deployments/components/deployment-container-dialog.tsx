@@ -122,28 +122,28 @@ export function DeploymentContainerDialog({
       />
 
       <div
-        className="relative z-10 flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl"
+        className="relative z-10 flex w-full max-w-4xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-theme-lg"
         style={{ maxHeight: "95vh" }}
       >
         {/* Header */}
-        <div className="flex items-center gap-3 border-b border-[var(--border)] px-5 py-4">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--hover)]">
-            <Box size={15} className="text-[var(--text-secondary)]" />
+        <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-hover/10">
+            <Box size={15} className="text-secondary" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold text-[var(--text-primary)]">
+              <p className="text-sm font-semibold text-primary">
                 Docker container
               </p>
               {info && (
                 <span
-                  className={`text-xs font-semibold capitalize ${CONTAINER_STATUS_COLOR[info.status] ?? "text-zinc-400"}`}
+                  className={`text-xs font-semibold capitalize ${CONTAINER_STATUS_COLOR[info.status] ?? "text-secondary"}`}
                 >
                   {info.status}
                 </span>
               )}
             </div>
-            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+            <p className="mt-0.5 text-xs text-muted">
               Runtime stats &amp; logs of the container on the target server.
             </p>
           </div>
@@ -151,7 +151,7 @@ export function DeploymentContainerDialog({
             <button
               type="button"
               onClick={() => setLive((v) => !v)}
-              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${live ? "border-blue-500/30 bg-blue-500/10 text-blue-300" : "border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${live ? "border-accent/30 bg-accent/10 text-accent" : "border-border text-muted hover:text-primary"}`}
             >
               <Activity size={11} className={live ? "animate-pulse" : ""} />{" "}
               Live
@@ -160,7 +160,7 @@ export function DeploymentContainerDialog({
               type="button"
               onClick={() => void fetchInfo()}
               disabled={loading}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:text-[var(--text-primary)] disabled:opacity-40"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted transition hover:text-primary disabled:opacity-40"
             >
               <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
             </button>
@@ -168,7 +168,7 @@ export function DeploymentContainerDialog({
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--text-muted)] hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+              className="rounded-lg border border-border p-1.5 text-muted hover:bg-hover/10 hover:text-primary"
             >
               <X size={15} />
             </button>
@@ -187,12 +187,12 @@ export function DeploymentContainerDialog({
         />
 
         {/* Footer */}
-        <div className="flex items-center justify-end border-t border-[var(--border)] px-5 py-3">
+        <div className="flex items-center justify-end border-t border-border px-5 py-3">
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-xl border border-[var(--border)] px-4 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+            className="rounded-lg border border-border px-4 py-1.5 text-xs font-medium text-muted transition hover:text-primary"
           >
             Close
           </button>

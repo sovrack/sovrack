@@ -49,13 +49,13 @@ export default function StaffUserDetailPage() {
   if (query.isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="animate-spin text-zinc-400" />
+        <Loader2 className="animate-spin text-secondary" />
       </div>
     );
   }
   if (query.isError || !query.data) {
     return (
-      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-red-300">
+      <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-6 text-red-300">
         {getApiErrorMessage(query.error)}
       </div>
     );
@@ -73,17 +73,17 @@ export default function StaffUserDetailPage() {
       <div>
         <Link
           href="/staff/users"
-          className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-white"
+          className="inline-flex items-center gap-2 text-sm text-secondary hover:text-primary"
         >
           <ArrowLeft size={15} /> Utilisateurs
         </Link>
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white">{user.fullName}</h1>
-            <p className="text-sm text-zinc-400">{user.email}</p>
+            <h1 className="text-2xl font-bold text-primary">{user.fullName}</h1>
+            <p className="text-sm text-secondary">{user.email}</p>
           </div>
           <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            className={`rounded-md px-3 py-1 text-xs font-semibold ${
               user.deletionScheduledFor
                 ? "bg-red-500/15 text-red-300"
                 : user.isActive
@@ -109,50 +109,50 @@ export default function StaffUserDetailPage() {
         ].map(([label, value]) => (
           <div
             key={label}
-            className="rounded-2xl border border-white/10 bg-white/5 p-4"
+            className="rounded-lg border border-border bg-hover/10 p-4"
           >
-            <p className="text-xs uppercase tracking-wide text-zinc-500">
+            <p className="text-xs uppercase tracking-wide text-muted">
               {label}
             </p>
-            <p className="mt-2 font-semibold text-white">{value}</p>
+            <p className="mt-2 font-semibold text-primary">{value}</p>
           </div>
         ))}
       </section>
 
-      <section className="rounded-2xl border border-white/10 p-5">
-        <h2 className="font-semibold text-white">Workspaces et droits</h2>
+      <section className="rounded-lg border border-border p-5">
+        <h2 className="font-semibold text-primary">Workspaces et droits</h2>
         <div className="mt-4 space-y-2">
           {user.teams.map((membership) => (
             <Link
               key={membership.team.id}
               href={`/staff/teams/${membership.team.id}`}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/5 px-4 py-3 hover:bg-white/10"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-hover/10 px-4 py-3 hover:bg-hover/15"
             >
               <span>
-                <span className="font-medium text-white">
+                <span className="font-medium text-primary">
                   {membership.team.name}
                 </span>
-                <span className="ml-2 text-xs text-zinc-500">
+                <span className="ml-2 text-xs text-muted">
                   {membership.team.type === "PERSONAL"
                     ? "Personnel"
                     : "Organisation"}
                 </span>
               </span>
-              <span className="text-xs text-zinc-300">
+              <span className="text-xs text-secondary">
                 {membership.role} · {membership.status}
                 {membership.canManageBilling ? " · Facturation" : ""}
               </span>
             </Link>
           ))}
           {user.teams.length === 0 && (
-            <p className="text-sm text-zinc-500">Aucun workspace.</p>
+            <p className="text-sm text-muted">Aucun workspace.</p>
           )}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-white/10 p-5">
-        <h2 className="font-semibold text-white">Actions de sécurité</h2>
-        <p className="mt-1 text-sm text-zinc-500">
+      <section className="rounded-lg border border-border p-5">
+        <h2 className="font-semibold text-primary">Actions de sécurité</h2>
+        <p className="mt-1 text-sm text-muted">
           Chaque action est journalisée. La suppression directe n&apos;est pas
           disponible depuis le back-office.
         </p>
@@ -163,7 +163,7 @@ export default function StaffUserDetailPage() {
             disabled={
               activeMutation.isPending || Boolean(user.deletionScheduledFor)
             }
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-200 hover:bg-white/5 disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm text-primary hover:bg-hover/10 disabled:opacity-40"
           >
             {user.isActive ? <Ban size={15} /> : <RotateCcw size={15} />}
             {user.isActive ? "Désactiver" : "Réactiver"}
@@ -172,7 +172,7 @@ export default function StaffUserDetailPage() {
             type="button"
             onClick={() => sessionsMutation.mutate()}
             disabled={sessionsMutation.isPending}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm text-zinc-200 hover:bg-white/5 disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm text-primary hover:bg-hover/10 disabled:opacity-40"
           >
             <KeyRound size={15} /> Révoquer toutes les sessions
           </button>
@@ -181,7 +181,7 @@ export default function StaffUserDetailPage() {
               type="button"
               onClick={() => cancelDeletionMutation.mutate()}
               disabled={cancelDeletionMutation.isPending}
-              className="rounded-xl border border-emerald-500/30 px-4 py-2 text-sm text-emerald-300"
+              className="rounded-lg border border-emerald-500/30 px-4 py-2 text-sm text-emerald-300"
             >
               Annuler la suppression
             </button>
@@ -189,7 +189,7 @@ export default function StaffUserDetailPage() {
             <button
               type="button"
               onClick={() => setShowDeletion(true)}
-              className="rounded-xl border border-red-500/30 px-4 py-2 text-sm text-red-300"
+              className="rounded-lg border border-red-500/30 px-4 py-2 text-sm text-red-300"
             >
               Programmer la suppression
             </button>
@@ -215,11 +215,11 @@ export default function StaffUserDetailPage() {
 
       {showDeletion && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4">
-          <section className="w-full max-w-lg rounded-2xl border border-white/10 bg-zinc-950 p-6">
-            <h2 className="text-lg font-semibold text-white">
+          <section className="w-full max-w-lg rounded-lg border border-border bg-app p-6">
+            <h2 className="text-lg font-semibold text-primary">
               Programmer la suppression
             </h2>
-            <p className="mt-2 text-sm text-zinc-400">
+            <p className="mt-2 text-sm text-secondary">
               L&apos;accès sera coupé immédiatement. La purge aura lieu après 30
               jours. Les organisations sont conservées ; un espace personnel
               sera supprimé avec l&apos;identité.
@@ -230,13 +230,13 @@ export default function StaffUserDetailPage() {
               onChange={(event) => setReason(event.target.value.slice(0, 500))}
               rows={4}
               placeholder="Motif opérationnel obligatoire (10 caractères minimum)"
-              className="mt-4 w-full rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:border-red-400"
+              className="mt-4 w-full rounded-lg border border-border bg-hover/10 p-3 text-sm text-primary outline-none focus:border-red-400"
             />
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setShowDeletion(false)}
-                className="rounded-xl border border-white/10 px-4 py-2 text-sm"
+                className="rounded-lg border border-border px-4 py-2 text-sm"
               >
                 Annuler
               </button>
@@ -246,7 +246,7 @@ export default function StaffUserDetailPage() {
                 disabled={
                   reason.trim().length < 10 || deletionMutation.isPending
                 }
-                className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-primary disabled:opacity-40"
               >
                 Confirmer
               </button>

@@ -52,28 +52,28 @@ export function ConfirmDialog({
         ref={ref}
         role="dialog"
         aria-modal="true"
-        className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 shadow-2xl"
+        className="relative z-10 w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-theme-lg"
       >
         <button
           type="button"
           onClick={onCancel}
-          className="absolute right-4 top-4 rounded-lg p-1 text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+          className="absolute right-4 top-4 rounded-lg p-1 text-secondary transition hover:bg-hover/10 hover:text-primary"
         >
           <X size={16} />
         </button>
 
         <div className="flex items-start gap-4">
           {variant === "danger" && (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/15">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/15">
               <AlertTriangle size={18} className="text-red-400" />
             </div>
           )}
           <div className="flex-1">
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">
+            <h2 className="text-base font-semibold text-primary">
               {title}
             </h2>
             {description && (
-              <p className="mt-1.5 text-sm text-[var(--text-secondary)]">
+              <p className="mt-1.5 text-sm text-secondary">
                 {description}
               </p>
             )}

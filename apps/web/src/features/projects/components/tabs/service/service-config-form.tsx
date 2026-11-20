@@ -40,9 +40,9 @@ const BUILD_PACKS: { value: BuildPack; label: string }[] = [
 ];
 
 const inputClass =
-  "w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]";
+  "w-full rounded-lg border border-border bg-app px-3 py-2 text-sm text-primary outline-none focus:border-muted";
 const labelClass =
-  "mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]";
+  "mb-1.5 block text-xs font-semibold uppercase tracking-wide text-secondary";
 
 /**
  * Per-service editable Source/Build configuration (PLAN_AMELIORATION.md §5.1
@@ -296,9 +296,9 @@ export function ServiceConfigForm({
             switched post-creation, silently drifting from the webhook
             still registered against the original provider). */}
         {providerId && (
-          <p className="mb-3 text-sm text-[var(--text-secondary)]">
+          <p className="mb-3 text-sm text-secondary">
             Provider:{" "}
-            <span className="font-medium text-[var(--text-primary)]">
+            <span className="font-medium text-primary">
               {resolvedProvider
                 ? `${resolvedProvider.name} · ${resolvedProvider.type}`
                 : providerId}
@@ -344,7 +344,7 @@ export function ServiceConfigForm({
                   provider's base URL is known — built from provider.url +
                   repoPath, no new backend data needed. */}
               <div
-                className="rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 font-mono text-sm text-[var(--text-secondary)]"
+                className="rounded-lg border border-border bg-app px-3 py-2 font-mono text-sm text-secondary"
                 title="The repository is fixed. To change it, create a new service."
               >
                 {repoWebUrl ? (
@@ -352,7 +352,7 @@ export function ServiceConfigForm({
                     href={repoWebUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-[var(--text-primary)] underline decoration-dotted hover:text-[var(--text-primary)]/80"
+                    className="inline-flex items-center gap-1.5 text-primary underline decoration-dotted hover:text-primary/80"
                   >
                     {repoPath} <ExternalLink size={12} />
                   </a>
@@ -381,7 +381,7 @@ export function ServiceConfigForm({
               </label>
               {branchesQuery.isLoading ? (
                 <div
-                  className={`${inputClass} flex items-center gap-2 text-[var(--text-muted)]`}
+                  className={`${inputClass} flex items-center gap-2 text-muted`}
                 >
                   <Loader2 size={14} className="animate-spin" /> Loading
                   branches…
@@ -558,7 +558,7 @@ export function ServiceConfigForm({
       </SectionCard>
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error}
         </div>
       )}
@@ -568,7 +568,7 @@ export function ServiceConfigForm({
           type="button"
           onClick={() => void handleSave()}
           disabled={saving}
-          className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover disabled:opacity-50"
         >
           {saving ? (
             <Loader2 size={15} className="animate-spin" />

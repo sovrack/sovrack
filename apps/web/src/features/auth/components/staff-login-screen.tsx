@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useStaffStore } from "@/stores/staff.store";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import { ShieldCheck } from "lucide-react";
-import { SovrackBrand } from "@/components/marketing/sovrack-logo";
+import { SovrackBrand } from "@/shared/ui/sovrack-logo";
 import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
 
 export function StaffLoginScreen() {
@@ -46,11 +46,11 @@ export function StaffLoginScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-brand text-zinc-200">
-      <header className="border-b border-white/10 bg-brand/80 backdrop-blur-xl">
+    <div className="min-h-screen bg-app text-primary">
+      <header className="border-b border-border bg-app/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center px-6">
           <Link href={publicSitePath("/")} className="flex items-center">
-            <SovrackBrand logoSize={30} textClassName="text-white" />
+            <SovrackBrand logoClassName="h-7 w-7 text-primary" textClassName="text-primary" />
           </Link>
         </div>
       </header>
@@ -58,21 +58,21 @@ export function StaffLoginScreen() {
       <section className="mx-auto flex max-w-md items-center px-6 pb-24 pt-20">
         <div className="w-full">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15 text-blue-400">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/15 text-accent">
               <ShieldCheck size={20} />
             </span>
             <div>
-              <h1 className="text-2xl font-bold text-white">Back-office</h1>
-              <p className="text-sm text-zinc-400">Équipe de la plateforme</p>
+              <h1 className="text-2xl font-bold text-primary">Back-office</h1>
+              <p className="text-sm text-secondary">Équipe de la plateforme</p>
             </div>
           </div>
-          <p className="mt-6 text-sm leading-relaxed text-zinc-400">
+          <p className="mt-6 text-sm leading-relaxed text-secondary">
             Accès réservé à l&apos;équipe d&apos;administration : gestion des
             comptes clients, des équipes et des abonnements.
           </p>
 
           {error && (
-            <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            <div className="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
               {error}
             </div>
           )}
@@ -81,7 +81,7 @@ export function StaffLoginScreen() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-zinc-300"
+                className="block text-sm font-medium text-secondary"
               >
                 Email
               </label>
@@ -94,12 +94,12 @@ export function StaffLoginScreen() {
                 autoComplete="email"
                 required
                 disabled={mfaRequired}
-                className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                className="mt-1.5 w-full rounded-lg border border-border bg-hover/10 px-4 py-2.5 text-sm text-primary transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               />
               <div className="mt-2 text-right">
                 <Link
                   href="/staff/forgot-password"
-                  className="text-xs font-semibold text-blue-400 hover:text-blue-300"
+                  className="text-xs font-semibold text-accent hover:text-accent"
                 >
                   Mot de passe oublié ?
                 </Link>
@@ -108,7 +108,7 @@ export function StaffLoginScreen() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-zinc-300"
+                className="block text-sm font-medium text-secondary"
               >
                 Mot de passe
               </label>
@@ -121,14 +121,14 @@ export function StaffLoginScreen() {
                 autoComplete="current-password"
                 required
                 disabled={mfaRequired}
-                className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                className="mt-1.5 w-full rounded-lg border border-border bg-hover/10 px-4 py-2.5 text-sm text-primary transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               />
             </div>
             {mfaRequired && (
               <div>
                 <label
                   htmlFor="mfa-code"
-                  className="block text-sm font-medium text-zinc-300"
+                  className="block text-sm font-medium text-secondary"
                 >
                   Code de sécurité
                 </label>
@@ -143,7 +143,7 @@ export function StaffLoginScreen() {
                   inputMode="numeric"
                   required
                   autoFocus
-                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm tracking-widest text-white transition focus:border-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20"
+                  className="mt-1.5 w-full rounded-lg border border-border bg-hover/10 px-4 py-2.5 text-sm tracking-widest text-primary transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 />
                 <button
                   type="button"
@@ -152,7 +152,7 @@ export function StaffLoginScreen() {
                     setMfaCode("");
                     setError("");
                   }}
-                  className="mt-2 text-xs font-semibold text-zinc-400 hover:text-white"
+                  className="mt-2 text-xs font-semibold text-secondary hover:text-primary"
                 >
                   Utiliser un autre compte
                 </button>
@@ -161,7 +161,7 @@ export function StaffLoginScreen() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] shadow-md shadow-blue-500/20 disabled:opacity-50"
+              className="w-full rounded-lg bg-accent py-3 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover   disabled:opacity-50"
             >
               {loading
                 ? "Vérification..."
@@ -171,11 +171,11 @@ export function StaffLoginScreen() {
             </button>
           </form>
 
-          <p className="mt-10 text-center text-sm text-zinc-500">
+          <p className="mt-10 text-center text-sm text-muted">
             Espace client ?{" "}
             <Link
               href={customerAppPath("/login")}
-              className="font-semibold text-zinc-300 hover:text-white"
+              className="font-semibold text-secondary hover:text-primary"
             >
               Se connecter à la plateforme
             </Link>

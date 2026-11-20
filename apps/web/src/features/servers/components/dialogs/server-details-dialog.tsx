@@ -80,8 +80,8 @@ export function ServerDetailsDialog({
       title="Server Details"
       description={`${server.name} · ${server.username}@${server.host}:${server.port}`}
       icon={
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--text-primary)]/15">
-          <ServerIcon size={16} className="text-[var(--text-secondary)]" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10">
+          <ServerIcon size={16} className="text-secondary" />
         </div>
       }
       footer={
@@ -91,10 +91,10 @@ export function ServerDetailsDialog({
       }
     >
       <div className="space-y-4">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
+        <div className="rounded-lg border border-border bg-hover/10 p-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--bg-card)]">
-              <ServerIcon size={18} className="text-[var(--text-secondary)]" />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-card">
+              <ServerIcon size={18} className="text-secondary" />
             </div>
             <div className="space-y-2">
               <ServerOverallStatusBadge server={server} />
@@ -104,7 +104,7 @@ export function ServerDetailsDialog({
                   list (now a compact table) — this detail panel is their
                   only home now. */}
               <ServerToolBadges server={server} />
-              <p className="text-xs text-[var(--text-secondary)]">
+              <p className="text-xs text-secondary">
                 Managed via SSH — Ansible runs on the control node, not on
                 this VPS.
               </p>
@@ -113,31 +113,31 @@ export function ServerDetailsDialog({
         </div>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+          <div className="rounded-lg border border-border bg-hover/10 p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-secondary">
               Last SSH validation
             </p>
-            <p className="mt-2 text-sm text-[var(--text-primary)]">
+            <p className="mt-2 text-sm text-primary">
               {server.lastVerifiedAt
                 ? new Date(server.lastVerifiedAt).toLocaleString()
                 : "Not validated yet"}
             </p>
           </div>
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+          <div className="rounded-lg border border-border bg-hover/10 p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-secondary">
               Last detection
             </p>
-            <p className="mt-2 text-sm text-[var(--text-primary)]">
+            <p className="mt-2 text-sm text-primary">
               {server.lastDetectedAt
                 ? new Date(server.lastDetectedAt).toLocaleString()
                 : "Not detected yet"}
             </p>
           </div>
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--hover)] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+          <div className="rounded-lg border border-border bg-hover/10 p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-secondary">
               Last setup
             </p>
-            <p className="mt-2 text-sm text-[var(--text-primary)]">
+            <p className="mt-2 text-sm text-primary">
               {server.lastPreparedAt
                 ? new Date(server.lastPreparedAt).toLocaleString()
                 : "Not set up yet"}

@@ -86,15 +86,15 @@ export function AddServiceWizard({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2.5 sm:p-4 backdrop-blur-sm">
       <div className="absolute inset-0" onClick={onClose} aria-hidden />
-      <div className="relative z-10 flex max-h-[94vh] sm:max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl">
+      <div className="relative z-10 flex max-h-[94vh] sm:max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-theme-lg">
         {/* Header + stepper */}
-        <div className="border-b border-[var(--border)] px-4 py-3 sm:px-6 sm:py-4">
+        <div className="border-b border-border px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">
                 Add service
               </p>
-              <h2 className="mt-0.5 text-lg font-semibold text-[var(--text-primary)]">
+              <h2 className="mt-0.5 text-lg font-semibold text-primary">
                 {step === 1
                   ? "Choose a service type"
                   : step === 2
@@ -106,7 +106,7 @@ export function AddServiceWizard({
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--hover)]"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted hover:bg-hover/10"
             >
               <X size={15} />
             </button>
@@ -115,7 +115,7 @@ export function AddServiceWizard({
             {[1, 2, 3].map((s) => (
               <div
                 key={s}
-                className={`h-1 flex-1 rounded-full ${s <= step ? "bg-[var(--text-primary)]" : "bg-[var(--border)]"}`}
+                className={`h-1 flex-1 rounded-md ${s <= step ? "bg-accent" : "bg-border"}`}
               />
             ))}
           </div>
@@ -123,7 +123,7 @@ export function AddServiceWizard({
 
         <div className="flex-1 overflow-auto px-4 py-4 sm:px-6 sm:py-5">
           {error && (
-            <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
+            <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
               {error}
             </div>
           )}
@@ -134,7 +134,7 @@ export function AddServiceWizard({
           {/* Step 2a — choose Git platform (photo 2) */}
           {step === 2 && kind === "APPLICATION" && !platform && (
             <div className="space-y-3">
-              <p className="text-sm text-[var(--text-secondary)]">
+              <p className="text-sm text-secondary">
                 Choose the Git platform for this service.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
@@ -142,7 +142,7 @@ export function AddServiceWizard({
                   {
                     type: "GITLAB" as const,
                     label: "GitLab",
-                    icon: <FolderGit2 size={22} className="text-orange-400" />,
+                    icon: <FolderGit2 size={22} className="text-accent" />,
                     hint: "DevSecOps platform",
                   },
                   {
@@ -158,15 +158,15 @@ export function AddServiceWizard({
                       key={pl.type}
                       type="button"
                       onClick={() => pickPlatform(pl.type)}
-                      className="flex flex-col items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-app)] p-5 text-center transition hover:border-[var(--text-muted)] hover:bg-[var(--hover)]"
+                      className="flex flex-col items-center gap-1.5 rounded-lg border border-border bg-app p-5 text-center transition hover:border-muted hover:bg-hover/10"
                     >
-                      <span className="text-[var(--text-primary)]">
+                      <span className="text-primary">
                         {pl.icon}
                       </span>
-                      <span className="text-sm font-semibold text-[var(--text-primary)]">
+                      <span className="text-sm font-semibold text-primary">
                         {pl.label}
                       </span>
-                      <span className="text-[11px] text-[var(--text-muted)]">
+                      <span className="text-[11px] text-muted">
                         {has
                           ? pl.hint
                           : "Not configured — add it in Git Providers"}
@@ -184,12 +184,12 @@ export function AddServiceWizard({
               <button
                 type="button"
                 onClick={() => setPlatform(null)}
-                className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                className="text-xs text-secondary hover:text-primary"
               >
                 ← Change platform ({platform})
               </button>
               {providers.filter((p) => p.type === platform).length === 0 ? (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
                   No {platform} provider configured yet.{" "}
                   <a href="/settings/git" className="font-semibold underline">
                     Add one in Git Providers
@@ -210,7 +210,7 @@ export function AddServiceWizard({
                         key={m}
                         type="button"
                         onClick={() => setAppMode(m)}
-                        className={`flex-1 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${appMode === m ? "border-[var(--text-primary)] bg-[var(--hover)] text-[var(--text-primary)]" : "border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--hover)]"}`}
+                        className={`flex-1 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${appMode === m ? "border-accent bg-hover/10 text-primary" : "border-border text-secondary hover:bg-hover/10"}`}
                       >
                         {m === "repo"
                           ? "Single repository"
@@ -221,14 +221,14 @@ export function AddServiceWizard({
 
                   {appMode === "repo" ? (
                     <div className="space-y-3">
-                      <div className="flex gap-1 rounded-xl border border-[var(--border)] bg-[var(--bg-app)]/50 p-1">
+                      <div className="flex gap-1 rounded-lg border border-border bg-app/50 p-1">
                         <button
                           type="button"
                           onClick={() => setRepoMode("list")}
                           className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition ${
                             repoMode === "list"
-                              ? "bg-[var(--text-primary)] text-[var(--bg-app)] shadow-sm"
-                              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                              ? "bg-accent text-accent-foreground "
+                              : "text-secondary hover:text-primary"
                           }`}
                         >
                           <Zap size={13} />
@@ -239,8 +239,8 @@ export function AddServiceWizard({
                           onClick={() => setRepoMode("manual")}
                           className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition ${
                             repoMode === "manual"
-                              ? "bg-[var(--text-primary)] text-[var(--bg-app)] shadow-sm"
-                              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                              ? "bg-accent text-accent-foreground "
+                              : "text-secondary hover:text-primary"
                           }`}
                         >
                           <Key size={13} />
@@ -329,14 +329,14 @@ export function AddServiceWizard({
                         </Button>
                       </div>
                       {discovered.length > 0 && (
-                        <div className="rounded-xl border border-[var(--border)]">
-                          <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2 text-xs text-[var(--text-muted)]">
+                        <div className="rounded-lg border border-border">
+                          <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs text-muted">
                             <span>
                               {selected.size}/{discovered.length} selected
                             </span>
                             <button
                               type="button"
-                              className="font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                              className="font-semibold text-secondary hover:text-primary"
                               onClick={() =>
                                 setSelected(
                                   new Set(
@@ -356,14 +356,14 @@ export function AddServiceWizard({
                             {discovered.map((r) => (
                               <label
                                 key={r.repoPath}
-                                className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-[var(--hover)]"
+                                className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-hover/10"
                               >
                                 <input
                                   type="checkbox"
                                   checked={selected.has(r.repoPath)}
                                   onChange={() => toggleRepo(r.repoPath)}
                                 />
-                                <span className="font-mono text-xs text-[var(--text-primary)]">
+                                <span className="font-mono text-xs text-primary">
                                   {r.repoPath}
                                 </span>
                               </label>
@@ -453,7 +453,7 @@ export function AddServiceWizard({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-[var(--border)] px-4 py-3 sm:px-6 sm:py-4">
+        <div className="flex items-center justify-between border-t border-border px-4 py-3 sm:px-6 sm:py-4">
           <Button
             variant="secondary"
             onClick={() =>

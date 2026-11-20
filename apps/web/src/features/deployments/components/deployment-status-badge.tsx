@@ -24,8 +24,8 @@ const config: Record<
   RUNNING: {
     label: "RUNNING",
     icon: Loader2,
-    fill: "bg-blue-500/15",
-    text: "text-[var(--text-secondary)]",
+    fill: "bg-accent/15",
+    text: "text-secondary",
   },
   PENDING: {
     label: "PENDING",
@@ -36,8 +36,8 @@ const config: Record<
   CANCELED: {
     label: "CANCELED",
     icon: Ban,
-    fill: "bg-zinc-500/15",
-    text: "text-[var(--text-secondary)]",
+    fill: "bg-muted/15",
+    text: "text-secondary",
   },
 };
 
@@ -54,11 +54,11 @@ export function DeploymentStatusBadge({
   variant = "fill",
 }: Props) {
   const { label, icon: Icon, fill, text } = config[status];
-  // 'plain' = même forme/fond que les boutons voisins (rounded-xl, bordure, fond
+  // 'plain' = même forme/fond que les boutons voisins (rounded-lg, bordure, fond
   // carte) → s'intègre dans la barre/header sans pastille colorée.
   const shape =
     variant === "plain"
-      ? "rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm"
+      ? "rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm"
       : clsx(
           "rounded-full",
           fill,

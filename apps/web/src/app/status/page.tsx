@@ -40,27 +40,27 @@ export default function StatusPage() {
   const Icon = checking ? Loader2 : operational ? CheckCircle2 : AlertTriangle;
 
   return (
-    <div className="min-h-screen bg-brand text-white">
+    <div className="min-h-screen bg-app text-primary">
       <MarketingNavbar />
       <main className="mx-auto max-w-4xl px-6 py-16 sm:py-20">
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-cyan-300">
+        <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
           État des services
         </p>
         <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
           Disponibilité de Sovrack
         </h1>
-        <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-300">
+        <p className="mt-5 max-w-3xl text-lg leading-8 text-secondary">
           Cette page vérifie en temps réel la disponibilité de l’application et
           de ses dépendances essentielles. Elle ne publie pas encore un
           historique contractuel de disponibilité.
         </p>
 
-        <section className="mt-12 rounded-3xl border border-white/10 bg-white/[0.03] p-8">
+        <section className="mt-12 rounded-lg border border-border bg-card p-8">
           <div className="flex items-center gap-4">
             <span
-              className={`flex h-12 w-12 items-center justify-center rounded-full ${
+              className={`flex h-12 w-12 items-center justify-center rounded-md ${
                 checking
-                  ? "bg-slate-500/10 text-slate-300"
+                  ? "bg-hover/10 text-secondary"
                   : operational
                     ? "bg-emerald-500/10 text-emerald-300"
                     : "bg-amber-500/10 text-amber-300"
@@ -76,22 +76,22 @@ export default function StatusPage() {
                     ? "Tous les services essentiels sont opérationnels"
                     : "Une indisponibilité est détectée"}
               </h2>
-              <p className="mt-1 text-sm text-slate-400">
+              <p className="mt-1 text-sm text-secondary">
                 Application, base de données et file de traitement
               </p>
             </div>
           </div>
           {checkedAt && (
-            <p className="mt-6 border-t border-white/10 pt-4 text-xs text-slate-500">
+            <p className="mt-6 border-t border-border pt-4 text-xs text-muted">
               Dernière vérification locale :{" "}
               {checkedAt.toLocaleTimeString("fr-FR")}
             </p>
           )}
         </section>
 
-        <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+        <section className="mt-6 rounded-lg border border-border bg-card p-6">
           <h2 className="text-lg font-semibold">Besoin d’assistance ?</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
+          <p className="mt-2 text-sm leading-6 text-secondary">
             Si votre espace reste inaccessible alors que les services sont
             opérationnels, écrivez à contact@sovrack.com sans joindre de mot
             de passe, clé SSH ou jeton d’accès.

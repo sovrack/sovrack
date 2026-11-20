@@ -92,39 +92,39 @@ export default function StaffSecurityPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/15 text-blue-300">
+        <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-accent/15 text-accent">
           <ShieldCheck size={22} />
         </span>
         <div>
-          <h1 className="text-2xl font-bold text-white">Sécurité du compte</h1>
-          <p className="text-sm text-zinc-400">
+          <h1 className="text-2xl font-bold text-primary">Sécurité du compte</h1>
+          <p className="text-sm text-secondary">
             Authentification à deux facteurs du back-office.
           </p>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {error}
         </div>
       )}
 
       {!status ? (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-sm text-zinc-400">
+        <div className="rounded-lg border border-border bg-card p-6 text-sm text-secondary">
           Chargement de la politique de sécurité…
         </div>
       ) : (
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+        <section className="rounded-lg border border-border bg-card p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="font-semibold text-white">Application TOTP</h2>
-              <p className="mt-1 text-sm leading-relaxed text-zinc-400">
+              <h2 className="font-semibold text-primary">Application TOTP</h2>
+              <p className="mt-1 text-sm leading-relaxed text-secondary">
                 Utilisez une application compatible, par exemple Aegis, 2FAS,
                 Google Authenticator ou Microsoft Authenticator.
               </p>
             </div>
             <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              className={`rounded-md px-3 py-1 text-xs font-semibold ${
                 status.enabled
                   ? "bg-emerald-500/15 text-emerald-300"
                   : "bg-amber-500/15 text-amber-300"
@@ -143,7 +143,7 @@ export default function StaffSecurityPage() {
               type="button"
               onClick={beginSetup}
               disabled={loading}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
             >
               <KeyRound size={16} />
               Configurer mon authentificateur
@@ -152,26 +152,26 @@ export default function StaffSecurityPage() {
 
           {setup && (
             <form onSubmit={enable} className="mt-6 space-y-5">
-              <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <div className="rounded-lg border border-border bg-black/20 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                   Clé de configuration manuelle
                 </p>
                 <div className="mt-2 flex items-center gap-3">
-                  <code className="break-all text-sm tracking-wider text-sky-300">
+                  <code className="break-all text-sm tracking-wider text-accent">
                     {setup.secret}
                   </code>
                   <button
                     type="button"
                     onClick={() => navigator.clipboard.writeText(setup.secret)}
                     title="Copier la clé"
-                    className="rounded-lg p-2 text-zinc-400 hover:bg-white/10 hover:text-white"
+                    className="rounded-lg p-2 text-secondary hover:bg-hover/15 hover:text-primary"
                   >
                     <Copy size={15} />
                   </button>
                 </div>
               </div>
               <div>
-                <label htmlFor="totp-code" className="text-sm text-zinc-300">
+                <label htmlFor="totp-code" className="text-sm text-secondary">
                   Code à 6 chiffres affiché par l&apos;application
                 </label>
                 <input
@@ -182,13 +182,13 @@ export default function StaffSecurityPage() {
                   autoComplete="one-time-code"
                   pattern="[0-9]{6}"
                   required
-                  className="mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-white outline-none focus:border-blue-400"
+                  className="mt-2 w-full rounded-lg border border-border bg-hover/10 px-4 py-2.5 text-primary outline-none focus:border-accent"
                 />
               </div>
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+                className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
               >
                 Vérifier et activer
               </button>
@@ -196,7 +196,7 @@ export default function StaffSecurityPage() {
           )}
 
           {recoveryCodes.length > 0 && (
-            <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5">
+            <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/10 p-5">
               <h3 className="font-semibold text-amber-200">
                 Enregistrez ces codes maintenant
               </h3>
@@ -204,7 +204,7 @@ export default function StaffSecurityPage() {
                 Ils ne seront plus affichés. Chaque code remplace une seule fois
                 le code de votre application.
               </p>
-              <div className="mt-4 grid gap-2 font-mono text-sm text-white sm:grid-cols-2">
+              <div className="mt-4 grid gap-2 font-mono text-sm text-primary sm:grid-cols-2">
                 {recoveryCodes.map((recoveryCode) => (
                   <code key={recoveryCode}>{recoveryCode}</code>
                 ))}
@@ -215,14 +215,14 @@ export default function StaffSecurityPage() {
                   onClick={() =>
                     navigator.clipboard.writeText(recoveryCodes.join("\n"))
                   }
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
+                  className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-primary hover:bg-hover/15"
                 >
                   <Copy size={15} /> Copier les codes
                 </button>
                 <button
                   type="button"
                   onClick={finishEnrollment}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+                  className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
                 >
                   J&apos;ai sauvegardé — me reconnecter
                 </button>
@@ -232,18 +232,18 @@ export default function StaffSecurityPage() {
 
           {status.enabled && recoveryCodes.length === 0 && (
             <div className="mt-6 space-y-5">
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-secondary">
                 Codes de secours disponibles : {status.recoveryCodesRemaining}
                 /10.
               </p>
               <form
                 onSubmit={reset}
-                className="space-y-4 rounded-xl border border-white/10 p-4"
+                className="space-y-4 rounded-lg border border-border p-4"
               >
-                <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                <div className="flex items-center gap-2 text-sm font-semibold text-primary">
                   <RefreshCcw size={16} /> Remplacer l&apos;authentificateur
                 </div>
-                <p className="text-xs leading-relaxed text-zinc-500">
+                <p className="text-xs leading-relaxed text-muted">
                   Cette action exige votre mot de passe et un second facteur,
                   révoque toutes les sessions et impose une nouvelle
                   configuration à la prochaine connexion.
@@ -255,7 +255,7 @@ export default function StaffSecurityPage() {
                   placeholder="Mot de passe actuel"
                   autoComplete="current-password"
                   required
-                  className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-white outline-none focus:border-blue-400"
+                  className="w-full rounded-lg border border-border bg-hover/10 px-4 py-2.5 text-primary outline-none focus:border-accent"
                 />
                 <input
                   value={code}
@@ -265,12 +265,12 @@ export default function StaffSecurityPage() {
                   placeholder="TOTP ou code de secours"
                   autoComplete="one-time-code"
                   required
-                  className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-white outline-none focus:border-blue-400"
+                  className="w-full rounded-lg border border-border bg-hover/10 px-4 py-2.5 text-primary outline-none focus:border-accent"
                 />
                 <button
                   type="submit"
                   disabled={loading}
-                  className="rounded-xl border border-red-500/30 px-4 py-2 text-sm font-semibold text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                  className="rounded-lg border border-red-500/30 px-4 py-2 text-sm font-semibold text-red-300 hover:bg-red-500/10 disabled:opacity-50"
                 >
                   Réinitialiser la MFA
                 </button>

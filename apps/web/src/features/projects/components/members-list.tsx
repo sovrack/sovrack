@@ -41,20 +41,20 @@ export function MembersList({
         return (
           <div
             key={member.id}
-            className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 p-3"
+            className="flex items-center gap-3 rounded-lg border border-border bg-card/5 p-3"
           >
             {/* Avatar */}
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--text-primary)] text-sm font-bold text-[var(--bg-app)]">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground">
               {member.user.fullName.charAt(0).toUpperCase()}
             </div>
 
             {/* Info */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                <p className="truncate text-sm font-semibold text-primary">
                   {member.user.fullName}
                   {isCurrentUser && (
-                    <span className="ml-1.5 text-xs font-normal text-[var(--text-secondary)]">
+                    <span className="ml-1.5 text-xs font-normal text-secondary">
                       (you)
                     </span>
                   )}
@@ -69,7 +69,7 @@ export function MembersList({
                         event.target.value as ProjectMember["role"],
                       )
                     }
-                    className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2 py-1 text-[10px] font-semibold"
+                    className="rounded-lg border border-border bg-card px-2 py-1 text-[10px] font-semibold"
                   >
                     <option value="MAINTAINER">Maintainer</option>
                     <option value="DEVELOPER">Developer</option>
@@ -78,10 +78,10 @@ export function MembersList({
                 ) : (
                   <span
                     className={clsx(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                      "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold",
                       isOwner
                         ? "bg-yellow-500/15 text-yellow-300"
-                        : "bg-[var(--bg-card)]/10 text-[var(--text-primary)]",
+                        : "bg-card/10 text-primary",
                     )}
                   >
                     {isOwner ? <Crown size={9} /> : <User size={9} />}
@@ -89,7 +89,7 @@ export function MembersList({
                   </span>
                 )}
               </div>
-              <p className="truncate text-xs text-[var(--text-secondary)]">
+              <p className="truncate text-xs text-secondary">
                 {member.user.email}
               </p>
             </div>
@@ -100,7 +100,7 @@ export function MembersList({
                 type="button"
                 onClick={() => void handleRemove(member.user.id)}
                 disabled={removingId === member.user.id}
-                className="shrink-0 rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
+                className="shrink-0 rounded-lg p-1.5 text-secondary transition hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
                 title="Remove member"
               >
                 <Trash2 size={15} />

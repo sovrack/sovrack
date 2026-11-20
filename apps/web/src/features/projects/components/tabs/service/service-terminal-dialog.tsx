@@ -69,17 +69,17 @@ export function ServiceTerminalDialog({
       size="xl"
       title={`Terminal${envName ? ` — ${envName}` : ""}`}
       icon={
-        <TerminalSquare size={16} className="text-[var(--text-secondary)]" />
+        <TerminalSquare size={16} className="text-secondary" />
       }
       contentClassName="!p-0"
     >
       <div className="h-[72vh] p-3">
         {!envId ? (
-          <p className="text-sm text-[var(--text-muted)]">
+          <p className="text-sm text-muted">
             Select an environment.
           </p>
         ) : loading ? (
-          <p className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+          <p className="flex items-center gap-2 text-sm text-secondary">
             <Loader2 size={14} className="animate-spin" /> Resolving target
             server…
           </p>

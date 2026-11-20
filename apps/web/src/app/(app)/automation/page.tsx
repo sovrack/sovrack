@@ -208,39 +208,39 @@ export default function AutomationPage() {
       />
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error}
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-          <p className="text-xs font-medium text-[var(--text-muted)]">
+        <div className="rounded-lg border border-border bg-card px-4 py-3">
+          <p className="text-xs font-medium text-muted">
             Total runs
           </p>
-          <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
+          <p className="mt-1 text-3xl font-bold text-primary">
             {stats.total}
           </p>
         </div>
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-          <p className="text-xs font-medium text-[var(--text-muted)]">
+        <div className="rounded-lg border border-border bg-card px-4 py-3">
+          <p className="text-xs font-medium text-muted">
             Running
           </p>
-          <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
+          <p className="mt-1 text-3xl font-bold text-primary">
             {stats.running}
           </p>
         </div>
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-          <p className="text-xs font-medium text-[var(--text-muted)]">
+        <div className="rounded-lg border border-border bg-card px-4 py-3">
+          <p className="text-xs font-medium text-muted">
             Succeeded
           </p>
-          <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
+          <p className="mt-1 text-3xl font-bold text-primary">
             {stats.succeeded}
           </p>
         </div>
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-          <p className="text-xs font-medium text-[var(--text-muted)]">Failed</p>
-          <p className="mt-1 text-3xl font-bold text-[var(--text-primary)]">
+        <div className="rounded-lg border border-border bg-card px-4 py-3">
+          <p className="text-xs font-medium text-muted">Failed</p>
+          <p className="mt-1 text-3xl font-bold text-primary">
             {stats.failed}
           </p>
         </div>
@@ -252,13 +252,13 @@ export default function AutomationPage() {
       >
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-secondary">
               Action
             </label>
             <select
               value={selectedActionKey}
               onChange={(event) => setSelectedActionKey(event.target.value)}
-              className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
+              className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-primary outline-none"
             >
               {(actionList ?? []).map((action) => (
                 <option key={action.key} value={action.key}>
@@ -267,26 +267,26 @@ export default function AutomationPage() {
               ))}
             </select>
             {selectedAction && (
-              <p className="text-xs text-[var(--text-secondary)]">
+              <p className="text-xs text-secondary">
                 {selectedAction.description}
               </p>
             )}
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-secondary">
               Target Servers
             </label>
-            <div className="max-h-48 space-y-2 overflow-auto rounded-lg border border-[var(--border)] bg-[var(--hover)] p-3">
+            <div className="max-h-48 space-y-2 overflow-auto rounded-lg border border-border bg-hover/10 p-3">
               {serverList.length === 0 && (
-                <p className="text-xs text-[var(--text-secondary)]">
+                <p className="text-xs text-secondary">
                   No servers available.
                 </p>
               )}
               {serverList.map((server) => (
                 <label
                   key={server.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-sm"
                 >
                   <span className="min-w-0 truncate">
                     {server.name} ({server.host})
@@ -296,7 +296,7 @@ export default function AutomationPage() {
                     checked={selectedServerIds.includes(server.id)}
                     onChange={() => toggleServer(server.id)}
                     disabled={!server.isVerified}
-                    className="accent-zinc-600"
+                    className="accent-accent"
                   />
                 </label>
               ))}
@@ -306,13 +306,13 @@ export default function AutomationPage() {
 
         {selectedAction?.roles?.includes("gitlab_runner") && (
           <div className="mt-4 space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-secondary">
               GitLab Runner Executor
             </label>
             <select
               value={gitlabRunnerExecutor}
               onChange={(event) => setGitlabRunnerExecutor(event.target.value)}
-              className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
+              className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-primary outline-none"
             >
               <option value="docker">docker</option>
               <option value="shell">shell</option>
@@ -334,7 +334,7 @@ export default function AutomationPage() {
 
       {/* History toggle button */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-[var(--text-muted)]">
+        <p className="text-xs text-muted">
           {runs && runs.length > 0
             ? `${runs.length} run(s) in history`
             : "No history yet"}
@@ -342,7 +342,7 @@ export default function AutomationPage() {
         <button
           type="button"
           onClick={() => setShowHistory((v) => !v)}
-          className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+          className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-secondary transition hover:bg-hover/10 hover:text-primary"
         >
           {showHistory ? "Hide history" : "View history"}
         </button>
@@ -362,7 +362,7 @@ export default function AutomationPage() {
                     event.target.value as "ALL" | AutomationRunStatus,
                   )
                 }
-                className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
+                className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-primary outline-none"
               >
                 {AUTOMATION_STATUS_FILTERS.map((status) => (
                   <option key={status} value={status}>
@@ -373,7 +373,7 @@ export default function AutomationPage() {
               <select
                 value={actionFilter}
                 onChange={(event) => setActionFilter(event.target.value)}
-                className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 text-sm text-[var(--text-primary)] outline-none"
+                className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-primary outline-none"
               >
                 <option value="ALL">All actions</option>
                 {actionOptions.map((actionKey) => (
@@ -385,11 +385,11 @@ export default function AutomationPage() {
             </div>
 
             {!runs || runs.length === 0 ? (
-              <p className="text-sm text-[var(--text-secondary)]">
+              <p className="text-sm text-secondary">
                 No automation runs yet.
               </p>
             ) : filteredRuns.length === 0 ? (
-              <p className="text-sm text-[var(--text-secondary)]">
+              <p className="text-sm text-secondary">
                 No automation run matches the selected filters.
               </p>
             ) : (
@@ -401,12 +401,12 @@ export default function AutomationPage() {
                     onClick={() => setSelectedRunId(run.id)}
                     className={`w-full rounded-lg border px-3 py-2 text-left transition ${
                       selectedRunId === run.id
-                        ? "border-zinc-500/60 bg-[var(--hover)]"
-                        : "border-[var(--border)] bg-[var(--bg-card)] hover:bg-[var(--hover)]"
+                        ? "border-border-hover bg-hover/10"
+                        : "border-border bg-card hover:bg-hover/10"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-[var(--text-primary)]">
+                      <p className="text-sm font-semibold text-primary">
                         {run.actionLabel}
                       </p>
                       <div className="flex items-center gap-1.5">
@@ -416,7 +416,7 @@ export default function AutomationPage() {
                         <Link
                           href={`/automation/${run.id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="rounded p-0.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+                          className="rounded p-0.5 text-muted hover:text-primary transition"
                           title="View full detail"
                         >
                           <ExternalLink size={12} />
@@ -438,14 +438,14 @@ export default function AutomationPage() {
                               });
                             }
                           }}
-                          className="rounded p-0.5 text-[var(--text-muted)] hover:text-red-400 transition"
+                          className="rounded p-0.5 text-muted hover:text-red-400 transition"
                           title="Delete"
                         >
                           <Trash2 size={12} />
                         </button>
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                    <p className="mt-1 text-xs text-secondary">
                       {new Date(run.createdAt).toLocaleString()} ·{" "}
                       {run.targets.length} target(s)
                     </p>
@@ -464,7 +464,7 @@ export default function AutomationPage() {
             }
           >
             {!selectedRun ? (
-              <p className="text-sm text-[var(--text-secondary)]">
+              <p className="text-sm text-secondary">
                 No run selected.
               </p>
             ) : (
@@ -490,10 +490,10 @@ export default function AutomationPage() {
                   {selectedRun.targets.map((target) => (
                     <div
                       key={target.id}
-                      className="rounded-lg border border-[var(--border)] bg-[var(--hover)] px-3 py-2"
+                      className="rounded-lg border border-border bg-hover/10 px-3 py-2"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium text-[var(--text-primary)]">
+                        <p className="text-sm font-medium text-primary">
                           {target.server.name}
                         </p>
                         <Badge
@@ -520,13 +520,13 @@ export default function AutomationPage() {
                   ))}
                 </div>
 
-                <div className="rounded-lg border border-[var(--border)] bg-black p-3 font-mono text-xs text-zinc-100">
-                  <p className="mb-2 text-[11px] uppercase tracking-[0.16em] text-zinc-500">
+                <div className="rounded-lg border border-border bg-black p-3 font-mono text-xs text-primary">
+                  <p className="mb-2 text-[11px] uppercase tracking-[0.16em] text-muted">
                     Live Logs
                   </p>
                   <div className="max-h-72 space-y-1 overflow-auto">
                     {displayedLogs.length === 0 ? (
-                      <p className="text-zinc-500">Waiting for logs...</p>
+                      <p className="text-muted">Waiting for logs...</p>
                     ) : (
                       displayedLogs.map((log) => (
                         <p
@@ -536,13 +536,13 @@ export default function AutomationPage() {
                               ? "text-red-300"
                               : log.level === "WARNING"
                                 ? "text-yellow-200"
-                                : "text-zinc-100"
+                                : "text-primary"
                           }
                         >
-                          <span className="text-zinc-500">
+                          <span className="text-muted">
                             {String(log.lineNumber).padStart(4, "0")}
                           </span>{" "}
-                          <span className="text-zinc-500">[{log.source}]</span>{" "}
+                          <span className="text-muted">[{log.source}]</span>{" "}
                           {log.message}
                         </p>
                       ))

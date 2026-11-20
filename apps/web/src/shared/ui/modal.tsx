@@ -82,20 +82,20 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className={`relative z-10 flex max-h-[94vh] sm:max-h-[90vh] w-full ${sizeMap[size]} flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-2xl outline-none`}
+        className={`relative z-10 flex max-h-[94vh] sm:max-h-[90vh] w-full ${sizeMap[size]} flex-col rounded-lg border border-border bg-card shadow-theme-lg outline-none`}
       >
         {hasHeader && (
-          <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-4 py-3 sm:px-5 sm:py-4">
+          <div className="flex items-start justify-between gap-4 border-b border-border px-4 py-3 sm:px-5 sm:py-4">
             <div className="flex items-start gap-3">
               {icon && <div className="shrink-0">{icon}</div>}
               <div>
                 {title && (
-                  <h2 className="text-base font-semibold text-[var(--text-primary)]">
+                  <h2 className="text-base font-semibold text-primary">
                     {title}
                   </h2>
                 )}
                 {description && (
-                  <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
+                  <p className="mt-0.5 text-sm text-secondary">
                     {description}
                   </p>
                 )}
@@ -106,7 +106,7 @@ export function Modal({
                 type="button"
                 onClick={onClose}
                 aria-label="Close"
-                className="shrink-0 rounded-lg p-1 text-[var(--text-secondary)] transition hover:bg-[var(--hover)] hover:text-[var(--text-primary)]"
+                className="shrink-0 rounded-lg p-1 text-secondary transition hover:bg-hover/10 hover:text-primary"
               >
                 <X size={16} />
               </button>
@@ -121,7 +121,7 @@ export function Modal({
         </div>
 
         {footer && (
-          <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] px-4 py-3 sm:px-5 sm:py-4">
+          <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3 sm:px-5 sm:py-4">
             {footer}
           </div>
         )}

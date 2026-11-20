@@ -110,14 +110,14 @@ export default function StaffAccountsPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-hover/15 text-primary">
             <ShieldCheck size={18} />
           </span>
           <div>
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-2xl font-bold text-primary">
               Comptes back-office
             </h1>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-secondary">
               Membres de l&apos;équipe d&apos;administration (
               {data?.total ?? "…"}).
             </p>
@@ -126,7 +126,7 @@ export default function StaffAccountsPage() {
         {canManage ? (
           <button
             onClick={() => setShowCreate((v) => !v)}
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200"
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover"
           >
             <UserPlus size={16} />
             Créer un compte
@@ -137,10 +137,10 @@ export default function StaffAccountsPage() {
       {showCreate && (
         <form
           onSubmit={handleCreate}
-          className="mb-6 grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 md:grid-cols-4"
+          className="mb-6 grid gap-4 rounded-lg border border-border bg-hover/10 p-5 md:grid-cols-4"
         >
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-400">
+            <label className="mb-1 block text-xs font-medium text-secondary">
               Email
             </label>
             <input
@@ -148,11 +148,11 @@ export default function StaffAccountsPage() {
               required
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-400">
+            <label className="mb-1 block text-xs font-medium text-secondary">
               Nom complet
             </label>
             <input
@@ -160,11 +160,11 @@ export default function StaffAccountsPage() {
               required
               value={form.fullName}
               onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-400">
+            <label className="mb-1 block text-xs font-medium text-secondary">
               Rôle
             </label>
             <select
@@ -175,7 +175,7 @@ export default function StaffAccountsPage() {
                   role: e.target.value as (typeof ASSIGNABLE_ROLES)[number],
                 })
               }
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none"
             >
               {ASSIGNABLE_ROLES.map((r) => (
                 <option key={r} value={r}>
@@ -188,7 +188,7 @@ export default function StaffAccountsPage() {
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-50"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover disabled:opacity-50"
             >
               <UserPlus size={16} />
               {createMutation.isPending ? "Envoi…" : "Inviter"}
@@ -200,9 +200,9 @@ export default function StaffAccountsPage() {
         </form>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-white/10">
+      <div className="overflow-hidden rounded-lg border border-border">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-white/10 bg-white/5 text-zinc-400">
+          <thead className="border-b border-border bg-hover/10 text-secondary">
             <tr>
               <th className="px-4 py-3 font-medium">Nom</th>
               <th className="px-4 py-3 font-medium">Email</th>
@@ -213,11 +213,11 @@ export default function StaffAccountsPage() {
           </thead>
           <tbody className="divide-y divide-white/5">
             {(data?.items ?? []).map((s) => (
-              <tr key={s.id} className="hover:bg-white/5">
-                <td className="px-4 py-3 font-medium text-white">
+              <tr key={s.id} className="hover:bg-hover/10">
+                <td className="px-4 py-3 font-medium text-primary">
                   {s.fullName}
                 </td>
-                <td className="px-4 py-3 text-zinc-400">{s.email}</td>
+                <td className="px-4 py-3 text-secondary">{s.email}</td>
                 <td className="px-4 py-3">
                   <select
                     value={s.role}
@@ -228,7 +228,7 @@ export default function StaffAccountsPage() {
                       })
                     }
                     disabled={!canManage || roleMutation.isPending}
-                    className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1 text-xs font-medium text-white focus:border-blue-500 focus:outline-none"
+                    className="rounded-lg border border-border bg-card px-2 py-1 text-xs font-medium text-primary focus:border-accent focus:outline-none"
                   >
                     {(s.role === "ROOT"
                       ? (["ROOT"] as const)
@@ -243,7 +243,7 @@ export default function StaffAccountsPage() {
                 <td className="px-4 py-3">
                   {s.status === "INVITED" ? (
                     <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-amber-500/10 px-2 py-1 text-xs text-amber-300">
+                      <span className="rounded-md bg-amber-500/10 px-2 py-1 text-xs text-amber-300">
                         {STATUS_LABELS.INVITED}
                       </span>
                       {canManage ? (
@@ -252,7 +252,7 @@ export default function StaffAccountsPage() {
                           title="Renvoyer l’invitation"
                           disabled={resendMutation.isPending}
                           onClick={() => resendMutation.mutate(s.id)}
-                          className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/10 hover:text-white disabled:opacity-40"
+                          className="rounded-lg p-1.5 text-secondary hover:bg-hover/15 hover:text-primary disabled:opacity-40"
                         >
                           <MailCheck size={15} />
                         </button>
@@ -268,7 +268,7 @@ export default function StaffAccountsPage() {
                         })
                       }
                       disabled={!canManage || statusMutation.isPending}
-                      className="rounded-lg border border-white/10 bg-zinc-900 px-2 py-1 text-xs font-medium text-white focus:border-blue-500 focus:outline-none"
+                      className="rounded-lg border border-border bg-card px-2 py-1 text-xs font-medium text-primary focus:border-accent focus:outline-none"
                     >
                       {(["ACTIVE", "DISABLED", "BLOCKED"] as StaffStatus[]).map(
                         (status) => (
@@ -280,7 +280,7 @@ export default function StaffAccountsPage() {
                     </select>
                   )}
                 </td>
-                <td className="px-4 py-3 text-zinc-500">
+                <td className="px-4 py-3 text-muted">
                   {s.lastLoginAt
                     ? new Date(s.lastLoginAt).toLocaleString("fr-FR")
                     : "Jamais"}
@@ -289,7 +289,7 @@ export default function StaffAccountsPage() {
             ))}
             {!isLoading && (data?.items ?? []).length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-zinc-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-muted">
                   Aucun compte back-office.
                 </td>
               </tr>
@@ -299,13 +299,13 @@ export default function StaffAccountsPage() {
       </div>
 
       {isLoading && (
-        <div className="mt-4 flex items-center justify-center gap-2 py-4 text-sm text-zinc-400">
+        <div className="mt-4 flex items-center justify-center gap-2 py-4 text-sm text-secondary">
           Chargement…
         </div>
       )}
 
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between text-sm text-zinc-400">
+        <div className="mt-4 flex items-center justify-between text-sm text-secondary">
           <span>
             Page {page} / {totalPages}
           </span>
@@ -313,14 +313,14 @@ export default function StaffAccountsPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="rounded-lg border border-white/10 px-3 py-1.5 hover:bg-white/5 disabled:opacity-40"
+              className="rounded-lg border border-border px-3 py-1.5 hover:bg-hover/10 disabled:opacity-40"
             >
               Précédent
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="rounded-lg border border-white/10 px-3 py-1.5 hover:bg-white/5 disabled:opacity-40"
+              className="rounded-lg border border-border px-3 py-1.5 hover:bg-hover/10 disabled:opacity-40"
             >
               Suivant
             </button>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, CheckCircle2, KeyRound, ShieldCheck } from "lucide-react";
-import { SovrackBrand } from "@/components/marketing/sovrack-logo";
+import { SovrackBrand } from "@/shared/ui/sovrack-logo";
 import { staffService } from "@/features/staff/api/staff.service";
 import { getApiErrorMessage } from "@/shared/lib/api";
 import {
@@ -57,11 +57,11 @@ function StaffResetPasswordForm() {
   };
 
   return (
-    <main className="min-h-screen bg-brand text-zinc-200">
-      <header className="border-b border-white/10 bg-brand/80 backdrop-blur-xl">
+    <main className="min-h-screen bg-app text-primary">
+      <header className="border-b border-border bg-app/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center px-6">
           <Link href="/" className="flex items-center">
-            <SovrackBrand logoSize={30} textClassName="text-white" />
+            <SovrackBrand logoClassName="h-7 w-7 text-primary" textClassName="text-primary" />
           </Link>
         </div>
       </header>
@@ -69,30 +69,30 @@ function StaffResetPasswordForm() {
       <section className="mx-auto flex max-w-md items-center px-6 pb-24 pt-16">
         <div className="w-full">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/15 text-sky-300">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent">
               <ShieldCheck size={20} />
             </span>
             <div>
-              <h1 className="text-2xl font-bold text-white">
+              <h1 className="text-2xl font-bold text-primary">
                 Nouveau mot de passe Staff
               </h1>
-              <p className="text-sm text-zinc-400">Back-office Sovrack</p>
+              <p className="text-sm text-secondary">Back-office Sovrack</p>
             </div>
           </div>
 
           {completed ? (
-            <div className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-6">
+            <div className="mt-8 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-6">
               <CheckCircle2 className="text-emerald-400" size={32} />
-              <h2 className="mt-4 text-lg font-semibold text-white">
+              <h2 className="mt-4 text-lg font-semibold text-primary">
                 Mot de passe modifié
               </h2>
-              <p className="mt-2 text-sm text-zinc-300">
+              <p className="mt-2 text-sm text-secondary">
                 Toutes les anciennes sessions Staff ont été révoquées.
               </p>
               <button
                 type="button"
                 onClick={() => router.replace("/staff/login")}
-                className="mt-5 w-full rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-zinc-950"
+                className="mt-5 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground"
               >
                 Se connecter au back-office
               </button>
@@ -100,7 +100,7 @@ function StaffResetPasswordForm() {
           ) : (
             <form onSubmit={submit} className="mt-10 space-y-4">
               <label className="block">
-                <span className="text-sm font-medium text-zinc-300">
+                <span className="text-sm font-medium text-secondary">
                   Email Staff
                 </span>
                 <input
@@ -109,11 +109,11 @@ function StaffResetPasswordForm() {
                   onChange={(event) => setEmail(event.target.value)}
                   autoComplete="email"
                   required
-                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none focus:border-sky-400"
+                  className="mt-1.5 w-full rounded-lg border border-border bg-hover/10 px-4 py-2.5 text-sm text-primary outline-none focus:border-accent"
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-zinc-300">
+                <span className="text-sm font-medium text-secondary">
                   Code à 8 chiffres
                 </span>
                 <input
@@ -127,11 +127,11 @@ function StaffResetPasswordForm() {
                     setCode(event.target.value.replace(/\D/g, ""))
                   }
                   required
-                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-center text-lg tracking-[0.35em] text-white outline-none focus:border-sky-400"
+                  className="mt-1.5 w-full rounded-lg border border-border bg-hover/10 px-4 py-2.5 text-center text-lg tracking-[0.35em] text-primary outline-none focus:border-accent"
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-zinc-300">
+                <span className="text-sm font-medium text-secondary">
                   Nouveau mot de passe
                 </span>
                 <input
@@ -142,11 +142,11 @@ function StaffResetPasswordForm() {
                   minLength={SOVRACK_PASSWORD_MIN_LENGTH}
                   maxLength={SOVRACK_PASSWORD_MAX_LENGTH}
                   required
-                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none focus:border-sky-400"
+                  className="mt-1.5 w-full rounded-lg border border-border bg-hover/10 px-4 py-2.5 text-sm text-primary outline-none focus:border-accent"
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-medium text-zinc-300">
+                <span className="text-sm font-medium text-secondary">
                   Confirmer le mot de passe
                 </span>
                 <input
@@ -155,21 +155,21 @@ function StaffResetPasswordForm() {
                   onChange={(event) => setConfirmation(event.target.value)}
                   autoComplete="new-password"
                   required
-                  className="mt-1.5 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-white outline-none focus:border-sky-400"
+                  className="mt-1.5 w-full rounded-lg border border-border bg-hover/10 px-4 py-2.5 text-sm text-primary outline-none focus:border-accent"
                 />
               </label>
-              <p className="text-xs leading-relaxed text-zinc-500">
+              <p className="text-xs leading-relaxed text-muted">
                 {SOVRACK_PASSWORD_MESSAGE}
               </p>
               {error ? (
-                <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                   {error}
                 </p>
               ) : null}
               <button
                 type="submit"
                 disabled={loading || code.length !== 8}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white shadow-md shadow-blue-500/20 transition hover:bg-[#1d4ed8] disabled:opacity-50"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-3 text-sm font-semibold text-accent-foreground   transition hover:bg-accent-hover disabled:opacity-50"
               >
                 <KeyRound size={16} />
                 {loading ? "Réinitialisation…" : "Modifier le mot de passe"}
@@ -179,7 +179,7 @@ function StaffResetPasswordForm() {
 
           <Link
             href="/staff/forgot-password"
-            className="mt-8 inline-flex items-center gap-1 text-sm font-semibold text-sky-400 hover:text-sky-300"
+            className="mt-8 inline-flex items-center gap-1 text-sm font-semibold text-accent hover:text-accent"
           >
             <ArrowLeft size={14} /> Demander un nouveau code
           </Link>

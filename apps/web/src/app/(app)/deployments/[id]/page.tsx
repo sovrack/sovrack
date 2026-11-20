@@ -113,13 +113,13 @@ export default function DeploymentDetailPage({
       <div className="flex items-center justify-center py-20">
         <Loader2
           size={24}
-          className="animate-spin text-[var(--text-secondary)]"
+          className="animate-spin text-secondary"
         />
       </div>
     );
   if (qErr || !dep)
     return (
-      <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-center text-sm text-red-300">
+      <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6 text-center text-sm text-red-300">
         {qErr ? getApiErrorMessage(qErr) : "Déploiement introuvable."}
         <div className="mt-3">
           <Link href="/deployments" className="text-xs underline">
@@ -146,7 +146,7 @@ export default function DeploymentDetailPage({
       value: dep.project ? (
         <Link
           href={`/projects/${dep.project.id}`}
-          className="text-[var(--text-primary)] hover:underline"
+          className="text-primary hover:underline"
         >
           {dep.project.name}
         </Link>
@@ -165,7 +165,7 @@ export default function DeploymentDetailPage({
       value: dep.environment?.server ? (
         <span className="inline-flex items-center gap-1">
           <Server size={12} /> {dep.environment.server.name}{" "}
-          <span className="text-[var(--text-muted)]">
+          <span className="text-muted">
             ({dep.environment.server.host})
           </span>
         </span>
@@ -190,7 +190,7 @@ export default function DeploymentDetailPage({
     {
       label: "Pipeline CI",
       value: dep.externalPipelineId ? (
-        <span className="inline-flex items-center gap-1 font-mono text-blue-400">
+        <span className="inline-flex items-center gap-1 font-mono text-accent">
           <GitCommitHorizontal size={12} /> #{dep.externalPipelineId}
         </span>
       ) : (
@@ -226,17 +226,17 @@ export default function DeploymentDetailPage({
         <div className="space-y-2">
           <Link
             href="/deployments"
-            className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+            className="inline-flex items-center gap-1.5 text-sm text-secondary transition hover:text-primary"
           >
             <ArrowLeft size={15} /> Déploiements
           </Link>
           <div className="flex items-center gap-3">
             <DeploymentStatusBadge status={dep.status} />
-            <h1 className="text-xl font-semibold text-[var(--text-primary)]">
+            <h1 className="text-xl font-semibold text-primary">
               {dep.service?.name ?? "Déploiement"}
             </h1>
           </div>
-          <p className="font-mono text-xs text-[var(--text-muted)]">{dep.id}</p>
+          <p className="font-mono text-xs text-muted">{dep.id}</p>
         </div>
 
         {/* Actions — Logs/Conteneur sont désormais des onglets (P2.4), plus des
@@ -288,7 +288,7 @@ export default function DeploymentDetailPage({
             <button
               type="button"
               onClick={() => setRedeployOpen(true)}
-              className="flex items-center gap-1 rounded-lg bg-[var(--text-primary)] px-2.5 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90"
+              className="flex items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-xs font-semibold text-accent-foreground transition hover:bg-accent-hover"
             >
               <Rocket size={12} /> Redéployer
             </button>
@@ -317,7 +317,7 @@ export default function DeploymentDetailPage({
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
-                className="rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
+                className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted transition hover:text-primary"
               >
                 Annuler
               </button>
@@ -326,7 +326,7 @@ export default function DeploymentDetailPage({
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--text-muted)] transition hover:text-red-400"
+              className="flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted transition hover:text-red-400"
             >
               <Trash2 size={12} /> Supprimer
             </button>
@@ -335,13 +335,13 @@ export default function DeploymentDetailPage({
       </div>
 
       {actError && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           <XCircle size={14} /> {actError}
         </div>
       )}
 
       {/* Onglets (P2.4) — cohérent avec la page de détail d'un service. */}
-      <div className="border-b border-[var(--border)]">
+      <div className="border-b border-border">
         <nav className="-mb-px flex gap-1 overflow-x-auto">
           {(
             [
@@ -356,7 +356,7 @@ export default function DeploymentDetailPage({
               key={id}
               type="button"
               onClick={() => setTab(id)}
-              className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition ${tab === id ? "border-[var(--text-primary)] text-[var(--text-primary)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+              className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition ${tab === id ? "border-accent text-primary" : "border-transparent text-secondary hover:text-primary"}`}
             >
               <Icon size={14} /> {label}
             </button>
@@ -368,13 +368,13 @@ export default function DeploymentDetailPage({
       {tab === "general" && (
         <div className="space-y-6">
           {url && (
-            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-4">
               {dep.status === "SUCCESS" ? (
                 <CheckCircle2 size={16} className="text-green-400" />
               ) : (
-                <Globe size={16} className="text-[var(--text-muted)]" />
+                <Globe size={16} className="text-muted" />
               )}
-              <span className="text-sm text-[var(--text-secondary)]">
+              <span className="text-sm text-secondary">
                 URL de l’application
               </span>
               <a
@@ -388,17 +388,17 @@ export default function DeploymentDetailPage({
             </div>
           )}
 
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-            <p className="mb-3 text-sm font-semibold text-[var(--text-primary)]">
+          <div className="rounded-lg border border-border bg-card p-5">
+            <p className="mb-3 text-sm font-semibold text-primary">
               Détails
             </p>
             <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
               {meta.map((m) => (
                 <div key={m.label}>
-                  <dt className="text-xs text-[var(--text-muted)]">
+                  <dt className="text-xs text-muted">
                     {m.label}
                   </dt>
-                  <dd className="mt-0.5 text-sm text-[var(--text-primary)]">
+                  <dd className="mt-0.5 text-sm text-primary">
                     {m.value}
                   </dd>
                 </div>
@@ -407,15 +407,15 @@ export default function DeploymentDetailPage({
           </div>
 
           {specRows.length > 0 && (
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
-              <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
+            <div className="rounded-lg border border-border bg-card p-5">
+              <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-primary">
                 <Clock size={13} /> Configuration figée (version immuable)
               </p>
               <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
                 {specRows.map(([k, v]) => (
                   <div key={k}>
-                    <dt className="text-xs text-[var(--text-muted)]">{k}</dt>
-                    <dd className="mt-0.5 break-all font-mono text-xs text-[var(--text-primary)]">
+                    <dt className="text-xs text-muted">{k}</dt>
+                    <dd className="mt-0.5 break-all font-mono text-xs text-primary">
                       {String(v)}
                     </dd>
                   </div>

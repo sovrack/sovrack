@@ -33,7 +33,7 @@ function Toast({
 }) {
   return (
     <div
-      className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg backdrop-blur-sm transition-all ${
+      className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm  backdrop-blur-sm transition-all ${
         item.tone === "success"
           ? "border-green-500/20 bg-green-500/10 text-green-300"
           : "border-red-500/20 bg-red-500/10 text-red-300"
@@ -61,27 +61,27 @@ function EmptyProviders({
   onAdd: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg-app)] py-16 text-center">
+    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-app py-16 text-center">
       <div className="mb-4 flex items-center gap-2">
         <span
           role="img"
           aria-label="GitLab"
-          className="flex h-14 w-14 items-center justify-center rounded-2xl border border-orange-500/20 bg-orange-500/10"
+          className="flex h-14 w-14 items-center justify-center rounded-lg border border-accent/20 bg-accent/10"
         >
           <GitLabLogo className="h-7 w-7" />
         </span>
         <span
           role="img"
           aria-label="GitHub"
-          className="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-500/25 bg-zinc-500/10 text-[var(--text-primary)]"
+          className="flex h-14 w-14 items-center justify-center rounded-lg border border-border bg-hover/10 text-primary"
         >
           <GitHubLogo className="h-7 w-7" />
         </span>
       </div>
-      <h3 className="text-base font-semibold text-[var(--text-primary)]">
+      <h3 className="text-base font-semibold text-primary">
         Aucun fournisseur Git connecté
       </h3>
-      <p className="mt-1.5 max-w-sm text-sm text-[var(--text-secondary)]">
+      <p className="mt-1.5 max-w-sm text-sm text-secondary">
         Connectez GitHub ou GitLab pour importer vos dépôts, déclencher les
         pipelines et automatiser les déploiements de vos projets.
       </p>
@@ -102,7 +102,7 @@ function SkeletonLoading() {
       {[1, 2].map((i) => (
         <div
           key={i}
-          className="h-40 animate-pulse rounded-xl border border-[var(--border)] bg-[var(--hover)]"
+          className="h-40 animate-pulse rounded-lg border border-border bg-hover/10"
         />
       ))}
     </div>
@@ -360,10 +360,10 @@ export default function GitSettingsPage() {
             ) : (
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)]">
+                  <h2 className="flex items-center gap-2 text-sm font-semibold text-secondary">
                     <GitBranch size={14} />
                     Fournisseurs connectés
-                    <span className="rounded-full border border-[var(--border)] bg-[var(--hover)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--text-muted)]">
+                    <span className="rounded-md border border-border bg-hover/10 px-1.5 py-0.5 text-[10px] font-bold text-muted">
                       {providers.length}
                     </span>
                   </h2>

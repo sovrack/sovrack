@@ -18,9 +18,9 @@ import { timeAgo } from "@/features/deployments/utils";
 const STATUS_TONE: Record<string, string> = {
   success: "text-green-400 border-green-500/30 bg-green-500/10",
   failed: "text-red-400 border-red-500/30 bg-red-500/10",
-  running: "text-blue-400 border-blue-500/30 bg-blue-500/10",
+  running: "text-accent border-accent/30 bg-accent/10",
   pending: "text-amber-400 border-amber-500/30 bg-amber-500/10",
-  canceled: "text-zinc-400 border-zinc-500/30 bg-zinc-500/10",
+  canceled: "text-secondary border-border bg-hover/10",
 };
 
 /**
@@ -56,10 +56,10 @@ export function ServicePipelines({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-[var(--text-primary)]">
+          <p className="text-sm font-semibold text-primary">
             {t("Pipelines (CI/CD)")}
           </p>
-          <p className="text-xs text-[var(--text-secondary)]">
+          <p className="text-xs text-secondary">
             {t("CI history of the repository")}
             {branch ? ` (${t("branch")} ${branch})` : ""}.
           </p>
@@ -68,32 +68,32 @@ export function ServicePipelines({
           type="button"
           onClick={() => void refetch()}
           disabled={isFetching}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] transition hover:text-[var(--text-primary)] disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted transition hover:text-primary disabled:opacity-40"
         >
           <RefreshCw size={13} className={isFetching ? "animate-spin" : ""} />
         </button>
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           <XCircle size={14} /> {getApiErrorMessage(error)}
         </div>
       )}
 
       {isLoading && (
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-8 text-sm text-[var(--text-secondary)]">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-8 text-sm text-secondary">
           <Loader2 size={14} className="animate-spin" />{" "}
           {t("Loading pipelines…")}
         </div>
       )}
 
       {!isLoading && !error && pipelines.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--border)] py-14 text-center">
-          <CheckCircle2 size={26} className="mb-3 text-[var(--text-muted)]" />
-          <p className="text-sm font-semibold text-[var(--text-primary)]">
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-14 text-center">
+          <CheckCircle2 size={26} className="mb-3 text-muted" />
+          <p className="text-sm font-semibold text-primary">
             {t("No pipelines")}
           </p>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">
+          <p className="mt-1 text-xs text-secondary">
             {t(
               "CI pipelines will appear here as soon as the repository triggers one.",
             )}
@@ -102,26 +102,26 @@ export function ServicePipelines({
       )}
 
       {pipelines.length > 0 && (
-        <div className="overflow-hidden rounded-2xl border border-[var(--border)]">
+        <div className="overflow-hidden rounded-lg border border-border">
           {pipelines.map((p, i) => (
             <div
               key={p.id}
-              className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 ${i !== 0 ? "border-t border-[var(--border)]" : ""}`}
+              className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 ${i !== 0 ? "border-t border-border" : ""}`}
             >
               <span
-                className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_TONE[p.status] ?? "text-zinc-400 border-zinc-500/30 bg-zinc-500/10"}`}
+                className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase ${STATUS_TONE[p.status] ?? "text-secondary border-border bg-hover/10"}`}
               >
                 {p.status}
               </span>
-              <span className="flex items-center gap-1 font-mono text-xs text-[var(--text-primary)]">
+              <span className="flex items-center gap-1 font-mono text-xs text-primary">
                 <GitBranch size={11} /> {p.ref}
               </span>
               {p.sha && (
-                <span className="font-mono text-xs text-[var(--text-muted)]">
+                <span className="font-mono text-xs text-muted">
                   {p.sha.slice(0, 7)}
                 </span>
               )}
-              <span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+              <span className="flex items-center gap-1 text-xs text-muted">
                 <Clock size={10} /> {timeAgo(p.created_at)}
               </span>
               {p.web_url && (
@@ -129,7 +129,7 @@ export function ServicePipelines({
                   href={p.web_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="ml-auto flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+                  className="ml-auto flex items-center gap-1 text-xs font-semibold text-secondary transition hover:text-primary"
                 >
                   {t("Open")} <ExternalLink size={11} />
                 </a>

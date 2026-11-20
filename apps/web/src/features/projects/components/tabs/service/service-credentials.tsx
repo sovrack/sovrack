@@ -41,7 +41,7 @@ export function ServiceCredentials({
 
   if (query.isLoading) {
     return (
-      <div className="flex items-center gap-2 p-6 text-sm text-[var(--text-secondary)]">
+      <div className="flex items-center gap-2 p-6 text-sm text-secondary">
         <Loader2 size={15} className="animate-spin" /> Loading credentials…
       </div>
     );
@@ -101,7 +101,7 @@ export function ServiceCredentials({
         title="Internal Credentials"
         description="Used automatically by other services in this project — they connect over the internal Docker network, no external exposure needed."
       >
-        <div className="mb-3 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+        <div className="mb-3 flex items-center gap-2 text-xs text-secondary">
           <Lock size={13} /> Reachable only from inside this project&apos;s
           network.
         </div>
@@ -149,20 +149,20 @@ export function ServiceCredentials({
           </p>
         </div>
 
-        <label className="mt-4 flex items-center gap-2 text-sm text-[var(--text-primary)]">
+        <label className="mt-4 flex items-center gap-2 text-sm text-primary">
           <input
             type="checkbox"
             checked={enabled}
             onChange={(e) => setExposeEnabled(e.target.checked)}
-            className="h-4 w-4 accent-[var(--text-primary)]"
+            className="h-4 w-4 accent-primary"
           />
-          <Globe size={14} className="text-[var(--text-secondary)]" />
+          <Globe size={14} className="text-secondary" />
           Expose this database on a host port
         </label>
 
         {enabled && (
           <div className="mt-3 max-w-xs">
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-secondary">
               External port
             </label>
             <input
@@ -171,9 +171,9 @@ export function ServiceCredentials({
               max={65535}
               value={port}
               onChange={(e) => setPortInput(e.target.value)}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-app)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-muted)]"
+              className="w-full rounded-lg border border-border bg-app px-3 py-2 text-sm text-primary outline-none focus:border-muted"
             />
-            <p className="mt-1 text-[11px] text-[var(--text-secondary)]">
+            <p className="mt-1 text-[11px] text-secondary">
               Published on the server host. The container port stays{" "}
               {creds.internal.port}.
             </p>

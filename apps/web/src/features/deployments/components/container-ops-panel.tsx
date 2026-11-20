@@ -42,9 +42,9 @@ export function ContainerOpsPanel({
   return (
     <>
       {/* Stats */}
-      <div className="border-b border-[var(--border)] px-5 py-3">
+      <div className="border-b border-border px-5 py-3">
         {error && (
-          <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+          <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
             <XCircle size={14} /> {error}
           </div>
         )}
@@ -69,8 +69,8 @@ export function ContainerOpsPanel({
 
       {/* Ops toolbar */}
       {container && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border)] px-5 py-2.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+        <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-2.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
             Actions
           </span>
           <OpBtn
@@ -94,7 +94,7 @@ export function ContainerOpsPanel({
             icon={<RotateCcw size={11} />}
             busy={acting === "restart"}
             onClick={() => onAction("restart")}
-            className="text-blue-400 border-blue-500/30 hover:bg-blue-500/10"
+            className="text-accent border-accent/30 hover:bg-accent/10"
           />
           {confirmRemove ? (
             <span className="flex items-center gap-1.5">
@@ -108,7 +108,7 @@ export function ContainerOpsPanel({
               <button
                 type="button"
                 onClick={() => onConfirmRemove(false)}
-                className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                className="rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted hover:text-primary"
               >
                 Annuler
               </button>
@@ -125,15 +125,15 @@ export function ContainerOpsPanel({
       )}
 
       {/* Logs */}
-      <div className="flex-1 overflow-y-auto bg-zinc-950 p-4 font-mono text-xs leading-relaxed">
+      <div className="flex-1 overflow-y-auto bg-app p-4 font-mono text-xs leading-relaxed">
         {loading && !info && (
-          <div className="flex items-center gap-2 text-[var(--text-muted)]">
+          <div className="flex items-center gap-2 text-muted">
             <Loader2 size={12} className="animate-spin" /> SSH connection and
             fetching logs…
           </div>
         )}
         {!loading && info && !info.logs && (
-          <span className="text-zinc-600">No container logs.</span>
+          <span className="text-muted">No container logs.</span>
         )}
         {info?.logs && (
           <pre className="whitespace-pre-wrap break-words text-green-300">
@@ -166,7 +166,7 @@ function OpBtn({
       type="button"
       onClick={onClick}
       disabled={busy || disabled}
-      className={`flex items-center gap-1 rounded-lg border bg-[var(--bg-card)] px-2.5 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${className ?? ""}`}
+      className={`flex items-center gap-1 rounded-lg border bg-card px-2.5 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${className ?? ""}`}
     >
       {busy ? <Loader2 size={11} className="animate-spin" /> : icon} {label}
     </button>
@@ -187,17 +187,17 @@ function Stat({
   color?: string;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+    <div className="rounded-lg border border-border bg-card px-3 py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
         {label}
       </p>
       <p
-        className={`mt-1 text-sm font-bold ${mono ? "font-mono" : "capitalize"} ${color ?? "text-[var(--text-primary)]"}`}
+        className={`mt-1 text-sm font-bold ${mono ? "font-mono" : "capitalize"} ${color ?? "text-primary"}`}
       >
         {value}
       </p>
       {sub && (
-        <p className="font-mono text-[10px] text-[var(--text-muted)]">{sub}</p>
+        <p className="font-mono text-[10px] text-muted">{sub}</p>
       )}
     </div>
   );

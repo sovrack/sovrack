@@ -41,8 +41,8 @@ export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
       dismissable={!loading}
       title="Add Member"
       icon={
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--text-primary)]/15">
-          <UserPlus size={16} className="text-[var(--text-secondary)]" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10">
+          <UserPlus size={16} className="text-secondary" />
         </div>
       }
       footer={
@@ -68,7 +68,7 @@ export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
       }
     >
       {error && (
-        <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {error}
         </div>
       )}
@@ -77,7 +77,7 @@ export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
         <div>
           <label
             htmlFor="add-member-email"
-            className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]"
+            className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary"
           >
             Email <span className="text-red-400">*</span>
           </label>
@@ -89,14 +89,14 @@ export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
             placeholder="developer@example.com"
             required
             autoFocus
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:bg-[var(--bg-card)]/10 focus:ring-2 focus:ring-zinc-500/20"
+            className="w-full rounded-lg border border-border bg-card/5 px-4 py-3 text-sm text-primary outline-none transition placeholder:text-secondary focus:border-border focus:bg-card/10 focus:ring-2 focus:ring-accent/20"
           />
         </div>
 
         <div>
           <label
             htmlFor="add-member-role"
-            className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)]"
+            className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.15em] text-secondary"
           >
             Role
           </label>
@@ -104,7 +104,7 @@ export function AddMemberModal({ open, onClose, onAdd }: AddMemberModalProps) {
             id="add-member-role"
             value={role}
             onChange={(e) => setRole(e.target.value as ProjectRole)}
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--border)] focus:bg-[var(--bg-card)]/10 focus:ring-2 focus:ring-zinc-500/20"
+            className="w-full rounded-lg border border-border bg-card/5 px-4 py-3 text-sm text-primary outline-none transition focus:border-border focus:bg-card/10 focus:ring-2 focus:ring-accent/20"
           >
             <option value="DEVELOPER">Developer — Can deploy</option>
             <option value="VIEWER">Viewer — Read only</option>

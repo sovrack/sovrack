@@ -83,11 +83,11 @@ export function ServiceVariablesTab({
         title="Variables"
         description="Environment variables and secrets for this service."
       >
-        <p className="text-sm text-[var(--text-secondary)]">
+        <p className="text-sm text-secondary">
           No environment — create one in the project&apos;s{" "}
           <Link
             href={`/projects/${projectId}?openEnvironments=true`}
-            className="underline hover:text-[var(--text-primary)]"
+            className="underline hover:text-primary"
           >
             Environments
           </Link>{" "}
@@ -104,7 +104,7 @@ export function ServiceVariablesTab({
         description="Environment variables and secrets for this service."
       >
         {linkError && <p className="mb-2 text-xs text-red-400">{linkError}</p>}
-        <p className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+        <p className="flex items-center gap-2 text-sm text-secondary">
           {linking && <Loader2 size={14} className="animate-spin" />}
           {linking ? "Linking this service to the environment…" : "Unable to load variables for this environment."}
         </p>
@@ -118,8 +118,8 @@ export function ServiceVariablesTab({
       description="Environment variables and secrets for this service, for the environment selected above."
     >
       {autoWiredDbs.length > 0 && (
-        <div className="mb-3 space-y-2 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2.5">
-          <p className="text-xs text-blue-300">
+        <div className="mb-3 space-y-2 rounded-lg border border-accent/20 bg-accent/10 px-3 py-2.5">
+          <p className="text-xs text-accent">
             {autoWiredDbs.length > 1
               ? "These connection variables are "
               : "This connection variable is "}
@@ -222,10 +222,10 @@ function EnvVarsEditor({
   };
 
   const lbl =
-    "mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]";
+    "mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-muted";
 
   if (loading) {
-    return <p className="text-xs text-[var(--text-muted)]">Loading…</p>;
+    return <p className="text-xs text-muted">Loading…</p>;
   }
 
   return (
@@ -233,7 +233,7 @@ function EnvVarsEditor({
       <div>
         <label className={lbl}>
           Variables{" "}
-          <span className="normal-case text-[var(--text-muted)]/70">
+          <span className="normal-case text-muted/70">
             (.env format — NAME=value, one per line)
           </span>
         </label>
@@ -242,7 +242,7 @@ function EnvVarsEditor({
       <div>
         <label className={lbl}>Secrets (encrypted at rest · write-only)</label>
         <KvRows rows={secrets} setRows={setSecrets} secret />
-        <p className="mt-1 text-[10px] text-[var(--text-muted)]">
+        <p className="mt-1 text-[10px] text-muted">
           Leave empty to keep the existing secrets.
         </p>
       </div>
@@ -251,7 +251,7 @@ function EnvVarsEditor({
           type="button"
           onClick={() => void save()}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--text-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--bg-app)] transition hover:opacity-90 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground transition hover:bg-accent-hover disabled:opacity-50"
         >
           {saving ? (
             <Loader2 size={12} className="animate-spin" />
@@ -261,7 +261,7 @@ function EnvVarsEditor({
           Save
         </button>
         {msg && (
-          <span className="text-xs text-[var(--text-secondary)]">{msg}</span>
+          <span className="text-xs text-secondary">{msg}</span>
         )}
       </div>
     </div>

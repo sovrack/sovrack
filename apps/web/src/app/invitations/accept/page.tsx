@@ -51,9 +51,9 @@ function InvitationAcceptance() {
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
-      <section className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-6 text-center">
+      <section className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center">
         <h1 className="text-xl font-semibold">Workspace invitation</h1>
-        <p className="mt-2 text-sm text-[var(--text-secondary)]">
+        <p className="mt-2 text-sm text-secondary">
           Confirm that you want to join this workspace with the current account.
         </p>
         {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
@@ -61,7 +61,7 @@ function InvitationAcceptance() {
           type="button"
           onClick={() => void accept()}
           disabled={!token || submitting}
-          className="mt-6 inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--text-primary)] px-5 text-sm font-semibold text-[var(--bg-app)] disabled:opacity-50"
+          className="mt-6 inline-flex h-10 items-center gap-2 rounded-lg bg-accent px-5 text-sm font-semibold text-accent-foreground disabled:opacity-50"
         >
           {submitting && <Loader2 size={14} className="animate-spin" />}
           Accept invitation

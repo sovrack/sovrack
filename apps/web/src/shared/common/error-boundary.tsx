@@ -52,17 +52,17 @@ export class ErrorBoundary extends React.Component<
     }
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-app)] px-4">
-        <div className="w-full max-w-lg rounded-2xl border border-red-500/30 bg-[var(--bg-card)] p-6 shadow-theme-xs">
+      <div className="flex min-h-screen items-center justify-center bg-app px-4">
+        <div className="w-full max-w-lg rounded-lg border border-red-500/30 bg-card p-6 shadow-theme-xs">
           <div className="flex items-start gap-3">
-            <div className="rounded-xl bg-red-500/15 p-2">
+            <div className="rounded-lg bg-red-500/15 p-2">
               <AlertTriangle size={20} className="text-red-300" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-[var(--text-primary)]">
+              <h1 className="text-lg font-semibold text-primary">
                 Oups, une erreur est survenue
               </h1>
-              <p className="mt-1 text-sm text-[var(--text-secondary)]">
+              <p className="mt-1 text-sm text-secondary">
                 {this.state.message}
               </p>
             </div>
@@ -72,7 +72,7 @@ export class ErrorBoundary extends React.Component<
             <button
               type="button"
               onClick={this.handleRetry}
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2 text-sm font-semibold text-[var(--bg-app)] transition hover:bg-[var(--text-primary)]"
+              className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:bg-accent-hover"
             >
               <RotateCcw size={14} />
               Retry
@@ -80,7 +80,7 @@ export class ErrorBoundary extends React.Component<
             <button
               type="button"
               onClick={this.handleGoDashboard}
-              className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/5 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-card)]/10"
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card/5 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-card/10"
             >
               <Home size={14} />
               Retour au dashboard

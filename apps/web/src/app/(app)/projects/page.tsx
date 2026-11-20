@@ -93,7 +93,7 @@ export default function ProjectsPage() {
               <button
                 type="button"
                 onClick={() => setCreateDialogOpen(true)}
-                className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--bg-app)] shadow transition hover:opacity-90"
+                className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground  transition hover:bg-accent-hover"
               >
                 <Plus size={16} />
                 New Project
@@ -104,33 +104,33 @@ export default function ProjectsPage() {
       />
 
       <SectionCard
-        className="overflow-hidden rounded-[28px]"
+        className="overflow-hidden rounded-lg"
         contentClassName="!p-0"
       >
         <div className="grid grid-cols-1 gap-3 p-5 sm:grid-cols-3">
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-            <p className="text-xs font-medium text-[var(--text-secondary)]">
+          <div className="rounded-lg border border-border bg-card px-4 py-3">
+            <p className="text-xs font-medium text-secondary">
               Total projects
             </p>
-            <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">
+            <p className="mt-1 text-2xl font-bold text-primary">
               {projects.length}
             </p>
           </div>
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-            <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)] text-[var(--text-primary)]">
+          <div className="rounded-lg border border-border bg-card px-4 py-3">
+            <div className="flex items-center gap-2 text-xs font-medium text-secondary text-primary">
               <Link2 size={14} />
               GitLab connected
             </div>
-            <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">
+            <p className="mt-1 text-2xl font-bold text-primary">
               {gitlabConnectedCount}
             </p>
           </div>
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3">
-            <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)] text-[var(--text-primary)]">
+          <div className="rounded-lg border border-border bg-card px-4 py-3">
+            <div className="flex items-center gap-2 text-xs font-medium text-secondary text-primary">
               <Workflow size={14} />
               Ready for deploy
             </div>
-            <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">
+            <p className="mt-1 text-2xl font-bold text-primary">
               {readyForDeployCount}
             </p>
           </div>
@@ -142,14 +142,14 @@ export default function ProjectsPage() {
           <div className="relative max-w-sm">
             <Search
               size={15}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-secondary"
             />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search projects..."
-              className="h-10 w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] pl-9 pr-4 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-secondary)] focus:border-[var(--border)] focus:ring-1 focus:ring-zinc-400"
+              className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-4 text-sm text-primary outline-none transition placeholder:text-secondary focus:border-border focus:ring-1 focus:ring-accent/30"
             />
           </div>
         </SectionCard>
@@ -162,19 +162,19 @@ export default function ProjectsPage() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5"
+              className="animate-pulse rounded-lg border border-border bg-card p-5"
             >
               <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-xl bg-[var(--hover)]" />
+                <div className="h-10 w-10 rounded-lg bg-hover/10" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-32 rounded bg-[var(--hover)]" />
-                  <div className="h-3 w-24 rounded bg-[var(--hover)]" />
+                  <div className="h-4 w-32 rounded bg-hover/10" />
+                  <div className="h-3 w-24 rounded bg-hover/10" />
                 </div>
               </div>
-              <div className="mt-4 h-3 w-20 rounded bg-[var(--hover)]" />
-              <div className="mt-4 flex gap-4 border-t border-[var(--border)] pt-3">
-                <div className="h-3 w-16 rounded bg-[var(--hover)]" />
-                <div className="h-3 w-16 rounded bg-[var(--hover)]" />
+              <div className="mt-4 h-3 w-20 rounded bg-hover/10" />
+              <div className="mt-4 flex gap-4 border-t border-border pt-3">
+                <div className="h-3 w-16 rounded bg-hover/10" />
+                <div className="h-3 w-16 rounded bg-hover/10" />
               </div>
             </div>
           ))}
@@ -193,13 +193,13 @@ export default function ProjectsPage() {
           contentClassName="!py-12 text-center"
           className="border-dashed"
         >
-          <p className="text-sm font-medium text-[var(--text-secondary)]">
+          <p className="text-sm font-medium text-secondary">
             No projects match &quot;{search}&quot;
           </p>
           <button
             type="button"
             onClick={() => setSearch("")}
-            className="mt-2 text-xs text-[var(--text-secondary)] hover:underline"
+            className="mt-2 text-xs text-secondary hover:underline"
           >
             Clear search
           </button>
@@ -208,8 +208,8 @@ export default function ProjectsPage() {
 
       {!loading && filtered.length > 0 && (
         <>
-          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-            <FolderGit2 size={14} className="text-[var(--text-secondary)]" />
+          <div className="flex items-center gap-2 text-xs text-secondary">
+            <FolderGit2 size={14} className="text-secondary" />
             <span>
               {filtered.length} project{filtered.length !== 1 ? "s" : ""} shown
             </span>
