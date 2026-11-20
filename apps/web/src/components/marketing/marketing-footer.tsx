@@ -1,44 +1,58 @@
 import Link from "next/link";
 import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
-import { SovrackLogo } from "@/shared/ui/sovrack-logo";
+import { SovrackBrand } from "@/shared/ui/sovrack-logo";
 
 export default function MarketingFooter() {
-  const publicMarketingEnabled = isCapabilityEnabled("publicMarketingCopy");
   const publicDocumentationEnabled = isCapabilityEnabled("publicDocumentation");
   const publicPricingEnabled = isCapabilityEnabled("publicPricing");
 
   return (
-    <footer className="bg-app pb-10 pt-14 text-secondary">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="grid gap-12 lg:grid-cols-6">
+    <footer className="border-t border-border/70 bg-app pb-12 pt-14 text-zinc-400">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
             <Link
               href={publicSitePath("/")}
-              className="group mb-4 flex items-center gap-2.5 transition-opacity hover:opacity-90"
+              className="mb-4 inline-flex items-center transition-opacity hover:opacity-90"
+              aria-label="Sovrack Accueil"
             >
-              <SovrackLogo
-                className="w-7 h-7 text-primary shrink-0"
-              />
-              <span className="text-[18px] font-semibold tracking-[-0.02em] text-primary antialiased">
-                Sovrack
-              </span>
+              <SovrackBrand textClassName="text-[16px] font-normal tracking-[-0.02em] text-white" />
             </Link>
-            <p className="max-w-xs text-sm leading-relaxed text-secondary">
-              {publicMarketingEnabled
-                ? "Déployez et exploitez vos applications Docker sur vos propres serveurs, depuis un espace unique."
-                : "Déployez vos applications sur vos propres serveurs."}
+            <p className="max-w-sm text-xs leading-relaxed text-zinc-400 mt-2">
+              Plateforme open-core de déploiement et d&apos;orchestration de conteneurs Docker sur vos propres serveurs VPS.
+            </p>
+            <p className="mt-4 text-[11px] text-zinc-500 font-mono">
+              © {new Date().getFullYear()} Sovrack. Tous droits réservés.
             </p>
           </div>
 
           <div>
-            <h4 className="mb-4 text-sm font-semibold text-primary">Produit</h4>
-            <ul className="space-y-3 text-sm">
+            <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-white">
+              Produit
+            </h4>
+            <ul className="space-y-2 text-xs">
+              <li>
+                <Link
+                  href={publicSitePath("/features")}
+                  className="transition-colors hover:text-white"
+                >
+                  Fonctionnalités
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={publicSitePath("/architecture")}
+                  className="transition-colors hover:text-white"
+                >
+                  Architecture
+                </Link>
+              </li>
               {publicPricingEnabled && (
                 <li>
                   <Link
                     href={publicSitePath("/pricing")}
-                    className="transition hover:text-accent"
+                    className="transition-colors hover:text-white"
                   >
                     Tarifs
                   </Link>
@@ -46,41 +60,25 @@ export default function MarketingFooter() {
               )}
               <li>
                 <Link
-                  href={customerAppPath("/register")}
-                  className="transition hover:text-accent"
+                  href={publicSitePath("/changelog")}
+                  className="transition-colors hover:text-white"
                 >
-                  Créer un compte
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={customerAppPath("/login")}
-                  className="transition hover:text-accent"
-                >
-                  Connexion
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={publicSitePath("/")}
-                  className="transition hover:text-accent"
-                >
-                  Accueil
+                  Changelog
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h3 className="mb-4 text-sm font-semibold text-primary">
+            <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-white">
               Ressources
-            </h3>
-            <ul className="space-y-3 text-sm">
+            </h4>
+            <ul className="space-y-2 text-xs">
               {publicDocumentationEnabled && (
                 <li>
                   <Link
                     href={publicSitePath("/docs")}
-                    className="transition hover:text-accent"
+                    className="transition-colors hover:text-white"
                   >
                     Documentation
                   </Link>
@@ -89,7 +87,7 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/security")}
-                  className="transition hover:text-accent"
+                  className="transition-colors hover:text-white"
                 >
                   Sécurité
                 </Link>
@@ -97,67 +95,52 @@ export default function MarketingFooter() {
               <li>
                 <Link
                   href={publicSitePath("/status")}
-                  className="transition hover:text-accent"
+                  className="transition-colors hover:text-white"
                 >
                   État des services
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={publicSitePath("/legal")}
-                  className="transition hover:text-accent"
-                >
-                  Mentions légales
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h3 className="mb-4 text-sm font-semibold text-primary">Contact</h3>
-            <ul className="space-y-3 text-sm">
+            <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-white">
+              Légal
+            </h4>
+            <ul className="space-y-2 text-xs">
               <li>
-                <a
-                  href="mailto:contact@sovrack.com"
-                  className="transition hover:text-accent"
+                <Link
+                  href={publicSitePath("/terms")}
+                  className="transition-colors hover:text-white"
                 >
-                  contact@sovrack.com
-                </a>
+                  Conditions d&apos;utilisation
+                </Link>
               </li>
-              <li>Tunis, Tunisie</li>
+              <li>
+                <Link
+                  href={publicSitePath("/privacy")}
+                  className="transition-colors hover:text-white"
+                >
+                  Confidentialité
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={publicSitePath("/cookies")}
+                  className="transition-colors hover:text-white"
+                >
+                  Cookies
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={publicSitePath("/legal")}
+                  className="transition-colors hover:text-white"
+                >
+                  Mentions légales
+                </Link>
+              </li>
             </ul>
-          </div>
-        </div>
-
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 pt-6 text-xs text-muted sm:flex-row">
-          <p>
-            &copy; {new Date().getFullYear()} Sovrack. Tous droits réservés.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-6 sm:justify-end">
-            <Link
-              href={publicSitePath("/terms")}
-              className="transition hover:text-accent"
-            >
-              Conditions
-            </Link>
-            <Link
-              href={publicSitePath("/privacy")}
-              className="transition hover:text-accent"
-            >
-              Confidentialité
-            </Link>
-            <Link
-              href={publicSitePath("/cookies")}
-              className="transition hover:text-accent"
-            >
-              Cookies
-            </Link>
-            <Link
-              href={publicSitePath("/acceptable-use")}
-              className="transition hover:text-accent"
-            >
-              Utilisation acceptable
-            </Link>
           </div>
         </div>
       </div>

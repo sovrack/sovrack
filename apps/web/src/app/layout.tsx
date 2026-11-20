@@ -74,12 +74,34 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const themeScript = `
+    (function () {
+      try {
+        var key = 'sovrack-theme';
+        var legacyKey = 'deploy-automation-theme';
+        var saved = localStorage.getItem(key) || localStorage.getItem(legacyKey);
+        var theme = saved === 'brand' || saved === 'light' || saved === 'dark' ? saved : 'brand';
+        var root = document.documentElement;
+        root.classList.remove('brand', 'light', 'dark');
+        if (theme === 'brand') root.classList.add('dark', 'brand');
+        else root.classList.add(theme);
+        root.style.colorScheme = theme === 'light' ? 'light' : 'dark';
+      } catch (_error) {
+        document.documentElement.classList.add('dark', 'brand');
+        document.documentElement.style.colorScheme = 'dark';
+      }
+    })();
+  `;
+
   return (
     <html
       lang="fr"
-      className={`${inter.variable} ${jetbrainsMono.variable}`}
+      className={`dark brand ${inter.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="app-shell">
         <Providers>
           <ErrorBoundary>{children}</ErrorBoundary>

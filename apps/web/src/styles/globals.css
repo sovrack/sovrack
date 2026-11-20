@@ -3,34 +3,92 @@
 @tailwind utilities;
 
 :root {
-  /* Backgrounds */
-  --bg-app: 11 13 18; /* #0B0D12 */
-  --bg-sidebar: 17 20 28; /* #11141C */
-  --bg-card: 17 20 28; /* #11141C */
-  --bg-surface: 17 20 28; /* #11141C */
+  --bg-app: #0a0a0a;
+  --bg-sidebar: #0a0a0a;
+  --bg-card: #121212;
+  --bg-surface: #121212;
+  --border: #262626;
+  --border-hover: #3f3f46;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --hover: #171717;
+  --active: #262626;
+  --accent: #2563EB;
+  --accent-hover: #1d4ed8;
+  --accent-foreground: #ffffff;
+  --sidebar-text: #e4e4e7;
+  --sidebar-text-muted: #71717a;
+  --sidebar-text-active: #ffffff;
+  --sidebar-icon: #2563EB;
+  --sidebar-active-bg: #1a1a1a;
+  --sidebar-hover-bg: rgba(26, 26, 26, 0.7);
+  --success: #22c55e;
+  --error: #ef4444;
+  --warning: #eab308;
+  --idle: #71717a;
+  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.65);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.5);
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+}
 
-  /* Borders */
-  --border: 30 36 48; /* #1E2430 */
-  --border-hover: 45 54 72; /* #2D3648 */
+.dark {
+  --bg-app: #0a0a0a;
+  --bg-sidebar: #0a0a0a;
+  --bg-card: #121212;
+  --bg-surface: #121212;
+  --border: #262626;
+  --border-hover: #3f3f46;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --hover: #171717;
+  --active: #262626;
+  --accent: #2563EB;
+  --accent-hover: #1d4ed8;
+  --accent-foreground: #ffffff;
+  --sidebar-text: #e4e4e7;
+  --sidebar-text-muted: #71717a;
+  --sidebar-text-active: #ffffff;
+  --sidebar-icon: #2563EB;
+  --sidebar-active-bg: #1a1a1a;
+  --sidebar-hover-bg: rgba(26, 26, 26, 0.7);
+  --success: #22c55e;
+  --error: #ef4444;
+  --warning: #eab308;
+  --idle: #71717a;
+  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.65);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.5);
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+}
 
-  /* Text */
-  --text-primary: 248 250 252; /* #F8FAFC */
-  --text-secondary: 148 163 184; /* #94A3B8 */
-  --text-muted: 148 163 184; /* #94A3B8 */
-
-  /* Brand accent */
-  --accent: 37 99 235; /* #2563EB */
-  --accent-hover: 59 130 246; /* #3B82F6 */
-  --accent-foreground: 255 255 255;
-
-  /* Functional status colors */
-  --success: 34 197 94; /* #22C55E */
-  --warning: 245 158 11; /* #F59E0B */
-  --error: 239 68 68; /* #EF4444 */
-
-  /* Interaction states */
-  --hover: 148 163 184;
-  --active: 148 163 184;
+.brand {
+  --bg-app: #0a0a0a;
+  --bg-sidebar: #0a0a0a;
+  --bg-card: #121212;
+  --bg-surface: #121212;
+  --border: #262626;
+  --border-hover: #3f3f46;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --hover: #171717;
+  --active: #262626;
+  --accent: #2563EB;
+  --accent-hover: #1d4ed8;
+  --accent-foreground: #ffffff;
+  --sidebar-text: #e4e4e7;
+  --sidebar-text-muted: #71717a;
+  --sidebar-text-active: #ffffff;
+  --sidebar-icon: #2563EB;
+  --sidebar-active-bg: #1a1a1a;
+  --sidebar-hover-bg: rgba(26, 26, 26, 0.7);
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.65);
+  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -43,10 +101,16 @@ body {
 }
 
 body {
-  color: rgb(var(--text-primary));
-  background-color: rgb(var(--bg-app));
+  color: var(--text-primary);
+  background-color: var(--bg-app);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   text-rendering: geometricPrecision;
+  color-scheme: dark;
+}
+
+html.dark body {
+  color: var(--text-primary);
+  background-color: var(--bg-app);
   color-scheme: dark;
 }
 
@@ -64,8 +128,7 @@ a:hover {
 }
 
 .mono {
-  font-family: var(--font-mono), ui-monospace, "SFMono-Regular", "Consolas",
-    monospace;
+  font-family: var(--font-mono), ui-monospace, "SFMono-Regular", "Consolas", monospace;
 }
 
 .fade-up {
@@ -84,8 +147,8 @@ a:hover {
 }
 
 ::selection {
-  background: rgb(var(--accent));
-  color: rgb(var(--accent-foreground));
+  background: #2563EB;
+  color: #ffffff;
 }
 
 .no-scrollbar::-webkit-scrollbar {

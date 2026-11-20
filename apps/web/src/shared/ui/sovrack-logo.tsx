@@ -1,14 +1,18 @@
 interface LogoProps {
   className?: string;
+  width?: number | string;
+  height?: number | string;
 }
 
-export function SovrackLogo({ className = "w-6 h-6" }: LogoProps) {
+export function SovrackLogo({ className = "w-6 h-6", width, height }: LogoProps) {
   return (
     <svg
       viewBox="0 0 100 100"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      width={width || 24}
+      height={height || 24}
       aria-label="Sovrack Logo"
       role="img"
     >
@@ -18,7 +22,7 @@ export function SovrackLogo({ className = "w-6 h-6" }: LogoProps) {
       />
       <polygon
         points="54.5,36.5 60.5,36.5 45.5,63.5 39.5,63.5"
-        className="fill-accent"
+        fill="#2563EB"
       />
       <polygon
         points="50,76 32,76 37.5,66.5 46,66.5 58.5,54 55.5,51 60.5,42.5 72,54"
@@ -36,16 +40,16 @@ interface BrandProps {
 
 export function SovrackBrand({
   className = "",
-  logoClassName = "w-6 h-6 text-primary",
+  logoClassName = "w-5 h-5 text-primary",
   textClassName = "",
 }: BrandProps) {
   return (
-    <span className={`inline-flex select-none items-center gap-2.5 ${className}`}>
-      <SovrackLogo className={`shrink-0 ${logoClassName}`} />
+    <span className={`inline-flex select-none items-center gap-2 ${className}`}>
+      <SovrackLogo className={`shrink-0 ${logoClassName}`} width={20} height={20} />
       <span
-        className={`text-[17px] font-semibold tracking-tight text-primary antialiased ${textClassName}`}
+        className={`text-[15px] font-normal tracking-[-0.02em] text-white antialiased ${textClassName}`}
       >
-        Sovrack
+        sovrack
       </span>
     </span>
   );

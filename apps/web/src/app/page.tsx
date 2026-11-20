@@ -5,109 +5,119 @@ import {
   Activity,
   ArrowRight,
   Boxes,
-  Building2,
   CheckCircle2,
+  Copy,
   GitBranch,
   LockKeyhole,
   Server,
   ShieldCheck,
+  Terminal,
   TerminalSquare,
-  UserRound,
+  Users,
 } from "lucide-react";
 import MarketingFooter from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import { useAuthStore } from "@/stores/auth.store";
-import { customerAppPath } from "@/shared/config/product-urls";
+import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
 
 const capabilities = [
   {
-    icon: GitBranch,
-    title: "Sources Git centralisées",
+    icon: Boxes,
+    title: "Docker & Nixpacks",
     description:
-      "Reliez vos dépôts GitHub ou GitLab et conservez le contexte de chaque déploiement.",
+      "Détection automatique de votre stack (Node, Go, Python, PHP, Rust, Dockerfile) et conteneurisation zéro friction.",
+    badge: "Conteneurs",
   },
   {
     icon: Server,
-    title: "Vos propres serveurs",
+    title: "Vos propres VPS par SSH",
     description:
-      "Enregistrez vos VPS par SSH, vérifiez leurs capacités et préparez-les depuis un même espace.",
+      "Enregistrez n'importe quel serveur Ubuntu chez OVH, Hetzner, Scaleway ou en local. Aucun agent propriétaire lourd.",
+    badge: "Infrastructure",
   },
   {
-    icon: Boxes,
-    title: "Déploiements Docker",
+    icon: GitBranch,
+    title: "GitHub & GitLab en 1 clic",
     description:
-      "Configurez projets, environnements, services et variables avant de lancer une release traçable.",
+      "Connectez vos comptes Git via OAuth ou Personal Access Token (PAT). Déclenchez automatiquement vos déploiements sur push.",
+    badge: "CI/CD",
   },
   {
     icon: ShieldCheck,
-    title: "Domaines HTTPS",
+    title: "Domaines & HTTPS Let's Encrypt",
     description:
-      "Associez vos domaines et pilotez la configuration HTTPS de vos applications.",
+      "Routage Nginx dynamique avec génération et renouvellement automatique des certificats SSL/TLS pour chaque service.",
+    badge: "Réseau",
   },
   {
     icon: TerminalSquare,
-    title: "Diagnostic opérationnel",
+    title: "Terminal SSH dans le navigateur",
     description:
-      "Consultez les journaux et utilisez les outils d’intervention réservés aux rôles autorisés.",
+      "Accédez directement à la console de vos serveurs et inspectez vos conteneurs en direct sans quitter Sovrack.",
+    badge: "Diagnostic",
   },
   {
-    icon: Activity,
-    title: "Suivi des opérations",
+    icon: Users,
+    title: "Espaces personnels & Équipes",
     description:
-      "Visualisez l’état et l’historique de vos déploiements sans perdre le lien avec le projet concerné.",
+      "Commencez seul dans votre espace personnel, puis créez des organisations pour collaborer avec gestion précise des rôles (RBAC).",
+    badge: "Multi-tenant",
+  },
+];
+
+const comparisons = [
+  {
+    feature: "Hébergement des données",
+    sovrack: "Sur vos propres serveurs (souveraineté totale)",
+    cloud: "Serveurs mutualisés propriétaires (lock-in)",
+  },
+  {
+    feature: "Coût d'infrastructure",
+    sovrack: "Coût fixe de votre VPS (ex. 5€/mois illimité)",
+    cloud: "Facturation opaque à l'usage avec fortes marges",
+  },
+  {
+    feature: "Accès système & Terminal",
+    sovrack: "Accès SSH root complet sur votre serveur",
+    cloud: "Sandbox restreinte sans accès machine",
+  },
+  {
+    feature: "Limites de déploiement",
+    sovrack: "Illimité, dicté uniquement par la RAM de votre VPS",
+    cloud: "Quotas stricts de bande passante et CPU",
   },
 ];
 
 const steps = [
   {
-    number: "01",
-    title: "Créez votre espace",
-    description:
-      "Choisissez un espace personnel pour travailler seul ou une organisation pour collaborer.",
+    num: "01",
+    title: "Reliez votre serveur",
+    desc: "Renseignez l'IP et la clé SSH de votre VPS Ubuntu. Sovrack valide les prérequis Docker en quelques secondes.",
   },
   {
-    number: "02",
-    title: "Reliez Git et votre VPS",
-    description:
-      "Ajoutez les accès nécessaires, vérifiez le serveur puis décrivez votre application.",
+    num: "02",
+    title: "Sélectionnez votre dépôt",
+    desc: "Choisissez votre projet GitHub ou GitLab, branchez vos variables d'environnement et vos domaines.",
   },
   {
-    number: "03",
-    title: "Validez puis déployez",
-    description:
-      "Contrôlez la configuration, lancez le déploiement et suivez chaque étape dans Sovrack.",
+    num: "03",
+    title: "Déployez avec SSL",
+    desc: "Validez la configuration. Sovrack build l'image Docker, configure Nginx et délivre le certificat HTTPS.",
   },
 ];
 
-const integrations = [
-  "GitHub",
-  "GitLab",
-  "Docker",
-  "Registres privés",
-  "VPS Ubuntu",
-  "Domaines HTTPS",
-];
-
-const questions = [
+const faqs = [
   {
-    question: "Où sont hébergées mes applications ?",
-    answer:
-      "Sur les serveurs que vous connectez à Sovrack. Vous conservez la maîtrise de l'infrastructure, des domaines et des données applicatives.",
+    q: "Où tournent mes applications déployées ?",
+    a: "Exclusivement sur vos propres serveurs VPS. Sovrack pilote le déploiement par SSH sécurisé sans jamais héberger vos bases ni vos données sensibles.",
   },
   {
-    question: "Puis-je commencer seul puis inviter une équipe ?",
-    answer:
-      "Oui. Un espace personnel peut être converti en organisation. Les invitations et les rôles deviennent alors disponibles.",
+    q: "Quels types de projets puis-je déployer ?",
+    a: "Tout projet avec un Dockerfile ou supporté par Nixpacks : Next.js, React, Node.js, Python, Go, PHP/Laravel, Rust, bases de données Postgres, Redis, MySQL, etc.",
   },
   {
-    question: "Quels dépôts Git sont pris en charge ?",
-    answer:
-      "Sovrack prend en charge l'importation en 1 clic de vos dépôts GitHub et GitLab, ainsi que les jetons d'accès personnels (PAT) pour vos dépôts d'entreprise.",
-  },
-  {
-    question: "Sovrack fournit-il le serveur ?",
-    answer:
-      "Non. Sovrack fonctionne avec votre propre VPS accessible en SSH, vérifie ses prérequis et guide sa préparation.",
+    q: "Puis-je commencer gratuitement sans carte ?",
+    a: "Oui. Vous pouvez connecter votre premier serveur local (VM) ou VPS et déployer vos applications sans renseigner aucune carte bancaire.",
   },
 ];
 
@@ -115,231 +125,244 @@ export default function LandingPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   return (
-    <div className="min-h-screen bg-app text-primary">
+    <div className="min-h-screen bg-app text-primary selection:bg-accent selection:text-white">
       <MarketingNavbar />
 
-      <main>
-        <section className="relative flex min-h-[calc(100svh-4rem)] items-center overflow-hidden px-4 sm:px-6 py-14 sm:py-20">
-          <div className="relative mx-auto max-w-6xl text-center">
-            <h1 className="mx-auto max-w-5xl text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl lg:text-7xl">
-              Déployez vos applications sur vos propres serveurs.
-            </h1>
-            <p className="mx-auto mt-7 max-w-3xl text-lg leading-8 text-secondary sm:text-xl">
-              Sovrack centralise la connexion à Git, la préparation de vos
-              VPS, les déploiements Docker, les domaines HTTPS, les journaux et
-              le suivi opérationnel. Vous gardez la maîtrise de votre
-              infrastructure depuis un espace unique.
-            </p>
-            <div className="mt-10 flex flex-wrap justify-center gap-4">
-              <Link
-                href={customerAppPath(
-                  isAuthenticated ? "/dashboard" : "/register",
-                )}
-                className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3.5 font-semibold text-accent-foreground   transition hover:bg-accent-hover"
-              >
-                {isAuthenticated ? "Ouvrir mon espace" : "Créer un compte"}
-                <ArrowRight size={17} />
-              </Link>
-              {!isAuthenticated && (
+      <main className="mx-auto max-w-7xl px-4 sm:px-6">
+        {/* HERO SECTION — Inspiré du style épuré et compact de Supabase */}
+        <section className="pt-12 pb-14 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24 border-b border-border/60">
+          <div className="grid lg:grid-cols-12 gap-10 items-center">
+            {/* Colonne gauche : Titre, sous-titre, CTA */}
+            <div className="lg:col-span-7 space-y-6 text-left">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-3 py-1 text-xs text-zinc-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                <span>Plateforme de déploiement Open-Core</span>
+                <span className="text-zinc-500">•</span>
+                <span className="text-zinc-400">v3.1</span>
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-normal tracking-tight text-white leading-[1.14]">
+                Déployez en un instant
+                <span className="block text-accent font-normal mt-1">
+                  Maîtrisez vos serveurs
+                </span>
+              </h1>
+
+              <p className="text-sm sm:text-base text-zinc-400 font-normal leading-relaxed max-w-xl">
+                La plateforme open-core pour orchestrer vos conteneurs Docker
+                sur vos propres serveurs Ubuntu. Reliez vos dépôts Git, activez vos domaines HTTPS
+                et pilotez vos releases en toute autonomie.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
                 <Link
-                  href={customerAppPath("/login")}
-                  className="rounded-lg border border-border bg-hover/10 px-6 py-3.5 font-semibold text-primary transition hover:bg-hover/15"
+                  href={customerAppPath(isAuthenticated ? "/dashboard" : "/register")}
+                  className="inline-flex h-9 items-center gap-2 rounded-md bg-accent px-4 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover shadow-sm"
                 >
-                  Se connecter
+                  {isAuthenticated ? "Accéder à mon espace" : "Commencer gratuitement"}
+                  <ArrowRight size={14} />
                 </Link>
-              )}
-            </div>
-            <p className="mt-5 text-sm text-secondary">
-              Commencez avec un projet et un serveur. Aucune carte bancaire
-              n’est demandée.
-            </p>
-          </div>
-        </section>
-
-        <section id="plateforme" className="px-6 py-24">
-          <div className="mx-auto max-w-6xl">
-            <div className="max-w-3xl">
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-                Une console, un flux cohérent
-              </p>
-              <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
-                Du dépôt au serveur, sans perdre le contexte.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-secondary">
-                Sovrack organise les éléments nécessaires au déploiement et
-                conserve une séparation claire entre identité, espace de
-                travail, projet et environnement.
-              </p>
-            </div>
-            <div
-              id="features"
-              className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-            >
-              {capabilities.map(({ icon: Icon, title, description }) => (
-                <article
-                  key={title}
-                  className="rounded-lg border border-border bg-card p-6 hover:border-border-hover transition"
+                <Link
+                  href={publicSitePath("/docs")}
+                  className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-card/60 px-4 text-[13px] font-medium text-zinc-300 transition-colors hover:border-zinc-700 hover:text-white"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                    <Icon size={21} />
-                  </div>
-                  <h3 className="mt-5 text-lg font-semibold">{title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-secondary">
-                    {description}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-24">
-          <div className="mx-auto max-w-6xl">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <article className="rounded-lg border border-border bg-card p-8">
-                <UserRound className="text-accent" size={30} />
-                <h2 className="mt-6 text-2xl font-bold">Démarrez seul en 1 minute</h2>
-                <p className="mt-3 leading-7 text-secondary">
-                  Un espace personnel sans aucune friction. Pas de formulaires superflus :
-                  déployez votre premier conteneur sur votre serveur en quelques clics.
-                </p>
-              </article>
-              <article className="rounded-lg border border-border bg-card p-8">
-                <Building2 className="text-accent" size={30} />
-                <h2 className="mt-6 text-2xl font-bold">Évoluez en équipe quand vous voulez</h2>
-                <p className="mt-3 leading-7 text-secondary">
-                  Besoin de collaborer ? Créez des organisations depuis votre tableau de bord,
-                  invitez vos collaborateurs et gérez finement les permissions d&apos;accès par rôle.
-                </p>
-              </article>
-            </div>
-          </div>
-        </section>
-
-        <section id="how-it-works" className="px-6 py-24">
-          <div className="mx-auto max-w-6xl">
-            <h2 className="text-center text-3xl font-bold tracking-tight sm:text-5xl">
-              Un parcours lisible en trois étapes
-            </h2>
-            <div className="mt-14 grid gap-5 md:grid-cols-3">
-              {steps.map((step) => (
-                <article
-                  key={step.number}
-                  className="rounded-lg border border-border bg-card p-7"
-                >
-                  <span className="font-mono text-sm font-bold text-accent">
-                    {step.number}
-                  </span>
-                  <h3 className="mt-5 text-xl font-semibold">{step.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-secondary">
-                    {step.description}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-24">
-          <div className="mx-auto max-w-6xl">
-            <div className="grid gap-12 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-                  Écosystème compatible
-                </p>
-                <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
-                  Vos outils, votre infrastructure.
-                </h2>
-                <p className="mt-5 text-lg leading-8 text-secondary">
-                  Connectez vos sources, votre registre et votre VPS sans
-                  déplacer l’hébergement de votre application vers une
-                  infrastructure imposée.
-                </p>
+                  Lire la documentation
+                </Link>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {integrations.map((integration) => (
-                  <div
-                    key={integration}
-                    className="flex items-center gap-3 rounded-lg border border-border bg-card px-5 py-4 text-primary"
-                  >
-                    <CheckCircle2 className="text-accent" size={19} />
-                    <span className="font-medium">{integration}</span>
+
+              <div className="flex items-center gap-6 pt-1 text-xs text-zinc-500">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 size={13} className="text-accent" />
+                  Aucune carte bancaire requise
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 size={13} className="text-accent" />
+                  100% sur vos propres VPS
+                </span>
+              </div>
+            </div>
+
+            {/* Colonne droite : Widget interactif minimaliste */}
+            <div className="lg:col-span-5">
+              <div className="rounded-lg border border-border/80 bg-zinc-950/80 p-4 shadow-theme-lg font-mono text-xs">
+                {/* En-tête de terminal */}
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-border/60 text-zinc-500">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-zinc-800" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-zinc-800" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-zinc-800" />
                   </div>
-                ))}
+                  <span className="text-[11px] text-zinc-400">sovrack release v3.1</span>
+                  <Activity size={13} className="text-accent" />
+                </div>
+
+                {/* Corps de log temps réel */}
+                <div className="space-y-2 text-[12px] leading-relaxed">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <span className="text-accent">$</span>
+                    <span className="text-zinc-200">sovrack deploy --target vps-production</span>
+                  </div>
+                  <p className="text-zinc-500 text-[11px]">→ Connexion SSH à 192.168.100.135:22... OK</p>
+                  <p className="text-zinc-500 text-[11px]">→ Clone dépôt git@github.com:acme/api... OK</p>
+                  <p className="text-zinc-500 text-[11px]">→ Détection Nixpacks (Node.js 22 LTS)... OK</p>
+                  <p className="text-zinc-500 text-[11px]">→ Build conteneur Docker sha256:7b3a9e... OK</p>
+                  <p className="text-emerald-400 text-[11px]">✓ Routage Nginx & HTTPS Let's Encrypt configurés</p>
+                  <div className="mt-3 p-2 rounded bg-zinc-900/80 border border-zinc-800 text-[11px] text-zinc-300 flex items-center justify-between">
+                    <span className="truncate">https://api.mondomaine.com</span>
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 font-sans text-[10px]">En ligne</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="px-6 py-24">
-          <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-2">
-            <article className="rounded-lg border border-border bg-card p-8">
-              <LockKeyhole className="text-accent" size={30} />
-              <h2 className="mt-6 text-2xl font-bold">
-                Des accès séparés et maîtrisés
-              </h2>
-              <p className="mt-3 leading-7 text-secondary">
-                Les comptes clients, les organisations et le back-office sont
-                isolés. Les secrets sensibles sont chiffrés et les actions sont
-                limitées par des rôles explicites.
+        {/* SECTION FONCTIONNALITÉS — Cartes compactes Supabase style */}
+        <section className="py-14 sm:py-16 border-b border-border/60">
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wider text-accent">
+                Fonctionnalités
               </p>
-            </article>
-            <article className="rounded-lg border border-border bg-card p-8">
-              <Server className="text-accent" size={30} />
-              <h2 className="mt-6 text-2xl font-bold">
-                Un serveur prêt pour Docker
-              </h2>
-              <p className="mt-3 leading-7 text-secondary">
-                Utilisez un VPS Ubuntu accessible en SSH avec un utilisateur
-                autorisé à exécuter les opérations d’administration nécessaires.
-                Sovrack contrôle les prérequis avant le premier déploiement.
-              </p>
-            </article>
-          </div>
-        </section>
-
-        <section className="px-6 py-24">
-          <div className="mx-auto max-w-4xl">
-            <div className="text-center">
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-                Questions fréquentes
-              </p>
-              <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">
-                L’essentiel avant de commencer
+              <h2 className="mt-1 text-2xl sm:text-3xl font-normal tracking-tight text-white">
+                Tout ce qu&apos;il faut pour opérer vos services
               </h2>
             </div>
-            <div className="mt-12 space-y-4">
-              {questions.map((item) => (
-                <article
-                  key={item.question}
-                  className="rounded-lg border border-border bg-card p-6"
-                >
-                  <h3 className="text-lg font-semibold">{item.question}</h3>
-                  <p className="mt-2 leading-7 text-secondary">{item.answer}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-24 text-center">
-          <div className="mx-auto max-w-4xl rounded-lg border border-border bg-card px-8 py-14">
-            <h2 className="text-3xl font-bold sm:text-4xl">
-              Prêt à lancer votre premier déploiement&nbsp;?
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl leading-7 text-secondary">
-              Créez votre espace, connectez un dépôt et préparez votre serveur
-              depuis une console unique.
-            </p>
             <Link
-              href={customerAppPath(
-                isAuthenticated ? "/dashboard" : "/register",
-              )}
-              className="mt-8 inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3.5 font-semibold text-accent-foreground   transition hover:bg-accent-hover"
+              href={publicSitePath("/features")}
+              className="text-xs text-accent hover:text-accent-hover transition-colors inline-flex items-center gap-1"
             >
-              {isAuthenticated ? "Ouvrir mon espace" : "Créer un compte"}
-              <ArrowRight size={17} />
+              Voir toutes les fonctionnalités
+              <ArrowRight size={12} />
             </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {capabilities.map(({ icon: Icon, title, description, badge }) => (
+              <div
+                key={title}
+                className="group rounded-lg border border-border/70 bg-card/50 p-5 transition-all duration-200 hover:border-zinc-700 hover:bg-card/80"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent/10 text-accent">
+                    <Icon size={16} />
+                  </div>
+                  <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-500">
+                    {badge}
+                  </span>
+                </div>
+                <h3 className="mt-3 text-sm font-medium text-white">{title}</h3>
+                <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">
+                  {description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* SECTION COMPARAISON — Open-Core vs Cloud propriétaire */}
+        <section className="py-14 sm:py-16 border-b border-border/60">
+          <div className="max-w-2xl mb-8">
+            <p className="text-xs font-medium uppercase tracking-wider text-accent">
+              Souveraineté & Coûts
+            </p>
+            <h2 className="mt-1 text-2xl sm:text-3xl font-normal tracking-tight text-white">
+              Reprenez le contrôle de votre infrastructure
+            </h2>
+            <p className="mt-2 text-xs sm:text-sm text-zinc-400">
+              Ne payez plus de marges sur l&apos;usage de vos ressources cloud. Sovrack vous apporte la simplicité d&apos;un PaaS directement sur votre propre VPS.
+            </p>
+          </div>
+
+          <div className="overflow-hidden rounded-lg border border-border/70 bg-card/40">
+            <div className="grid grid-cols-3 bg-zinc-950/70 p-3.5 text-xs font-medium text-zinc-400 border-b border-border/60">
+              <span>Critère</span>
+              <span className="text-accent font-semibold">Sovrack (Open-Core)</span>
+              <span>Cloud Fermé / PaaS</span>
+            </div>
+            <div className="divide-y divide-border/40 text-xs">
+              {comparisons.map((item) => (
+                <div key={item.feature} className="grid grid-cols-3 p-3.5 items-center">
+                  <span className="font-medium text-white">{item.feature}</span>
+                  <span className="text-zinc-300 font-medium flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-accent shrink-0" />
+                    {item.sovrack}
+                  </span>
+                  <span className="text-zinc-500">{item.cloud}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION PARCOURS EN 3 ÉTAPES */}
+        <section className="py-14 sm:py-16 border-b border-border/60">
+          <div className="text-center max-w-xl mx-auto mb-10">
+            <p className="text-xs font-medium uppercase tracking-wider text-accent">
+              Flux simplifié
+            </p>
+            <h2 className="mt-1 text-2xl sm:text-3xl font-normal tracking-tight text-white">
+              Prêt en 3 étapes simples
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {steps.map((step) => (
+              <div
+                key={step.num}
+                className="rounded-lg border border-border/70 bg-card/50 p-5 relative"
+              >
+                <span className="font-mono text-xs text-accent font-medium">
+                  {step.num}
+                </span>
+                <h3 className="mt-2 text-sm font-medium text-white">{step.title}</h3>
+                <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">
+                  {step.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* SECTION FAQ RAPIDE */}
+        <section className="py-14 sm:py-16">
+          <div className="max-w-xl mx-auto text-center mb-8">
+            <h2 className="text-2xl font-normal tracking-tight text-white">
+              Questions fréquentes
+            </h2>
+          </div>
+
+          <div className="max-w-2xl mx-auto space-y-4">
+            {faqs.map((faq) => (
+              <div
+                key={faq.q}
+                className="rounded-lg border border-border/70 bg-card/40 p-4"
+              >
+                <h4 className="text-sm font-medium text-white">{faq.q}</h4>
+                <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">
+                  {faq.a}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* BANNIÈRE FINALE CTA */}
+          <div className="mt-16 rounded-xl border border-border/80 bg-zinc-950/80 p-8 sm:p-10 text-center">
+            <h3 className="text-xl sm:text-2xl font-normal text-white">
+              Déployez votre premier projet dès aujourd&apos;hui
+            </h3>
+            <p className="mt-2 text-xs sm:text-sm text-zinc-400 max-w-md mx-auto">
+              Rejoignez les développeurs qui gèrent leur infrastructure en toute liberté avec Sovrack.
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Link
+                href={customerAppPath(isAuthenticated ? "/dashboard" : "/register")}
+                className="inline-flex h-9 items-center gap-2 rounded-md bg-accent px-4 text-xs font-medium text-white transition-colors hover:bg-accent-hover shadow-sm"
+              >
+                {isAuthenticated ? "Accéder à mon espace" : "Créer mon compte"}
+                <ArrowRight size={13} />
+              </Link>
+            </div>
           </div>
         </section>
       </main>
