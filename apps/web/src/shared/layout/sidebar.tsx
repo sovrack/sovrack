@@ -36,19 +36,19 @@ function NavItem({
       onClick={onNavigate}
       title={collapsed ? label : undefined}
       className={clsx(
-        "group flex items-center gap-3 rounded-md py-2 text-[15px] transition-colors duration-150",
+        "group flex items-center gap-3 rounded-lg py-2 text-[13.5px] transition-colors duration-150",
         collapsed ? "px-3 lg:justify-center lg:px-0" : "px-3",
         isActive
-          ? "bg-accent/10 font-medium text-primary"
-          : "font-normal text-secondary hover:bg-hover/10 hover:text-primary",
+          ? "bg-[#2563EB]/15 font-medium text-white"
+          : "font-normal text-zinc-400 hover:bg-white/5 hover:text-white",
       )}
     >
       <Icon
         className={clsx(
-          "h-5 w-5 shrink-0 transition-colors",
+          "h-4 w-4 shrink-0 transition-colors",
           isActive
-            ? "text-primary"
-            : "text-secondary group-hover:text-primary",
+            ? "text-[#2563EB]"
+            : "text-zinc-500 group-hover:text-zinc-200",
         )}
       />
       <span className={clsx("truncate", collapsed && "lg:hidden")}>
@@ -68,7 +68,7 @@ function SectionLabel({
   return (
     <p
       className={clsx(
-        "mb-1 mt-5 px-3 text-xs font-medium uppercase tracking-[0.12em] text-muted",
+        "mb-1.5 mt-5 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500",
         collapsed && "lg:hidden",
       )}
     >
@@ -80,17 +80,8 @@ function SectionLabel({
 export function Sidebar() {
   const { t } = useI18n();
   const pathname = usePathname();
-  const { user, isAdmin, workspaceRole, logout } = useAuth();
+  const { isAdmin } = useAuth();
   const { collapsed, isMobileOpen, closeMobileSidebar } = useSidebar();
-
-  const initials = user?.fullName
-    ? user.fullName
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "U";
 
   return (
     <>
@@ -105,8 +96,8 @@ export function Sidebar() {
       <aside
         aria-label="Navigation principale"
         className={clsx(
-          "fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-border bg-sidebar transition-all duration-300 ease-in-out lg:z-40",
-          collapsed ? "lg:w-20" : "lg:w-64",
+          "fixed left-0 top-0 z-50 flex h-screen w-56 flex-col bg-[#0a0a0a] transition-all duration-300 ease-in-out lg:z-40",
+          collapsed ? "lg:w-20" : "lg:w-56",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
@@ -118,24 +109,24 @@ export function Sidebar() {
             href={customerAppPath("/dashboard")}
             onClick={closeMobileSidebar}
             className={clsx(
-              "flex w-full items-center gap-2",
+              "flex w-full items-center gap-2.5",
               collapsed && "lg:justify-center",
             )}
           >
-            <SovrackLogo className="w-7 h-7 text-primary shrink-0" />
+            <SovrackLogo className="w-6 h-6 text-white shrink-0" width={24} height={24} />
             <span
               className={clsx(
-                "truncate text-[18px] font-semibold tracking-[-0.02em] text-primary antialiased",
+                "truncate text-[18px] font-bold tracking-tight text-white antialiased",
                 collapsed && "lg:hidden",
               )}
             >
-              Sovrack
+              sovrack
             </span>
           </Link>
         </div>
 
         {/* Nav */}
-        <div className="flex-1 overflow-y-auto px-2 pb-4 no-scrollbar">
+        <div className="flex-1 overflow-y-auto px-2 pb-6 no-scrollbar">
           {APP_NAV_SECTIONS.map((section) => {
             const visibleItems = section.items.filter((item) => {
               const allowedForRole = item.adminOnly ? isAdmin : true;
@@ -167,63 +158,6 @@ export function Sidebar() {
               </div>
             );
           })}
-        </div>
-
-        {/* User card — click to go to platform settings */}
-        <div className="shrink-0 border-t border-border p-3">
-          <div
-            className={clsx(
-              "flex items-center rounded-lg border border-border bg-card transition hover:bg-hover/10",
-              collapsed
-                ? "gap-3 px-3 py-2.5 lg:justify-center lg:gap-0 lg:px-0"
-                : "gap-3 px-3 py-2.5",
-            )}
-          >
-            <Link
-              href="/settings/account"
-              onClick={closeMobileSidebar}
-              title={collapsed ? "Réglages de la plateforme" : undefined}
-              className={clsx(
-                "flex items-center gap-3 min-w-0 flex-1",
-                collapsed && "lg:justify-center",
-              )}
-            >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-accent-foreground">
-                {initials}
-              </div>
-              <div className={clsx("min-w-0 flex-1", collapsed && "lg:hidden")}>
-                <p className="truncate text-[15px] font-medium text-secondary">
-                  {user?.fullName ?? "Utilisateur"}
-                </p>
-                <p className="truncate text-[12px] text-muted">
-                  {workspaceRoleLabel(workspaceRole)}
-                </p>
-              </div>
-            </Link>
-
-            <div
-              className={clsx(
-                "flex shrink-0 items-center gap-1",
-                collapsed && "lg:hidden",
-              )}
-            >
-              <Link
-                href="/settings/account"
-                title="Réglages de la plateforme"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:bg-hover/10 hover:text-primary"
-              >
-                <Settings size={14} />
-              </Link>
-              <button
-                type="button"
-                onClick={logout}
-                title="Se déconnecter"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:bg-hover/10 hover:text-primary"
-              >
-                <LogOut size={14} />
-              </button>
-            </div>
-          </div>
         </div>
       </aside>
     </>

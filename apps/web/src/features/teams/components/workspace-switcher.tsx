@@ -17,7 +17,7 @@ export function WorkspaceSwitcher() {
   if (workspaces.length === 0) return null;
 
   return (
-    <label className="relative flex w-28 min-w-0 items-center gap-2 overflow-hidden rounded-lg border border-border bg-card px-2.5 py-1.5 sm:w-auto sm:max-w-52">
+    <label className="relative flex w-28 min-w-0 items-center gap-2 overflow-hidden rounded-lg border border-zinc-800/60 bg-[#121212] px-2.5 py-1.5 transition-colors hover:bg-[#161616] sm:w-auto sm:max-w-52">
       <Building2 size={15} className="shrink-0 text-muted" />
       <select
         aria-label="Workspace actif"

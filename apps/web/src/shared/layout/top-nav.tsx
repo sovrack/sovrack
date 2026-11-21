@@ -113,7 +113,7 @@ function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-border bg-card shadow-theme-lg z-50">
+        <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-zinc-800/70 bg-[#121212] shadow-2xl z-50">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <span className="text-sm font-semibold text-primary">
@@ -229,7 +229,7 @@ export function TopNav() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-app/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 bg-[#0a0a0a]/90 backdrop-blur-md">
       <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
         <button
           type="button"
@@ -268,7 +268,7 @@ export function TopNav() {
             <button
               type="button"
               onClick={() => setDropdownOpen((v) => !v)}
-              className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-sm transition hover:bg-hover/10"
+              className="flex items-center gap-2.5 rounded-lg border border-zinc-800/60 bg-[#121212] px-2.5 py-1.5 text-sm transition hover:bg-[#181818]"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-accent-foreground">
                 {initials}
@@ -288,7 +288,7 @@ export function TopNav() {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-border bg-card p-2 shadow-theme-lg z-50">
+              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-zinc-800/70 bg-[#121212] p-2 shadow-2xl z-50">
                 <div className="rounded-lg bg-hover/10 px-3 py-2.5">
                   <p className="truncate text-sm font-semibold text-primary">
                     {user?.fullName}

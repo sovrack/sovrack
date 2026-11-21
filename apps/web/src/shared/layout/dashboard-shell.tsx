@@ -34,11 +34,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-app text-primary">
+    <div className="flex min-h-screen bg-[#0a0a0a] text-zinc-100">
       <Sidebar />
       <div
         className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ease-in-out ${
-          collapsed ? "lg:ml-20" : "lg:ml-64"
+          collapsed ? "lg:ml-20" : "lg:ml-56"
         }`}
       >
         <TopNav />

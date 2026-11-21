@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import MarketingFooter from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
+import { HeroDashboardPreview } from "@/components/marketing/hero-dashboard-preview";
+import { HowItWorksInteractive } from "@/components/marketing/how-it-works-interactive";
 import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
 import { BRAND_CONFIG } from "@/shared/config/brand.config";
 
@@ -236,40 +238,15 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Colonne droite : Widget terminal sans cadre blanc */}
+            {/* Colonne droite : Aperçu interactif du Dashboard Sovrack */}
             <div className="lg:col-span-5">
-              <div className="rounded-xl bg-[#121212] p-5 font-mono text-xs shadow-2xl">
-                {/* En-tête de terminal */}
-                <div className="flex items-center justify-between pb-3 mb-3 border-b border-zinc-800/40 text-zinc-500">
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-zinc-800" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-zinc-800" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-zinc-800" />
-                  </div>
-                  <span className="text-[11px] text-zinc-400">sovrack release v3.1</span>
-                  <Activity size={13} className="text-[#2563EB]" />
-                </div>
-
-                {/* Corps de log temps réel */}
-                <div className="space-y-2 text-[12px] leading-relaxed">
-                  <div className="flex items-center gap-2 text-zinc-400">
-                    <span className="text-[#2563EB]">$</span>
-                    <span className="text-zinc-200">sovrack deploy --target vps-production</span>
-                  </div>
-                  <p className="text-zinc-500 text-[11px]">→ Connexion SSH à 192.168.100.135:22... OK</p>
-                  <p className="text-zinc-500 text-[11px]">→ Clone dépôt git@github.com:acme/api... OK</p>
-                  <p className="text-zinc-500 text-[11px]">→ Détection Nixpacks (Node.js 22 LTS)... OK</p>
-                  <p className="text-zinc-500 text-[11px]">→ Build conteneur Docker sha256:7b3a9e... OK</p>
-                  <p className="text-emerald-400 text-[11px]">✓ Routage Nginx & HTTPS Let&apos;s Encrypt configurés</p>
-                  <div className="mt-4 p-2.5 rounded-lg bg-[#0a0a0a] text-[11px] text-zinc-300 flex items-center justify-between">
-                    <span className="truncate">https://api.mondomaine.com</span>
-                    <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 font-sans text-[10px]">En ligne</span>
-                  </div>
-                </div>
-              </div>
+              <HeroDashboardPreview />
             </div>
           </div>
         </section>
+
+        {/* SECTION WORKFLOW INTERACTIF — Inspiré de la Photo 3 avec identité unique Sovrack */}
+        <HowItWorksInteractive />
 
         {/* SECTION FONCTIONNALITÉS — Cartes sans cadre blanc style Coolify */}
         <section className="py-14 sm:py-20">
