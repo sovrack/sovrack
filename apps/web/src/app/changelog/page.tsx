@@ -40,7 +40,7 @@ export default function ChangelogPage() {
     <div className="min-h-screen bg-[#0a0a0a] text-primary selection:bg-[#2563EB] selection:text-white">
       <MarketingNavbar />
 
-      <main className="mx-auto max-w-[1280px] px-6 lg:px-8 py-12 sm:py-16">
+      <main className="mx-auto max-w-[1280px] px-6 sm:px-12 lg:px-24 py-12 sm:py-16">
         <div className="max-w-2xl mb-12">
           <p className="text-xs font-medium uppercase tracking-wider text-accent">
             Historique des versions

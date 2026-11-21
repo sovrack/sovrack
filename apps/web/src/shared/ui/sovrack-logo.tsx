@@ -4,15 +4,15 @@ interface LogoProps {
   height?: number | string;
 }
 
-export function SovrackLogo({ className = "w-6 h-6", width, height }: LogoProps) {
+export function SovrackLogo({ className = "w-7 h-7", width, height }: LogoProps) {
   return (
     <svg
       viewBox="0 0 100 100"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      width={width || 26}
-      height={height || 26}
+      width={width || 28}
+      height={height || 28}
       aria-label="Sovrack Logo"
       role="img"
     >
@@ -40,14 +40,14 @@ interface BrandProps {
 
 export function SovrackBrand({
   className = "",
-  logoClassName = "w-6 h-6 text-white",
+  logoClassName = "w-7 h-7 text-white",
   textClassName = "",
 }: BrandProps) {
   return (
-    <span className={`inline-flex select-none items-center gap-2 ${className}`}>
-      <SovrackLogo className={`shrink-0 ${logoClassName}`} width={24} height={24} />
+    <span className={`inline-flex select-none items-center gap-2.5 ${className}`}>
+      <SovrackLogo className={`shrink-0 ${logoClassName}`} width={28} height={28} />
       <span
-        className={`text-[16px] font-medium tracking-tight text-white antialiased ${textClassName}`}
+        className={`text-[20px] font-semibold tracking-tight text-white antialiased ${textClassName}`}
       >
         sovrack
       </span>

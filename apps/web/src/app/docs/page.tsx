@@ -146,7 +146,7 @@ export default function DocsPage() {
     <div className="min-h-screen bg-[#0a0a0a] text-primary selection:bg-[#2563EB] selection:text-white">
       <MarketingNavbar />
 
-      <section className="mx-auto max-w-[1280px] px-6 lg:px-8 pb-24 pt-16">
+      <section className="mx-auto max-w-[1280px] px-6 sm:px-12 lg:px-24 pb-24 pt-16">
         <h1 className="text-4xl font-normal text-white">Documentation</h1>
         <p className="mt-3 text-zinc-400">
           Tout ce qu&apos;il faut savoir pour démarrer avec Sovrack.

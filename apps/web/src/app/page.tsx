@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   TerminalSquare,
   Users,
+  XCircle,
 } from "lucide-react";
 import MarketingFooter from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
@@ -30,6 +31,45 @@ function GitHubIcon({ className = "w-4 h-4" }: { className?: string }) {
     </svg>
   );
 }
+
+function XTwitterIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
+const communityReviews = [
+  {
+    author: "Alexandre Roy",
+    handle: "@alex_tech",
+    role: "Lead Tech & Freelance",
+    avatar: "A",
+    text: "J'ai migré 8 applications d'Heroku vers un VPS Hetzner à 5€ avec Sovrack. Détection Nixpacks instantanée, SSL automatique et facture divisée par 8. Une expérience incroyable.",
+  },
+  {
+    author: "Mehdi K.",
+    handle: "@mehdi_dev",
+    role: "Fondateur Studio Web",
+    avatar: "M",
+    text: "L'accès terminal SSH directement dans le navigateur et la conteneurisation en 1 clic changent tout. Je livre les projets clients en quelques minutes sans aucune prise de tête.",
+  },
+  {
+    author: "Sarah Benali",
+    handle: "@sarah_ops",
+    role: "DevOps Engineer",
+    avatar: "S",
+    text: "Enfin une alternative open-core sans agent lourd qui consomme la mémoire du serveur. 100% de souveraineté sur nos machines physiques et zéro vendor lock-in.",
+  },
+  {
+    author: "Thomas Laurent",
+    handle: "@thomas_startup",
+    role: "CTO @ SaaSHub",
+    avatar: "T",
+    text: "La simplicité d'un PaaS moderne avec la liberté absolue de nos propres serveurs. Plus de surprises de facturation à la fin du mois. Indispensable pour notre équipe.",
+  },
+];
 
 const capabilities = [
   {
@@ -147,7 +187,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#0a0a0a] text-primary selection:bg-[#2563EB] selection:text-white">
       <MarketingNavbar />
 
-      <main className="mx-auto max-w-[1280px] px-6 lg:px-8">
+      <main className="mx-auto max-w-[1280px] px-6 sm:px-12 lg:px-24">
         {/* HERO SECTION — Inspiré fidèlement de Supabase */}
         <section className="pt-14 pb-16 sm:pt-20 sm:pb-24 lg:pt-20 lg:pb-24">
           <div className="grid lg:grid-cols-12 gap-10 items-center">
@@ -333,38 +373,169 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* SECTION COMPARAISON — Sans cadre blanc */}
-        <section className="py-14 sm:py-16">
-          <div className="max-w-xl mb-8">
-            <p className="text-xs font-medium uppercase tracking-wider text-[#2563EB]">
+        {/* SECTION SOUVERAINETÉ & COÛTS — Restructurée en cartes comparatives modernes */}
+        <section className="py-16 sm:py-20">
+          <div className="max-w-xl mb-10">
+            <p className="text-xs font-mono font-medium uppercase tracking-wider text-[#2563EB]">
               Souveraineté &amp; Coûts
             </p>
-            <h2 className="mt-1 text-2xl sm:text-3xl font-normal tracking-tight text-white">
+            <h2 className="mt-1 text-2xl sm:text-3xl font-medium tracking-tight text-white">
               Reprenez le contrôle de votre infrastructure
             </h2>
-            <p className="mt-2 text-xs sm:text-sm text-zinc-400">
+            <p className="mt-2 text-sm text-zinc-400 leading-relaxed">
               Ne payez plus de marges sur l&apos;usage de vos ressources cloud. Sovrack vous apporte la simplicité d&apos;un PaaS directement sur votre propre VPS.
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-xl bg-[#121212]">
-            <div className="grid grid-cols-3 bg-[#161616] p-4 text-xs font-medium text-zinc-400 border-b border-zinc-800/40">
-              <span>Critère</span>
-              <span className="text-[#2563EB] font-semibold">Sovrack (Open-Core)</span>
-              <span>Cloud Fermé / PaaS</span>
+          {/* Bande de métriques clés */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="rounded-xl bg-[#121212] p-4 text-center">
+              <div className="font-mono text-2xl font-medium text-[#2563EB]">5€ / mois</div>
+              <div className="text-xs text-zinc-400 mt-1">Coût VPS moyen prévisible</div>
             </div>
-            <div className="divide-y divide-zinc-800/40 text-xs">
-              {comparisons.map((item) => (
-                <div key={item.feature} className="grid grid-cols-3 p-4 items-center">
-                  <span className="font-medium text-white">{item.feature}</span>
-                  <span className="text-zinc-300 font-medium flex items-center gap-1.5">
-                    <CheckCircle2 size={13} className="text-[#2563EB] shrink-0" />
-                    {item.sovrack}
+            <div className="rounded-xl bg-[#121212] p-4 text-center">
+              <div className="font-mono text-2xl font-medium text-white">100%</div>
+              <div className="text-xs text-zinc-400 mt-1">Souveraineté de vos données</div>
+            </div>
+            <div className="rounded-xl bg-[#121212] p-4 text-center">
+              <div className="font-mono text-2xl font-medium text-white">Zéro</div>
+              <div className="text-xs text-zinc-400 mt-1">Vendor Lock-In propriétaire</div>
+            </div>
+            <div className="rounded-xl bg-[#121212] p-4 text-center">
+              <div className="font-mono text-2xl font-medium text-emerald-400">Illimité</div>
+              <div className="text-xs text-zinc-400 mt-1">Déploiements selon votre RAM</div>
+            </div>
+          </div>
+
+          {/* Cartes comparatives côte à côte */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Carte Sovrack (Mise en valeur) */}
+            <div className="rounded-2xl bg-[#121212] border border-[#2563EB]/40 p-6 sm:p-8 relative overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-mono font-medium uppercase tracking-wider text-[#2563EB] bg-[#2563EB]/10 px-2.5 py-1 rounded-md">
+                    Modèle Sovrack
                   </span>
-                  <span className="text-zinc-500">{item.cloud}</span>
+                  <span className="text-xs text-zinc-400 font-mono">100% Open-Core</span>
                 </div>
-              ))}
+                <h3 className="text-xl font-medium text-white mb-2">
+                  Vos propres VPS &amp; Serveurs dédiés
+                </h3>
+                <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
+                  Vous conservez la pleine propriété de votre infrastructure. Hébergez chez Hetzner, OVH, Scaleway ou en local sans intermédiaire opaque.
+                </p>
+                <ul className="space-y-3.5 text-xs sm:text-sm">
+                  <li className="flex items-start gap-2.5 text-zinc-200">
+                    <CheckCircle2 size={16} className="text-[#2563EB] shrink-0 mt-0.5" />
+                    <span><strong>Coût fixe garanti :</strong> payez uniquement votre serveur (ex. 5€/mois pour plusieurs apps).</span>
+                  </li>
+                  <li className="flex items-start gap-2.5 text-zinc-200">
+                    <CheckCircle2 size={16} className="text-[#2563EB] shrink-0 mt-0.5" />
+                    <span><strong>Accès SSH root complet :</strong> terminal web interactif, diagnostics et Docker sans restriction.</span>
+                  </li>
+                  <li className="flex items-start gap-2.5 text-zinc-200">
+                    <CheckCircle2 size={16} className="text-[#2563EB] shrink-0 mt-0.5" />
+                    <span><strong>Zéro marge cachée :</strong> bande passante, requêtes et bases de données illimitées.</span>
+                  </li>
+                  <li className="flex items-start gap-2.5 text-zinc-200">
+                    <CheckCircle2 size={16} className="text-[#2563EB] shrink-0 mt-0.5" />
+                    <span><strong>Standards de l&apos;industrie :</strong> Nixpacks, Dockerfiles et conteneurs universels.</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="mt-8 pt-4 border-t border-zinc-800/40 flex items-center justify-between">
+                <span className="text-xs text-zinc-400">Prêt en 2 minutes par SSH</span>
+                <span className="text-xs font-mono text-[#2563EB]">Souverain &amp; Durable</span>
+              </div>
             </div>
+
+            {/* Carte Cloud Propriétaire */}
+            <div className="rounded-2xl bg-[#0f0f0f] border border-zinc-800/50 p-6 sm:p-8 flex flex-col justify-between opacity-85">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs font-mono font-medium uppercase tracking-wider text-zinc-400 bg-zinc-800/40 px-2.5 py-1 rounded-md">
+                    Cloud Fermé &amp; PaaS
+                  </span>
+                  <span className="text-xs text-zinc-500 font-mono">Modèle Propriétaire</span>
+                </div>
+                <h3 className="text-xl font-medium text-zinc-300 mb-2">
+                  Vercel, Heroku &amp; Clouds mutualisés
+                </h3>
+                <p className="text-xs text-zinc-500 mb-6 leading-relaxed">
+                  Serveurs mutualisés propriétaires où chaque requête, gigaoctet de bande passante et seconde d&apos;exécution CPU est surtaxée.
+                </p>
+                <ul className="space-y-3.5 text-xs sm:text-sm">
+                  <li className="flex items-start gap-2.5 text-zinc-400">
+                    <XCircle size={16} className="text-zinc-500 shrink-0 mt-0.5" />
+                    <span><strong>Facturation opaque à l&apos;usage :</strong> fortes marges et factures imprévisibles dès le moindre pic.</span>
+                  </li>
+                  <li className="flex items-start gap-2.5 text-zinc-400">
+                    <XCircle size={16} className="text-zinc-500 shrink-0 mt-0.5" />
+                    <span><strong>Sandbox restreinte :</strong> aucun accès au serveur sous-jacent ni au démon système.</span>
+                  </li>
+                  <li className="flex items-start gap-2.5 text-zinc-400">
+                    <XCircle size={16} className="text-zinc-500 shrink-0 mt-0.5" />
+                    <span><strong>Quotas sévères :</strong> surcoûts exponentiels pour les bases de données et la rétention des logs.</span>
+                  </li>
+                  <li className="flex items-start gap-2.5 text-zinc-400">
+                    <XCircle size={16} className="text-zinc-500 shrink-0 mt-0.5" />
+                    <span><strong>Vendor lock-in :</strong> configurations et runtimes propriétaires difficiles à migrer.</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="mt-8 pt-4 border-t border-zinc-800/40 flex items-center justify-between">
+                <span className="text-xs text-zinc-500">Factures imprévisibles</span>
+                <span className="text-xs font-mono text-zinc-500">Verrouillage Cloud</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION "REJOIGNEZ LA COMMUNAUTÉ" — Inspiré de Supabase (Image 1) */}
+        <section className="py-16 sm:py-20">
+          <div className="text-center max-w-xl mx-auto mb-10">
+            <h2 className="text-3xl sm:text-4xl font-medium tracking-tight text-white">
+              Join the community
+            </h2>
+            <p className="mt-2 text-sm sm:text-base text-zinc-400 leading-relaxed">
+              Découvrez les retours des développeurs et équipes qui gèrent leur infrastructure en toute liberté avec Sovrack.
+            </p>
+            <div className="mt-5">
+              <Link
+                href={BRAND_CONFIG.githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-9 items-center gap-2 rounded-md bg-[#161616] px-4 text-xs font-medium text-white transition-colors hover:bg-[#202020]"
+              >
+                <GitHubIcon className="h-4 w-4" />
+                <span>Rejoindre la communauté sur GitHub</span>
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {communityReviews.map((rev) => (
+              <div
+                key={rev.handle}
+                className="rounded-xl bg-[#121212] p-5 sm:p-6 hover:bg-[#161616] transition-colors"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-[#2563EB]/20 text-[#2563EB] flex items-center justify-center font-medium text-xs font-mono">
+                      {rev.avatar}
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-white">{rev.author}</div>
+                      <div className="text-xs text-zinc-400">{rev.handle} • {rev.role}</div>
+                    </div>
+                  </div>
+                  <XTwitterIcon className="h-3.5 w-3.5 text-zinc-600" />
+                </div>
+                <p className="text-xs sm:text-[13px] text-zinc-300 leading-relaxed">
+                  &ldquo;{rev.text}&rdquo;
+                </p>
+              </div>
+            ))}
           </div>
         </section>
 
