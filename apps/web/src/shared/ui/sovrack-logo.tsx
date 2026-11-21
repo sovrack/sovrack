@@ -44,10 +44,10 @@ export function SovrackBrand({
   textClassName = "",
 }: BrandProps) {
   return (
-    <span className={`inline-flex select-none items-center gap-2.5 ${className}`}>
-      <SovrackLogo className={`shrink-0 ${logoClassName}`} width={26} height={26} />
+    <span className={`inline-flex select-none items-center gap-2 ${className}`}>
+      <SovrackLogo className={`shrink-0 ${logoClassName}`} width={24} height={24} />
       <span
-        className={`text-[19px] font-medium tracking-tight text-white antialiased ${textClassName}`}
+        className={`text-[16px] font-medium tracking-tight text-white antialiased ${textClassName}`}
       >
         sovrack
       </span>

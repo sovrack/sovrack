@@ -34,7 +34,7 @@ export function MarketingNavbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6 sm:px-12 lg:px-24">
         {/* Logo & Navigation gauche */}
         <div className="flex items-center gap-8">
           <Link
@@ -42,20 +42,20 @@ export function MarketingNavbar() {
             className="flex shrink-0 items-center transition-opacity hover:opacity-90"
             aria-label="Sovrack Accueil"
           >
-            <SovrackBrand textClassName="text-[19px] font-medium tracking-tight text-white" />
+            <SovrackBrand textClassName="text-[16px] font-medium tracking-tight text-white" />
           </Link>
 
-          <nav className="hidden items-center gap-7 text-[15px] md:flex">
+          <nav className="hidden items-center gap-1.5 text-[14px] md:flex">
             {navLinks.map((link) => {
               const active = pathname === link.href;
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`transition-colors duration-150 ${
+                  className={`px-3 py-1.5 rounded-md text-[14px] font-medium transition-colors duration-150 ${
                     active
-                      ? "text-white font-medium"
-                      : "text-white/85 hover:text-white"
+                      ? "text-[#2563EB]"
+                      : "text-white hover:text-[#2563EB]"
                   }`}
                 >
                   {link.label}
@@ -71,7 +71,7 @@ export function MarketingNavbar() {
             href={BRAND_CONFIG.githubUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1 text-white/80 transition-colors hover:text-white"
+            className="p-1.5 text-white transition-colors hover:text-[#2563EB]"
             aria-label="Dépôt GitHub Sovrack"
             title="GitHub"
           >
@@ -81,7 +81,7 @@ export function MarketingNavbar() {
           <div className="flex items-center gap-4">
             <Link
               href={customerAppPath("/login")}
-              className="text-[14px] font-normal text-white/85 transition-colors hover:text-white"
+              className="text-[14px] font-medium text-white transition-colors hover:text-[#2563EB]"
             >
               Se connecter
             </Link>
