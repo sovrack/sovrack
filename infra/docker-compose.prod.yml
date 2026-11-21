@@ -83,6 +83,11 @@ services:
   # ──────────────────────────── WEB (Next.js) ───────────────────────────
   web:
     <<: *common
+    networks:
+      sovrack-net:
+        aliases:
+          - frontend
+          - web
     image: ${WEB_IMAGE:-${FRONTEND_IMAGE:?WEB_IMAGE or FRONTEND_IMAGE must be set}}
     container_name: sovrack-web
     depends_on:
@@ -132,6 +137,11 @@ services:
   # ──────────────────────────── SERVER (NestJS) ─────────────────────────────
   server:
     <<: *common
+    networks:
+      sovrack-net:
+        aliases:
+          - backend
+          - server
     image: ${SERVER_IMAGE:-${BACKEND_IMAGE:?SERVER_IMAGE or BACKEND_IMAGE must be set}}
     container_name: sovrack-server
     environment: &server-environment
