@@ -27,9 +27,9 @@ const sections = [
   },
   {
     id: "serveur",
-    title: "3. Connecter un serveur (VPS Global ou Tunisie)",
+    title: "3. Connecter un serveur VPS",
     steps: [
-      "Compatible avec tout VPS Ubuntu : hébergeurs locaux en Tunisie (OxaHost, NovaHoster, Safozi payables en Dinars TND) ou internationaux (Hetzner, OVH, DigitalOcean, AWS).",
+      "Compatible avec tout serveur ou VPS Ubuntu standard (machines virtuelles privées, serveurs cloud ou serveurs bare-metal dédiés).",
       "Ouvrez Serveurs, puis indiquez le nom, l'adresse IP, le port SSH et l'utilisateur disposant des droits sudo.",
       "Installez la clé publique indiquée par Sovrack dans ~/.ssh/authorized_keys sur le serveur cible.",
       "Lancez la validation SSH, la détection des capacités et la préparation guidée en 1 clic.",

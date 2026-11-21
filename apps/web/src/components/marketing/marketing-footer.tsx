@@ -102,7 +102,7 @@ export default function MarketingFooter() {
             </ul>
           </div>
 
-          {/* Colonne GUIDES & COMPARATIFS */}
+          {/* Colonne GUIDES */}
           <div>
             <h4 className="mb-3.5 text-xs font-mono font-medium uppercase tracking-wider text-zinc-200">
               Guides
@@ -120,22 +120,22 @@ export default function MarketingFooter() {
               </li>
               <li>
                 <Link href={publicSitePath("/features")} className="transition-colors hover:text-white">
-                  Alternative à Heroku
+                  Migration PaaS vers VPS
                 </Link>
               </li>
               <li>
                 <Link href={publicSitePath("/features")} className="transition-colors hover:text-white">
-                  Alternative à Netlify
+                  Architecture conteneurs Docker
                 </Link>
               </li>
               <li>
                 <Link href={publicSitePath("/features")} className="transition-colors hover:text-white">
-                  Sovrack vs Alternatives
+                  Sécurisation SSL &amp; Domaines
                 </Link>
               </li>
               <li>
                 <Link href={publicSitePath("/docs")} className="transition-colors hover:text-white">
-                  Alternative à Vercel
+                  Orchestration sans agent SSH
                 </Link>
               </li>
             </ul>

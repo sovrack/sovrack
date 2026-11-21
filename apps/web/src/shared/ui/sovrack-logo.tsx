@@ -7,7 +7,7 @@ interface LogoProps {
 export function SovrackLogo({ className = "w-7 h-7", width, height }: LogoProps) {
   return (
     <svg
-      viewBox="0 0 100 100"
+      viewBox="26 22 48 56"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
@@ -18,15 +18,15 @@ export function SovrackLogo({ className = "w-7 h-7", width, height }: LogoProps)
     >
       <polygon
         points="50,24 68,24 62.5,33.5 54,33.5 41.5,46 44.5,49 39.5,57.5 28,46"
-        fill="currentColor"
+        fill="#3B82F6"
       />
       <polygon
         points="54.5,36.5 60.5,36.5 45.5,63.5 39.5,63.5"
-        fill="#2563EB"
+        fill="#60A5FA"
       />
       <polygon
         points="50,76 32,76 37.5,66.5 46,66.5 58.5,54 55.5,51 60.5,42.5 72,54"
-        fill="currentColor"
+        fill="#1D4ED8"
       />
     </svg>
   );
@@ -47,7 +47,7 @@ export function SovrackBrand({
     <span className={`inline-flex select-none items-center gap-2.5 ${className}`}>
       <SovrackLogo className={`shrink-0 ${logoClassName}`} width={28} height={28} />
       <span
-        className={`text-[20px] font-semibold tracking-tight text-white antialiased ${textClassName}`}
+        className={`text-[22px] font-bold tracking-tight text-white antialiased ${textClassName}`}
       >
         sovrack
       </span>

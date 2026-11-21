@@ -8,6 +8,8 @@ const STAFF_COOKIE_NAME_LEGACY = "deploy_staff_token";
 
 const PUBLIC_MARKETING_PATHS = [
   "/",
+  "/features",
+  "/changelog",
   "/pricing",
   "/docs",
   "/status",
@@ -234,10 +236,15 @@ export function middleware(request: NextRequest) {
   }
 
   if (token && isTokenExpiredOrInvalid(token)) {
-    const loginUrl = new URL("/login", request.url);
-    if (!matchesPath(pathname, CLIENT_PUBLIC_PATHS)) {
-      loginUrl.searchParams.set("next", pathname);
+    if (matchesPath(pathname, CLIENT_PUBLIC_PATHS)) {
+      const response = NextResponse.next();
+      response.cookies.delete(AUTH_COOKIE_NAME);
+      response.cookies.delete(AUTH_COOKIE_NAME_LEGACY);
+      return response;
     }
+
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
 
     const response = NextResponse.redirect(loginUrl);
     response.cookies.delete(AUTH_COOKIE_NAME);

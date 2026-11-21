@@ -66,7 +66,7 @@ export function ServerForm({
             type="text"
             value={values.name}
             onChange={(e) => set("name", e.target.value)}
-            placeholder="VPS Production OVH"
+            placeholder="VPS Production 01"
             className={formErrors.name ? inputError : inputNormal}
           />
           {formErrors.name && (

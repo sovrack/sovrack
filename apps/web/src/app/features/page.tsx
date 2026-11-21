@@ -101,25 +101,25 @@ export default function FeaturesPage() {
           </p>
         </div>
 
-        <div className="space-y-12">
+        <div className="space-y-14">
           {featureGroups.map((group) => (
-            <section key={group.category} className="pt-4">
-              <div className="mb-5">
-                <h2 className="text-lg font-normal text-white">{group.category}</h2>
-                <p className="mt-0.5 text-xs text-zinc-400">{group.description}</p>
+            <section key={group.category} className="pt-2">
+              <div className="mb-6">
+                <h2 className="text-xl font-medium text-white">{group.category}</h2>
+                <p className="mt-1 text-xs text-zinc-400">{group.description}</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {group.items.map(({ icon: Icon, title, desc }) => (
                   <div
                     key={title}
-                    className="rounded-xl bg-[#121212] p-5 hover:bg-[#161616] transition-colors"
+                    className="rounded-2xl bg-[#121212] p-6 hover:bg-[#161616] transition-colors"
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#2563EB]/10 text-[#2563EB] mb-3">
-                      <Icon size={16} />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#2563EB]/10 text-[#2563EB] mb-4">
+                      <Icon size={18} />
                     </div>
-                    <h3 className="text-sm font-medium text-white">{title}</h3>
-                    <p className="mt-1 text-xs text-zinc-400 leading-relaxed">{desc}</p>
+                    <h3 className="text-[15px] font-medium text-white">{title}</h3>
+                    <p className="mt-2 text-xs text-zinc-400 leading-relaxed">{desc}</p>
                   </div>
                 ))}
               </div>
@@ -127,20 +127,20 @@ export default function FeaturesPage() {
           ))}
         </div>
 
-        <div className="mt-16 rounded-2xl bg-[#121212] p-8 sm:p-10 text-center">
-          <h3 className="text-xl sm:text-2xl font-normal text-white">
+        <div className="mt-24 py-12 text-center border-t border-zinc-800/40">
+          <h3 className="text-2xl sm:text-3xl font-medium text-white">
             Prêt à simplifier vos déploiements ?
           </h3>
-          <p className="mt-2 text-xs sm:text-sm text-zinc-400 max-w-md mx-auto">
+          <p className="mt-3 text-sm text-zinc-400 max-w-md mx-auto">
             Connectez votre premier serveur et déployez votre première application en quelques minutes.
           </p>
           <div className="mt-6 flex justify-center gap-3">
             <Link
               href={customerAppPath("/register")}
-              className="inline-flex h-9 items-center gap-2 rounded-md bg-[#2563EB] px-4 text-xs font-medium text-white transition-colors hover:bg-[#1d4ed8]"
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-[#2563EB] px-5 text-sm font-medium text-white transition-colors hover:bg-[#1d4ed8]"
             >
               Créer un compte gratuit
-              <ArrowRight size={13} />
+              <ArrowRight size={14} />
             </Link>
           </div>
         </div>

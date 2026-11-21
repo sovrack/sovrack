@@ -46,7 +46,7 @@ const communityReviews = [
     handle: "@alex_tech",
     role: "Lead Tech & Freelance",
     avatar: "A",
-    text: "J'ai migré 8 applications d'Heroku vers un VPS Hetzner à 5€ avec Sovrack. Détection Nixpacks instantanée, SSL automatique et facture divisée par 8. Une expérience incroyable.",
+    text: "J'ai migré 8 applications en production vers nos propres VPS avec Sovrack. Détection Nixpacks instantanée, SSL automatique et budget d'infrastructure divisé par 8. Une expérience incroyable.",
   },
   {
     author: "Mehdi K.",
@@ -83,7 +83,7 @@ const capabilities = [
     icon: Server,
     title: "Vos propres VPS par SSH",
     description:
-      "Enregistrez n'importe quel serveur Ubuntu chez OVH, Hetzner, Scaleway ou en local. Aucun agent propriétaire résident.",
+      "Enregistrez n'importe quel serveur Ubuntu distant chez votre hébergeur ou en machine virtuelle locale. Aucun agent propriétaire résident.",
     badge: "Infrastructure",
   },
   {
@@ -175,8 +175,8 @@ const faqs = [
     a: "Oui. Vous pouvez connecter votre premier serveur local (VMware/VirtualBox) ou VPS distant et déployer vos applications sans renseigner aucune carte bancaire.",
   },
   {
-    q: "Puis-je migrer facilement depuis Vercel, Heroku ou Coolify ?",
-    a: "Absolument. Vos configurations de variables d'environnement, dépôts Git et volumes Docker se transposent directement. Vous quittez les facturations à l'usage exorbitantes sans changer votre workflow de build.",
+    q: "Puis-je migrer facilement depuis mon hébergeur ou Cloud actuel ?",
+    a: "Absolument. Vos configurations de variables d'environnement, dépôts Git et conteneurs Docker se transposent directement. Vous quittez les facturations à l'usage imprévisibles sans modifier votre workflow habituel.",
   },
 ];
 
@@ -188,21 +188,16 @@ export default function LandingPage() {
       <MarketingNavbar />
 
       <main className="mx-auto max-w-[1280px] px-6 sm:px-12 lg:px-24">
-        {/* HERO SECTION — Inspiré fidèlement de Supabase */}
-        <section className="pt-14 pb-16 sm:pt-20 sm:pb-24 lg:pt-20 lg:pb-24">
+        {/* HERO SECTION — Inspiré fidèlement de Supabase (Photo 6) */}
+        <section className="pt-16 pb-16 sm:pt-24 sm:pb-24 lg:pt-24 lg:pb-28">
           <div className="grid lg:grid-cols-12 gap-10 items-center">
             {/* Colonne gauche : Titre, sous-titre, CTA */}
             <div className="lg:col-span-7 space-y-6 text-left">
-              <div className="inline-flex items-center gap-2 rounded-full bg-[#121212] px-3.5 py-1 text-xs text-zinc-300">
-                <span className="h-2 w-2 rounded-full bg-[#2563EB]" />
-                <span>Plateforme de déploiement Open-Core</span>
-                <span className="text-zinc-600">•</span>
-                <span className="text-zinc-400 font-mono">v3.1</span>
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-medium tracking-tight text-white leading-[1.12]">
-                Déployez en un instant
-                <span className="block text-[#2563EB] font-medium mt-1">
+              <h1 className="text-4xl sm:text-5xl lg:text-[52px] xl:text-[56px] font-normal sm:font-medium tracking-tight text-white leading-[1.1]">
+                <span className="block whitespace-normal sm:whitespace-nowrap">
+                  Déployez en un instant
+                </span>
+                <span className="block text-[#2563EB] font-normal sm:font-medium mt-1 whitespace-normal sm:whitespace-nowrap">
                   Maîtrisez vos serveurs
                 </span>
               </h1>
@@ -422,7 +417,7 @@ export default function LandingPage() {
                   Vos propres VPS &amp; Serveurs dédiés
                 </h3>
                 <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
-                  Vous conservez la pleine propriété de votre infrastructure. Hébergez chez Hetzner, OVH, Scaleway ou en local sans intermédiaire opaque.
+                  Vous conservez la pleine propriété de votre infrastructure. Hébergez chez votre fournisseur favori ou en local sans intermédiaire opaque.
                 </p>
                 <ul className="space-y-3.5 text-xs sm:text-sm">
                   <li className="flex items-start gap-2.5 text-zinc-200">
@@ -449,7 +444,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Carte Cloud Propriétaire */}
+            {/* Carte Cloud Fermé & PaaS */}
             <div className="rounded-2xl bg-[#0f0f0f] border border-zinc-800/50 p-6 sm:p-8 flex flex-col justify-between opacity-85">
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -459,7 +454,7 @@ export default function LandingPage() {
                   <span className="text-xs text-zinc-500 font-mono">Modèle Propriétaire</span>
                 </div>
                 <h3 className="text-xl font-medium text-zinc-300 mb-2">
-                  Vercel, Heroku &amp; Clouds mutualisés
+                  Clouds Propriétaires &amp; PaaS Fermés
                 </h3>
                 <p className="text-xs text-zinc-500 mb-6 leading-relaxed">
                   Serveurs mutualisés propriétaires où chaque requête, gigaoctet de bande passante et seconde d&apos;exécution CPU est surtaxée.

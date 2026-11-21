@@ -42,7 +42,7 @@ export function MarketingNavbar() {
             className="flex shrink-0 items-center transition-opacity hover:opacity-90"
             aria-label="Sovrack Accueil"
           >
-            <SovrackBrand textClassName="text-[20px] font-semibold tracking-tight text-white" />
+            <SovrackBrand textClassName="text-[22px] font-bold tracking-tight text-white" />
           </Link>
 
           <nav className="hidden items-center gap-1.5 text-[14px] md:flex">
