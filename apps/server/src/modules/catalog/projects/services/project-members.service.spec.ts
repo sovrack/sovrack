@@ -56,7 +56,7 @@ describe('ProjectMembersService', () => {
   it('adds a member (default DEVELOPER) after a manage check', async () => {
     await service.addMember('p1', 'owner', Role.OWNER, {
       userId: 'u2',
-    } as never);
+    });
     expect(workspaceAccess.assertProjectAction).toHaveBeenCalledWith(
       'p1',
       'owner',
@@ -81,7 +81,7 @@ describe('ProjectMembersService', () => {
   it('looks a user up by lowercased email', async () => {
     await service.addMember('p1', 'owner', Role.OWNER, {
       email: 'A@B.COM',
-    } as never);
+    });
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
       where: { email: 'a@b.com' },
     });
@@ -92,7 +92,7 @@ describe('ProjectMembersService', () => {
     await expect(
       service.addMember('p1', 'owner', Role.OWNER, {
         userId: 'ghost',
-      } as never),
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -101,7 +101,7 @@ describe('ProjectMembersService', () => {
       role: ProjectRole.DEVELOPER,
     });
     await expect(
-      service.addMember('p1', 'owner', Role.OWNER, { userId: 'u2' } as never),
+      service.addMember('p1', 'owner', Role.OWNER, { userId: 'u2' }),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 

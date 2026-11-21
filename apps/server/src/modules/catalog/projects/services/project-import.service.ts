@@ -98,7 +98,7 @@ export class ProjectImportService {
             data: {
               ...this.toServiceCreateData(repository, dto.providerId),
               projectId: project.id,
-            } as Prisma.ServiceUncheckedCreateInput,
+            },
           });
           await this.prisma.serviceEnvironment.create({
             data: { serviceId: svc.id, environmentId: env.id },
@@ -164,7 +164,7 @@ export class ProjectImportService {
           data: {
             ...this.toServiceCreateData(repository, dto.providerId),
             projectId: project.id,
-          } as Prisma.ServiceUncheckedCreateInput,
+          },
         });
         await this.prisma.serviceEnvironment.create({
           data: { serviceId: svc.id, environmentId: env.id },

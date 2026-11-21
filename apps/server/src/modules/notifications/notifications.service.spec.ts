@@ -2,6 +2,7 @@ import { PrismaService } from '../../shared/database/prisma.service';
 import { NotificationsConfigService } from './notifications-config.service';
 import { NotificationsSmtpService } from './notifications-smtp.service';
 import { NotificationsSlackService } from './notifications-slack.service';
+import { NotificationsDiscordService } from './notifications-discord.service';
 import {
   NotificationsService,
   type DeploymentNotificationPayload,
@@ -56,7 +57,7 @@ describe('NotificationsService (dispatcher)', () => {
       config as unknown as NotificationsConfigService,
       smtp as unknown as NotificationsSmtpService,
       slack as unknown as NotificationsSlackService,
-      discord as unknown as any,
+      discord as unknown as NotificationsDiscordService,
       prisma as unknown as PrismaService,
     );
   });

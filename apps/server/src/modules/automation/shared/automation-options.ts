@@ -4,13 +4,7 @@ export type AutomationAction = {
   description: string;
   playbookPath: string;
   category:
-    | 'system'
-    | 'docker'
-    | 'web'
-    | 'database'
-    | 'security'
-    | 'monitoring'
-    | 'ci';
+    'system' | 'docker' | 'web' | 'database' | 'security' | 'monitoring' | 'ci';
   roles?: string[];
   requiresSshValidated: boolean;
   requiresSudo: boolean;

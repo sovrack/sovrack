@@ -11,8 +11,7 @@
  * introuvable). Les erreurs de programmation restent des exceptions.
  */
 export type Result<T, E = Error> =
-  | { ok: true; value: T }
-  | { ok: false; error: E };
+  { ok: true; value: T } | { ok: false; error: E };
 
 /** Construit un Result en succès */
 export function ok<T>(value: T): Result<T, never> {

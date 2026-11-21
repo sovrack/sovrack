@@ -105,13 +105,10 @@ export class DockerImageService {
         controller.signal.addEventListener('abort', onAbort);
         try {
           await new Promise<void>((resolve, reject) => {
-            client.modem.followProgress(
-              stream as unknown as NodeJS.ReadableStream,
-              (err) => {
-                if (err) return reject(err);
-                resolve();
-              },
-            );
+            client.modem.followProgress(stream, (err) => {
+              if (err) return reject(err);
+              resolve();
+            });
           });
         } finally {
           controller.signal.removeEventListener('abort', onAbort);

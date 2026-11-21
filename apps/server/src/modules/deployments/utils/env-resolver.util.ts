@@ -26,10 +26,7 @@
  */
 
 export type EnvOrigin =
-  | 'auto-db'
-  | 'service'
-  | 'environment'
-  | 'serviceEnvironment';
+  'auto-db' | 'service' | 'environment' | 'serviceEnvironment';
 
 export interface EnvLevel {
   levelName: EnvOrigin;

@@ -41,10 +41,10 @@ describe('SourceProvidersController', () => {
     const { ctrl, gitProviders } = build();
     await ctrl.listGitlabProviders(workspaceId);
     await ctrl.createGitlabProvider(
-      { name: 'n', providerUrl: 'u' } as never,
+      { name: 'n', providerUrl: 'u' },
       workspaceId,
     );
-    await ctrl.updateGitlabProvider('g1', { name: 'm' } as never, workspaceId);
+    await ctrl.updateGitlabProvider('g1', { name: 'm' }, workspaceId);
     expect(await ctrl.deleteGitlabProvider('g1', workspaceId)).toEqual({
       ok: true,
     });
@@ -52,7 +52,10 @@ describe('SourceProvidersController', () => {
     await ctrl.testGitlabProvider('g1', workspaceId);
     await ctrl.testGitlab(workspaceId);
     await ctrl.listGitlabRepos('g1', workspaceId);
-    expect(gitProviders.listGitlabRepos).toHaveBeenCalledWith('g1', workspaceId);
+    expect(gitProviders.listGitlabRepos).toHaveBeenCalledWith(
+      'g1',
+      workspaceId,
+    );
     expect(gitProviders.listGitlabProviders).toHaveBeenCalledWith(workspaceId);
     expect(gitProviders.createGitlabProvider).toHaveBeenCalledWith(
       { name: 'n', providerUrl: 'u' },
@@ -99,7 +102,7 @@ describe('SourceProvidersController', () => {
       { name: 'n', providerUrl: 'u' } as never,
       workspaceId,
     );
-    await ctrl.updateGithubProvider('h1', { name: 'm' } as never, workspaceId);
+    await ctrl.updateGithubProvider('h1', { name: 'm' }, workspaceId);
     expect(await ctrl.deleteGithubProvider('h1', workspaceId)).toEqual({
       ok: true,
     });

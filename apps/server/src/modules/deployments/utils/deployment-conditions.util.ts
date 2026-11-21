@@ -17,10 +17,7 @@ import { toJson } from '../../../shared/utils/prisma-json.util';
 // n'était pas typé auparavant, d'où l'ajout ici plutôt qu'une coercition
 // silencieuse vers 'Progressing').
 export type DeploymentConditionType =
-  | 'Ready'
-  | 'Progressing'
-  | 'Degraded'
-  | 'EnvWarning';
+  'Ready' | 'Progressing' | 'Degraded' | 'EnvWarning';
 export type DeploymentConditionStatus = 'True' | 'False' | 'Unknown';
 
 export interface DeploymentCondition {

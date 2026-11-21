@@ -303,9 +303,11 @@ export class AnsibleRunnerService implements IAnsibleRunner {
     const txt = (v: unknown): string =>
       v == null
         ? ''
-        : typeof v === 'object'
-          ? JSON.stringify(v)
-          : String(v as string | number | boolean);
+        : typeof v === 'string'
+          ? v
+          : typeof v === 'number' || typeof v === 'boolean'
+            ? String(v)
+            : JSON.stringify(v);
     // Pattern 1: fatal lines with JSON error payload
     const fatalMatch = fullOutput.match(/fatal:.*?FAILED!\s*=>\s*(\{.*\})/s);
     if (fatalMatch?.[1]) {

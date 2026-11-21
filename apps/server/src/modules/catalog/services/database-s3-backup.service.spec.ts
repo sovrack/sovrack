@@ -15,7 +15,9 @@ describe('DatabaseS3BackupService', () => {
         'prod-postgres-1',
         { user: 'myuser', dbName: 'mydb' },
       );
-      expect(cmd).toBe('docker exec prod-postgres-1 pg_dump -U myuser -d mydb | gzip -c');
+      expect(cmd).toBe(
+        'docker exec prod-postgres-1 pg_dump -U myuser -d mydb | gzip -c',
+      );
     });
 
     it('generates mysqldump pipe gzip for MYSQL', () => {
@@ -24,7 +26,7 @@ describe('DatabaseS3BackupService', () => {
         'prod-mysql-1',
         { user: 'root', password: 'secret', dbName: 'appdb' },
       );
-      expect(cmd).toContain('mysqldump -u root -p\'secret\' appdb | gzip -c');
+      expect(cmd).toContain("mysqldump -u root -p'secret' appdb | gzip -c");
     });
 
     it('safely escapes single quotes in MySQL passwords', () => {
@@ -63,7 +65,9 @@ describe('DatabaseS3BackupService', () => {
         { user: 'myuser', dbName: 'mydb' },
         '/tmp/backup.sql.gz',
       );
-      expect(cmd).toBe('gunzip -c /tmp/backup.sql.gz | docker exec -i prod-postgres-1 psql -U myuser -d mydb');
+      expect(cmd).toBe(
+        'gunzip -c /tmp/backup.sql.gz | docker exec -i prod-postgres-1 psql -U myuser -d mydb',
+      );
     });
 
     it('generates gunzip pipe mysql for MYSQL', () => {
@@ -73,7 +77,9 @@ describe('DatabaseS3BackupService', () => {
         { user: 'root', password: 'pwd', dbName: 'appdb' },
         '/tmp/backup.sql.gz',
       );
-      expect(cmd).toBe("gunzip -c /tmp/backup.sql.gz | docker exec -i prod-mysql-1 mysql -u root -p'pwd' appdb");
+      expect(cmd).toBe(
+        "gunzip -c /tmp/backup.sql.gz | docker exec -i prod-mysql-1 mysql -u root -p'pwd' appdb",
+      );
     });
   });
 
@@ -90,10 +96,14 @@ describe('DatabaseS3BackupService', () => {
         'backup-2026-10-24.sql.gz',
       );
 
-      expect(result.url).toBe('https://s3.eu-west-1.amazonaws.com/sovrack-backups/backup-2026-10-24.sql.gz');
+      expect(result.url).toBe(
+        'https://s3.eu-west-1.amazonaws.com/sovrack-backups/backup-2026-10-24.sql.gz',
+      );
       expect(result.headers.Host).toBe('s3.eu-west-1.amazonaws.com');
       expect(result.headers['x-amz-date']).toBeDefined();
-      expect(result.headers.Authorization).toContain('AWS4-HMAC-SHA256 Credential=AKIAEXAMPLE/');
+      expect(result.headers.Authorization).toContain(
+        'AWS4-HMAC-SHA256 Credential=AKIAEXAMPLE/',
+      );
     });
   });
 });

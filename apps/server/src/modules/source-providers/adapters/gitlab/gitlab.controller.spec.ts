@@ -34,7 +34,7 @@ describe('GitlabController', () => {
     it('passes undefined for providerId=default', async () => {
       const adapter = makeAdapter();
       const ctrl = new GitlabController(adapter as never);
-      await ctrl.listGroupRepositories('default', 'grp1', {} as never);
+      await ctrl.listGroupRepositories('default', 'grp1', {});
       expect(adapter.listGroupRepositoriesByProvider).toHaveBeenCalledWith(
         expect.objectContaining({ providerId: undefined }),
       );
@@ -43,7 +43,7 @@ describe('GitlabController', () => {
     it('passes real providerId when not default', async () => {
       const adapter = makeAdapter();
       const ctrl = new GitlabController(adapter as never);
-      await ctrl.listGroupRepositories('prov1', 'grp1', {} as never);
+      await ctrl.listGroupRepositories('prov1', 'grp1', {});
       expect(adapter.listGroupRepositoriesByProvider).toHaveBeenCalledWith(
         expect.objectContaining({ providerId: 'prov1' }),
       );
@@ -54,7 +54,7 @@ describe('GitlabController', () => {
       const ctrl = new GitlabController(adapter as never);
       await ctrl.listGroupRepositories('p1', 'grp1', {
         archived: 'true',
-      } as never);
+      });
       const call = adapter.listGroupRepositoriesByProvider.mock.calls[0][0];
       expect(call.query.archived).toBe(true);
     });
@@ -62,7 +62,7 @@ describe('GitlabController', () => {
     it('defaults includeSubgroups to true when not provided', async () => {
       const adapter = makeAdapter();
       const ctrl = new GitlabController(adapter as never);
-      await ctrl.listGroupRepositories('p1', 'grp1', {} as never);
+      await ctrl.listGroupRepositories('p1', 'grp1', {});
       const call = adapter.listGroupRepositoriesByProvider.mock.calls[0][0];
       expect(call.query.includeSubgroups).toBe(true);
     });
@@ -72,11 +72,7 @@ describe('GitlabController', () => {
     it('passes projectId, dto, and user credentials to adapter', async () => {
       const adapter = makeAdapter();
       const ctrl = new GitlabController(adapter as never);
-      await ctrl.connectProject(
-        'proj1',
-        { gitlabUrl: 'https://gl.io' } as never,
-        user,
-      );
+      await ctrl.connectProject('proj1', { gitlabUrl: 'https://gl.io' }, user);
       expect(adapter.connectProject).toHaveBeenCalledWith(
         'proj1',
         expect.anything(),
@@ -147,11 +143,7 @@ describe('GitlabController', () => {
     it('passes branch and repoId to adapter', async () => {
       const adapter = makeAdapter();
       const ctrl = new GitlabController(adapter as never);
-      await ctrl.triggerPipeline(
-        'proj1',
-        { branch: 'main', repoId: 5 } as never,
-        user,
-      );
+      await ctrl.triggerPipeline('proj1', { branch: 'main', repoId: 5 }, user);
       expect(adapter.triggerPipeline).toHaveBeenCalledWith(
         'proj1',
         'main',
@@ -191,7 +183,7 @@ describe('GitlabController', () => {
       const ctrl = new GitlabController(adapter as never);
       await ctrl.listGroupRepositories('p1', 'g1', {
         archived: value,
-      } as never);
+      });
       const query =
         adapter.listGroupRepositoriesByProvider.mock.calls[0][0].query;
       expect(query.archived).toBe(expected);

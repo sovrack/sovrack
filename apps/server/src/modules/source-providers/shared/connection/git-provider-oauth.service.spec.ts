@@ -6,7 +6,6 @@ import { of, throwError } from 'rxjs';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { CryptoService } from '../../../../shared/crypto/crypto.service';
 import { GitProviderOauthService } from './git-provider-oauth.service';
-import { GitProviderLegacySyncService } from './git-provider-legacy-sync.service';
 
 describe('GitProviderOauthService — helpers', () => {
   let prisma: {
@@ -33,7 +32,7 @@ describe('GitProviderOauthService — helpers', () => {
       {} as unknown as HttpService,
       {} as unknown as CryptoService,
       config as unknown as ConfigService,
-      {} as unknown as GitProviderLegacySyncService,
+      {},
     );
   });
 
@@ -177,7 +176,7 @@ function makeFullSvc(
       httpFull as unknown as HttpService,
       cryptoFull as unknown as CryptoService,
       configFull as unknown as ConfigService,
-      legacySyncFull as unknown as GitProviderLegacySyncService,
+      legacySyncFull,
     ),
     prismaFull,
     httpFull,
@@ -221,7 +220,7 @@ describe('GitProviderOauthService — startGitlabOAuthForProvider', () => {
 
   it('throws NotFoundException for wrong provider type', async () => {
     const { svc } = makeFullSvc({
-      provider: { type: GitProviderType.GITHUB } as never,
+      provider: { type: GitProviderType.GITHUB },
     });
     await expect(
       svc.startGitlabOAuthForProvider('prov1', 'https://platform.io'),

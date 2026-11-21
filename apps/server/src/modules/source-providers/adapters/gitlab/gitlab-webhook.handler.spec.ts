@@ -19,7 +19,7 @@ describe('GitlabWebhookHandler — pipeline → auto-deploy', () => {
     serviceId: 'svc1',
     serviceEnvId: null,
     isActive: true,
-  } as WebhookEndpointContext;
+  };
 
   function makeHandler(
     previousStatus: PipelineRunStatus | null,

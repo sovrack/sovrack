@@ -141,7 +141,7 @@ export class GitlabAdapter implements IGitProvider {
         providerId: params.providerId,
         gitlabUrl: params.gitlabUrl,
         gitlabToken: params.gitlabToken,
-      } as ConnectGitlabDto,
+      },
       params.teamId,
     );
 
@@ -176,7 +176,7 @@ export class GitlabAdapter implements IGitProvider {
         providerId: params.providerId,
         gitlabUrl: params.gitlabUrl,
         gitlabToken: params.gitlabToken,
-      } as ConnectGitlabDto,
+      },
       params.teamId,
     );
 

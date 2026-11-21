@@ -227,7 +227,7 @@ describe('GitlabConnectionService', () => {
         {
           gitlabUrl: 'https://git.corp.io',
           gitlabToken: 'my-token',
-        } as never,
+        },
         workspaceId,
       );
       expect(result.gitlabUrl).toBe('https://git.corp.io');
@@ -241,7 +241,7 @@ describe('GitlabConnectionService', () => {
         svc.resolveGitlabConnectionInput(
           {
             gitlabUrl: 'https://git.io',
-          } as never,
+          },
           workspaceId,
         ),
       ).rejects.toThrow(BadRequestException);
@@ -249,10 +249,7 @@ describe('GitlabConnectionService', () => {
 
     it('uses default provider credentials when nothing is provided', async () => {
       const { svc } = makeSvc();
-      const result = await svc.resolveGitlabConnectionInput(
-        {} as never,
-        workspaceId,
-      );
+      const result = await svc.resolveGitlabConnectionInput({}, workspaceId);
       expect(result.providerId).toBe('prov-default');
       expect(result.gitlabToken).toBe('default-token');
     });
@@ -268,7 +265,7 @@ describe('GitlabConnectionService', () => {
       const result = await svc.resolveGitlabConnectionInput(
         {
           providerId: 'prov-corp',
-        } as never,
+        },
         workspaceId,
       );
       expect(result.gitlabToken).toBe('corp-token');
@@ -290,7 +287,7 @@ describe('GitlabConnectionService', () => {
         {
           providerId: 'prov-1',
           gitlabToken: 'override-token',
-        } as never,
+        },
         workspaceId,
       );
       expect(result.gitlabToken).toBe('override-token');

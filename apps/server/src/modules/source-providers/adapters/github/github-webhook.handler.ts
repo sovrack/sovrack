@@ -73,13 +73,10 @@ export class GithubWebhookHandler implements IWebhookHandler {
     }
     const eventType = this.detectEventType(payload);
     if (eventType === 'push') {
-      return this.handlePushEvent(endpoint, payload as GithubPushPayload);
+      return this.handlePushEvent(endpoint, payload);
     }
     if (eventType === 'workflow_run') {
-      return this.handleWorkflowRunEvent(
-        endpoint,
-        payload as GithubWorkflowRunPayload,
-      );
+      return this.handleWorkflowRunEvent(endpoint, payload);
     }
     return { status: 'ignored' };
   }

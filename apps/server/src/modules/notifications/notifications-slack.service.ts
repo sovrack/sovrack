@@ -84,7 +84,7 @@ export class NotificationsSlackService {
             type: 'mrkdwn',
             text: `<${payload.pipelineUrl}|Voir le pipeline GitLab>`,
           },
-        } as (typeof blocks)[0]);
+        });
       }
 
       await firstValueFrom(

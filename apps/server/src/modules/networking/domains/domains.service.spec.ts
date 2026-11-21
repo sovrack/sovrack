@@ -86,7 +86,7 @@ describe('DomainsService', () => {
   it('accepts only the credential-free MANUAL provider in V1', async () => {
     await expect(
       service.createProvider(
-        { name: 'manual', type: DnsProviderType.MANUAL } as never,
+        { name: 'manual', type: DnsProviderType.MANUAL },
         'workspace-1',
       ),
     ).resolves.toEqual(expect.objectContaining({ type: 'MANUAL' }));
@@ -98,7 +98,7 @@ describe('DomainsService', () => {
           name: 'cf',
           type: DnsProviderType.CLOUDFLARE,
           apiToken: 'secret',
-        } as never,
+        },
         'workspace-1',
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -141,7 +141,7 @@ describe('DomainsService', () => {
         name: 'API.Example.COM',
         providerId: 'dp1',
         projectId: 'p1',
-      } as never,
+      },
       'workspace-1',
     );
     expect(created.name).toBe('api.example.com');
@@ -153,7 +153,7 @@ describe('DomainsService', () => {
     prisma.dnsProvider.findFirst.mockResolvedValue(null);
     await expect(
       service.createDomain(
-        { name: 'x.com', providerId: 'nope' } as never,
+        { name: 'x.com', providerId: 'nope' },
         'workspace-1',
       ),
     ).rejects.toBeInstanceOf(NotFoundException);

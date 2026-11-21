@@ -124,8 +124,8 @@ export class InfraSetupRunnerService {
             requestedById: actorId,
             paramsJson: {
               _gitlabRunnerExecutor: resolved.gitlabRunnerExecutor,
-            } as Prisma.InputJsonValue,
-            resolvedJson: resolvedRoles as Prisma.InputJsonValue,
+            },
+            resolvedJson: resolvedRoles,
             retryOfId: options?.retryOfSetupId,
             steps: {
               create: resolvedRoles.map((roleKey, index) => ({

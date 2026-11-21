@@ -1,9 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { AnsibleRunnerService } from './ansible-runner.service';
-import type {
-  AnsibleRunCallbacks,
-  AnsibleRunOptions,
-} from './ports/ansible-runner.port';
+import type { AnsibleRunOptions } from './ports/ansible-runner.port';
 
 // Module-level mock de child_process.spawn — isolé dans ce spec pour ne pas
 // interférer avec ansible-runner.service.spec.ts (jest.mock est par fichier).
@@ -50,7 +47,7 @@ const service = (values: Record<string, string> = {}) =>
   } as unknown as ConfigService);
 
 const feed = (ev: 'stdout' | 'stderr', text: string) =>
-  (procHandlers[ev] as (c: Buffer) => void)?.(Buffer.from(text));
+  procHandlers[ev]?.(Buffer.from(text));
 
 describe('AnsibleRunnerService.runPlaybook (spawn)', () => {
   beforeEach(() => {
@@ -106,7 +103,7 @@ describe('AnsibleRunnerService.runPlaybook (spawn)', () => {
     const onLog = jest.fn();
     const p = service().runPlaybook(['pb.yml'], {}, options(), {
       onLog,
-    } as AnsibleRunCallbacks);
+    });
     feed('stdout', 'line1\nline2');
     procHandlers['close']?.(0);
     await p;

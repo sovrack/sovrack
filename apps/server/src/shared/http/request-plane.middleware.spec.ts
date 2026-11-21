@@ -53,8 +53,7 @@ describe('request plane middleware', () => {
       run(middleware, { host: 'app.sovrack.com', path: '/projects' }).next,
     ).toHaveBeenCalled();
     expect(
-      run(middleware, { host: 'app.sovrack.com', path: '/staff/users' })
-        .status,
+      run(middleware, { host: 'app.sovrack.com', path: '/staff/users' }).status,
     ).toHaveBeenCalledWith(404);
   });
 
@@ -70,8 +69,7 @@ describe('request plane middleware', () => {
 
   it('keeps client APIs off the staff host', () => {
     expect(
-      run(middleware, { host: 'staff.sovrack.com', path: '/projects' })
-        .status,
+      run(middleware, { host: 'staff.sovrack.com', path: '/projects' }).status,
     ).toHaveBeenCalledWith(404);
   });
 });

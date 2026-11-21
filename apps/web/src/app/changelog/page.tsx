@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowRight, CheckCircle2, GitCommit, Sparkles, Tag } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
-import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
 
 const releases = [
   {

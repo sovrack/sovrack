@@ -65,29 +65,26 @@ describe('AutomationService', () => {
 
   it('rejects an unknown action', async () => {
     await expect(
-      service.startRun(
-        { actionKey: 'nope', serverIds: ['s1'] } as never,
-        workspaceId,
-      ),
+      service.startRun({ actionKey: 'nope', serverIds: ['s1'] }, workspaceId),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('rejects when no target servers are provided', async () => {
     await expect(
-      service.startRun({ actionKey, serverIds: [] } as never, workspaceId),
+      service.startRun({ actionKey, serverIds: [] }, workspaceId),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('rejects when some servers are missing or disabled', async () => {
     prisma.server.findMany.mockResolvedValue([]); // none found for ['s1']
     await expect(
-      service.startRun({ actionKey, serverIds: ['s1'] } as never, workspaceId),
+      service.startRun({ actionKey, serverIds: ['s1'] }, workspaceId),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('creates a run, audits it, and enqueues it on the worker queue', async () => {
     await service.startRun(
-      { actionKey, serverIds: ['s1'] } as never,
+      { actionKey, serverIds: ['s1'] },
       workspaceId,
       'admin',
     );

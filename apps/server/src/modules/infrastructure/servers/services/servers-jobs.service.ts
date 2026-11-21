@@ -318,7 +318,7 @@ export class ServersJobsService implements OnModuleInit {
         type,
         maxAttempts: this.defaultJobMaxAttempts,
         timeoutMs: this.defaultJobTimeoutMs,
-        ...(payload && { payload: payload as Prisma.InputJsonValue }),
+        ...(payload && { payload: payload }),
       },
     });
   }
@@ -367,7 +367,7 @@ export class ServersJobsService implements OnModuleInit {
             type,
             maxAttempts: this.defaultJobMaxAttempts,
             timeoutMs: this.defaultJobTimeoutMs,
-            ...(payload && { payload: payload as Prisma.InputJsonValue }),
+            ...(payload && { payload: payload }),
           },
         });
       });

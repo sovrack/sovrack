@@ -52,8 +52,7 @@ export class DockerClientFactory {
     // Evict the oldest entry when the cache is full (LRU eviction).
     if (this.clientCache.size >= CACHE_MAX_SIZE) {
       const oldestKey = this.clientCache.keys().next().value as
-        | string
-        | undefined;
+        string | undefined;
       if (oldestKey !== undefined) {
         this.clientCache.delete(oldestKey);
       }

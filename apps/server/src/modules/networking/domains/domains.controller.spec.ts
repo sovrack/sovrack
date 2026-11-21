@@ -39,7 +39,7 @@ describe('DomainsController', () => {
   it('domain endpoints delegate', async () => {
     const { ctrl, domainsService } = build();
     await ctrl.listDomains('workspace-1', 'p1', 'se1');
-    await ctrl.createDomain({ name: 'd.com' } as never, 'workspace-1');
+    await ctrl.createDomain({ name: 'd.com' }, 'workspace-1');
     expect(await ctrl.removeDomain('d1', 'workspace-1')).toEqual({
       deleted: true,
     });

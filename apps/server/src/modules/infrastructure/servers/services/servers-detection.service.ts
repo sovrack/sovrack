@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { Prisma, Server, ServerStatus } from '@prisma/client';
+import { Server, ServerStatus } from '@prisma/client';
 import { toJson } from '../../../../shared/utils/prisma-json.util';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { InstalledTool } from '../../../../adapters/server-capabilities/server-capabilities.types';
@@ -243,7 +243,7 @@ export class ServersDetectionService {
           lastDetectedAt: new Date(),
           // hasDocker/hasRunner are no longer stored — derived from capabilities
           // via serverHasDocker/serverHasRunner (single source of truth).
-          capabilities: capabilities as Prisma.InputJsonValue,
+          capabilities: capabilities,
           installedTools: toJson(installedTools),
         },
       });

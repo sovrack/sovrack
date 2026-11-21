@@ -79,7 +79,7 @@ describe('Server detection / audit / docker-connection controllers', () => {
         tlsCaCert: 'a',
         tlsClientCert: 'b',
         tlsClientKey: 'c',
-      } as never);
+      });
       await ctrl.probe('srv-1');
       await ctrl.remove('srv-1');
       expect(dockerConnections.upsert).toHaveBeenCalledWith(

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
-  Activity,
   ArrowRight,
   Boxes,
   CheckCircle2,
@@ -115,29 +114,6 @@ const capabilities = [
     description:
       "Commencez seul dans votre espace personnel, puis créez des organisations pour collaborer avec gestion précise des rôles (RBAC).",
     badge: "Multi-tenant",
-  },
-];
-
-const comparisons = [
-  {
-    feature: "Hébergement des données",
-    sovrack: "Sur vos propres serveurs (souveraineté totale)",
-    cloud: "Serveurs mutualisés propriétaires (lock-in)",
-  },
-  {
-    feature: "Coût d'infrastructure",
-    sovrack: "Coût fixe de votre VPS (ex. 5€/mois illimité)",
-    cloud: "Facturation opaque à l'usage avec fortes marges",
-  },
-  {
-    feature: "Accès système & Terminal",
-    sovrack: "Accès SSH root complet sur votre serveur",
-    cloud: "Sandbox restreinte sans accès machine",
-  },
-  {
-    feature: "Limites de déploiement",
-    sovrack: "Illimité, dicté uniquement par la RAM de votre VPS",
-    cloud: "Quotas stricts de bande passante et CPU",
   },
 ];
 

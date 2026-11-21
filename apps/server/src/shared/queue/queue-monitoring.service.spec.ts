@@ -165,7 +165,7 @@ describe('QueueMonitoringService', () => {
       (svc as never as { queue: { client: Promise<unknown> } }).queue = {
         ...makeQueue(),
         client: Promise.reject(new Error('connection refused')),
-      } as never;
+      };
       const info = await svc.getRedisInfo();
       expect(info).toBeNull();
     });

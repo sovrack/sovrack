@@ -125,14 +125,14 @@ describe('ProxyService', () => {
         targetPort: 3000,
         sslEnabled: true,
       };
-      const result = await svc.create(dto as never, 'u1', Role.OWNER);
+      const result = await svc.create(dto, 'u1', Role.OWNER);
       expect(result.id).toBe('rule1');
     });
 
     it('checks manage access before creating', async () => {
       const { svc, access } = makeSvc();
       await svc.create(
-        { serverId: 's1', domain: 'x.com', targetPort: 80 } as never,
+        { serverId: 's1', domain: 'x.com', targetPort: 80 },
         'u1',
         Role.OWNER,
       );
@@ -153,7 +153,7 @@ describe('ProxyService', () => {
       (prisma.proxyRule.create as jest.Mock).mockRejectedValue(p2002);
       await expect(
         svc.create(
-          { serverId: 's1', domain: 'dup.com', targetPort: 80 } as never,
+          { serverId: 's1', domain: 'dup.com', targetPort: 80 },
           'u1',
           Role.OWNER,
         ),
@@ -167,7 +167,7 @@ describe('ProxyService', () => {
       );
       await expect(
         svc.create(
-          { serverId: 's1', domain: 'x.com', targetPort: 80 } as never,
+          { serverId: 's1', domain: 'x.com', targetPort: 80 },
           'u1',
           Role.OWNER,
         ),

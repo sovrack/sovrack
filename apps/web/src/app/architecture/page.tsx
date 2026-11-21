@@ -3,19 +3,12 @@
 import Link from "next/link";
 import {
   ArrowRight,
-  CheckCircle2,
-  Cpu,
-  Database,
   Globe,
-  Layers,
-  Lock,
   Server,
-  ShieldCheck,
-  Terminal,
 } from "lucide-react";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
 import MarketingFooter from "@/components/marketing/marketing-footer";
-import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
+import { publicSitePath } from "@/shared/config/product-urls";
 
 export default function ArchitecturePage() {
   return (

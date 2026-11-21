@@ -21,7 +21,7 @@ describe('ServiceEnvironmentsController', () => {
     const { ctrl, service } = build();
     await ctrl.link('p1', { serviceId: 's1' } as never, user);
     await ctrl.findOne('p1', 'se1', user);
-    await ctrl.update('p1', 'se1', { autoDeploy: true } as never, user);
+    await ctrl.update('p1', 'se1', { autoDeploy: true }, user);
     expect(service.link).toHaveBeenCalledWith(
       'p1',
       { serviceId: 's1' },

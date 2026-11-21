@@ -8,14 +8,15 @@ type ActionResult = 'ok' | 'fail';
 /** Safe stringification of an unknown log field — objects become JSON, never `[object Object]`. */
 function stringifyLogField(value: unknown): string {
   if (value == null) return '';
-  if (typeof value === 'object') {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return '[unserializable]';
-    }
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
   }
-  return String(value as string | number | boolean);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '[unserializable]';
+  }
 }
 
 @Injectable()

@@ -81,7 +81,7 @@ describe('ServiceEnvironmentsService', () => {
   it('creates a fresh link and encrypts secretsEnv', async () => {
     await service.link(
       'p1',
-      { ...dto, secretsEnv: 'K=v' } as never,
+      { ...dto, secretsEnv: 'K=v' },
       'admin',
       Role.OWNER,
     );
@@ -93,12 +93,7 @@ describe('ServiceEnvironmentsService', () => {
   // use encryptOptional like ServicesService, so an explicit '' clears the
   // secret (→ null) instead of persisting an encrypted empty string.
   it('clears secretsEnv (→ null) when an empty string is submitted', async () => {
-    await service.link(
-      'p1',
-      { ...dto, secretsEnv: '' } as never,
-      'admin',
-      Role.OWNER,
-    );
+    await service.link('p1', { ...dto, secretsEnv: '' }, 'admin', Role.OWNER);
     expect(crypto.encryptOptional).toHaveBeenCalledWith('');
     expect(prisma.serviceEnvironment.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -129,7 +124,7 @@ describe('ServiceEnvironmentsService', () => {
       id: 'se1',
       archivedAt: new Date(),
     });
-    await service.link('p1', dto as never, 'admin', Role.OWNER);
+    await service.link('p1', dto, 'admin', Role.OWNER);
     expect(prisma.serviceEnvironment.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ archivedAt: null }),
@@ -139,13 +134,7 @@ describe('ServiceEnvironmentsService', () => {
   });
 
   it('bumps generation on update', async () => {
-    await service.update(
-      'p1',
-      'se1',
-      { port: 8080 } as never,
-      'admin',
-      Role.OWNER,
-    );
+    await service.update('p1', 'se1', { port: 8080 }, 'admin', Role.OWNER);
     expect(prisma.serviceEnvironment.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ generation: { increment: 1 } }),
@@ -168,7 +157,7 @@ describe('ServiceEnvironmentsService', () => {
       await service.update(
         'p1',
         'se1',
-        { [field]: value } as never,
+        { [field]: value },
         'admin',
         Role.OWNER,
       );
@@ -185,7 +174,7 @@ describe('ServiceEnvironmentsService', () => {
         await service.update(
           'p1',
           'se1',
-          { [field]: null } as never,
+          { [field]: null },
           'admin',
           Role.OWNER,
         );
@@ -198,13 +187,7 @@ describe('ServiceEnvironmentsService', () => {
     );
 
     it('leaves the 5 overrides untouched when omitted from the payload', async () => {
-      await service.update(
-        'p1',
-        'se1',
-        { env: '{}' } as never,
-        'admin',
-        Role.OWNER,
-      );
+      await service.update('p1', 'se1', { env: '{}' }, 'admin', Role.OWNER);
       const data = (
         prisma.serviceEnvironment.update.mock.calls[0][0] as {
           data: Record<string, unknown>;

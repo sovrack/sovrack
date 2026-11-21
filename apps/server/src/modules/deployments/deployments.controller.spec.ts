@@ -62,7 +62,7 @@ describe('DeploymentsController', () => {
   it('validate delegates with the resolved build source default', async () => {
     const { ctrl, validationService } = build();
     await ctrl.validate(
-      { projectId: 'p1', environmentId: 'e1', serviceEnvId: 'se1' } as never,
+      { projectId: 'p1', environmentId: 'e1', serviceEnvId: 'se1' },
       user,
       workspaceId,
     );
@@ -88,7 +88,7 @@ describe('DeploymentsController', () => {
 
   it('findAll / findByProject / previewEnv / findOne delegate to the query service', async () => {
     const { ctrl, queryService } = build();
-    await ctrl.findAll(user, { page: 1 } as never, workspaceId);
+    await ctrl.findAll(user, { page: 1 }, workspaceId);
     await ctrl.findByProject('p1', user, workspaceId);
     await ctrl.previewEnv('se1', user, workspaceId);
     await ctrl.findOne('d1', user, workspaceId);

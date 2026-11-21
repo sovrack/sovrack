@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PlatformRole, Role, StaffStatus } from '@prisma/client';
-import { PasswordHasher } from '../iam/security/password-hasher.service';
 import { StaffService } from './staff.service';
 import { StaffAuditService } from './staff-audit.service';
 import { ConfigService } from '@nestjs/config';
@@ -151,7 +150,7 @@ describe('StaffService', () => {
     );
     invitationService = new StaffInvitationService(
       prisma as never,
-      passwordHasher as unknown as PasswordHasher,
+      passwordHasher,
       audit as unknown as StaffAuditService,
       config as unknown as ConfigService,
       notifications as unknown as NotificationsSmtpService,
@@ -159,7 +158,7 @@ describe('StaffService', () => {
     service = new StaffService(
       prisma as never,
       jwt as unknown as JwtService,
-      passwordHasher as unknown as PasswordHasher,
+      passwordHasher,
       audit as unknown as StaffAuditService,
       config as unknown as ConfigService,
       new StaffOperationsService(

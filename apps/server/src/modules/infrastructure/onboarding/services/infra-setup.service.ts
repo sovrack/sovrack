@@ -282,7 +282,7 @@ export class ServerSetupService implements OnModuleInit {
       previous.serverId,
       {
         gitlabRunnerExecutor: restoredExecutor,
-      } as StartServerSetupDto,
+      },
       actorId,
       {
         retryOfSetupId: id,

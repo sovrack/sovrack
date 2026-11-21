@@ -195,7 +195,7 @@ describe('DockerDeployExecutorService', () => {
       const result = resolveRuntimeConfig({
         ...snap,
         isRollback: true,
-        specSnapshot: 'string-not-object' as never,
+        specSnapshot: 'string-not-object',
       });
       expect(result.port).toBe(4000);
     });

@@ -1,7 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { ServiceTemplatesFactoryService } from './service-templates-factory.service';
-import { PrismaService } from '../../../shared/database/prisma.service';
 import { ProjectAccessService } from '../authorization/project-access.service';
 import { ServicesService } from './services.service';
 
@@ -27,7 +26,7 @@ describe('ServiceTemplatesFactoryService', () => {
       create: jest.fn(),
     };
     const service = new ServiceTemplatesFactoryService(
-      prisma as unknown as PrismaService,
+      prisma,
       projectAccess as unknown as ProjectAccessService,
       servicesService as unknown as ServicesService,
     );

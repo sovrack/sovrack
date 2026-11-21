@@ -157,7 +157,7 @@ export class AutomationService {
         paramsJson: {
           selected_roles: action.roles ?? [],
           gitlabRunnerExecutor: dto.gitlabRunnerExecutor?.trim() || 'docker',
-        } as Prisma.InputJsonValue,
+        },
         steps: {
           create: serverIds.map((serverId) => ({
             serverId,
@@ -179,7 +179,7 @@ export class AutomationService {
           runId: run.id,
           actionKey: action.key,
           actionLabel: action.label,
-        } as Prisma.InputJsonValue,
+        },
       })),
     });
 
@@ -228,7 +228,7 @@ export class AutomationService {
           teamId: workspaceId,
           userId: actorId ?? null,
           action: 'AUTOMATION_RUN_CANCELED',
-          metadata: { runId: id } as Prisma.InputJsonValue,
+          metadata: { runId: id },
         })),
       });
     }

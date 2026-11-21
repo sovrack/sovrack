@@ -35,10 +35,10 @@ describe('ProjectsController', () => {
 
   it('create / findAll / findOne / update delegate to projectsService', async () => {
     const { ctrl, projectsService } = build();
-    await ctrl.create(user, { name: 'x' } as never, workspaceId);
-    await ctrl.findAll(user, { page: 1 } as never, workspaceId);
+    await ctrl.create(user, { name: 'x' }, workspaceId);
+    await ctrl.findAll(user, { page: 1 }, workspaceId);
     await ctrl.findOne('p1', user, workspaceId);
-    await ctrl.update('p1', user, { name: 'y' } as never, workspaceId);
+    await ctrl.update('p1', user, { name: 'y' }, workspaceId);
     expect(projectsService.create).toHaveBeenCalledWith(
       'user-1',
       Role.OWNER,
@@ -91,7 +91,7 @@ describe('ProjectsController', () => {
 
   it('member endpoints delegate to the members service', async () => {
     const { ctrl, membersService } = build();
-    await ctrl.addMember('p1', user, { userId: 'u2' } as never, workspaceId);
+    await ctrl.addMember('p1', user, { userId: 'u2' }, workspaceId);
     await ctrl.getMembers('p1', user, workspaceId);
     await ctrl.removeMember('p1', 'u2', user, workspaceId);
     expect(membersService.addMember).toHaveBeenCalledWith(

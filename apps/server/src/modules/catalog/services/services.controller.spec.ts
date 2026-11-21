@@ -35,7 +35,7 @@ describe('ServicesController', () => {
   it('findAll / create / discoverGroup delegate with project scope', async () => {
     const { ctrl, servicesService } = build();
     await ctrl.findAll('p1', user);
-    await ctrl.create('p1', { name: 'x' } as never, user);
+    await ctrl.create('p1', { name: 'x' }, user);
     await ctrl.discoverGroup('p1', { groupId: 'g' } as never, user);
     expect(servicesService.findAll).toHaveBeenCalledWith(
       'p1',
@@ -59,7 +59,7 @@ describe('ServicesController', () => {
   it('listTemplates / createFromTemplate delegate to ServiceTemplatesFactoryService', async () => {
     const { ctrl, templatesFactory } = build();
     ctrl.listTemplates();
-    await ctrl.createFromTemplate('p1', 't1', { name: 'stack' } as never, user);
+    await ctrl.createFromTemplate('p1', 't1', { name: 'stack' }, user);
     expect(templatesFactory.listTemplates).toHaveBeenCalled();
     expect(templatesFactory.createFromTemplate).toHaveBeenCalledWith(
       'p1',
@@ -73,7 +73,7 @@ describe('ServicesController', () => {
   it('findOne / update delegate', async () => {
     const { ctrl, servicesService } = build();
     await ctrl.findOne('p1', 's1', user);
-    await ctrl.update('p1', 's1', { name: 'y' } as never, user);
+    await ctrl.update('p1', 's1', { name: 'y' }, user);
     expect(servicesService.findOne).toHaveBeenCalledWith(
       'p1',
       's1',

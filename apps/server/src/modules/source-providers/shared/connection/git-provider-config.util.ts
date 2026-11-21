@@ -7,9 +7,7 @@ import { BadRequestException } from '@nestjs/common';
 import type { GitProviderConfig } from '@prisma/client';
 
 export type GitProviderStatus =
-  | 'NOT_CONFIGURED'
-  | 'ACTION_REQUIRED'
-  | 'CONFIGURED';
+  'NOT_CONFIGURED' | 'ACTION_REQUIRED' | 'CONFIGURED';
 
 export type GitlabProviderPublic = {
   id: string;

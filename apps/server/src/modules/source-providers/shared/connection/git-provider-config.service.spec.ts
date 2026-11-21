@@ -116,7 +116,7 @@ describe('GitProviderConfigService — GitLab CRUD', () => {
         name: 'GL',
         providerUrl: 'https://gitlab.example.com',
         adminToken: 'tok',
-      } as never,
+      },
       'workspace-1',
     );
     expect(res.isDefault).toBe(true);
@@ -132,7 +132,7 @@ describe('GitProviderConfigService — GitLab CRUD', () => {
         name: 'GL2',
         providerUrl: 'https://gl2.example.com',
         isDefault: true,
-      } as never,
+      },
       'workspace-1',
     );
     const tx = (
@@ -153,7 +153,7 @@ describe('GitProviderConfigService — GitLab CRUD', () => {
   it('rejects creation with an empty name', async () => {
     await expect(
       service.createGitlabProvider(
-        { name: '  ', providerUrl: 'x' } as never,
+        { name: '  ', providerUrl: 'x' },
         'workspace-1',
       ),
     ).rejects.toThrow();

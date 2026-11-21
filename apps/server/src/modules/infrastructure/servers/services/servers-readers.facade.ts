@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, ServerInfraRole } from '@prisma/client';
+import { ServerInfraRole } from '@prisma/client';
 import { PrismaService } from '../../../../shared/database/prisma.service';
 import { ServersAuditService } from './servers-audit.service';
 import { ServersDetectionService } from './servers-detection.service';
@@ -60,7 +60,7 @@ export class ServersReadersFacade {
 
     const updated = await this.prisma.server.update({
       where: { id },
-      data: { infraRole } as Prisma.ServerUpdateInput,
+      data: { infraRole },
     });
 
     await this.auditService.record(
@@ -79,7 +79,7 @@ export class ServersReadersFacade {
       where: {
         teamId: workspaceId,
         infraRole: { in: ['STAGING', 'PRODUCTION'] as ServerInfraRole[] },
-      } as Prisma.ServerWhereInput,
+      },
       orderBy: { name: 'asc' },
     });
     return servers.map((s) => toPublicServer(s));

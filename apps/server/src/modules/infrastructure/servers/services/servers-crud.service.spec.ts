@@ -152,7 +152,7 @@ describe('ServersCrudService', () => {
 
   it('creates a server with an encrypted SSH key and audits it (status NEW)', async () => {
     const res = await service.create(
-      { name: 'srv', host: '10.0.0.1', sshKey: 'raw-key' } as never,
+      { name: 'srv', host: '10.0.0.1', sshKey: 'raw-key' },
       'admin',
     );
     expect(crypto.encrypt).toHaveBeenCalledWith('priv');
@@ -176,10 +176,7 @@ describe('ServersCrudService', () => {
   it('rejects creation referencing a missing stored SSH key', async () => {
     prisma.sshKey.findFirst.mockResolvedValue(null);
     await expect(
-      service.create(
-        { name: 'srv', host: 'h', sshKeyId: 'ghost' } as never,
-        'admin',
-      ),
+      service.create({ name: 'srv', host: 'h', sshKeyId: 'ghost' }, 'admin'),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -187,10 +184,7 @@ describe('ServersCrudService', () => {
     prisma.sshKey.findFirst.mockResolvedValue({
       encryptedPrivateKey: 'stored-enc',
     });
-    await service.create(
-      { name: 'srv', host: 'h', sshKeyId: 'k1' } as never,
-      'admin',
-    );
+    await service.create({ name: 'srv', host: 'h', sshKeyId: 'k1' }, 'admin');
     expect(prisma.sshKey.findFirst).toHaveBeenCalledWith({
       where: { id: 'k1', teamId: 't1' },
     });
@@ -202,7 +196,7 @@ describe('ServersCrudService', () => {
   // sshPublicKey — which would silently leave ServerKeyInstallDialog showing
   // the OLD public key after a credential change (it reads Server.sshPublicKey).
   it('update() with a raw sshKey re-derives and stores BOTH the private and public key', async () => {
-    await service.update('s1', { sshKey: 'new-raw-key' } as never, 'admin');
+    await service.update('s1', { sshKey: 'new-raw-key' }, 'admin');
     expect(crypto.resolveSshMaterial).toHaveBeenCalledWith('new-raw-key');
     expect(prisma.server.update).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -220,7 +214,7 @@ describe('ServersCrudService', () => {
     prisma.sshKey.findFirst.mockResolvedValue({
       encryptedPrivateKey: 'stored-enc',
     });
-    await service.update('s1', { sshKeyId: 'k1' } as never, 'admin');
+    await service.update('s1', { sshKeyId: 'k1' }, 'admin');
     expect(prisma.sshKey.findFirst).toHaveBeenCalledWith({
       where: { id: 'k1', teamId: 't1' },
     });
@@ -239,12 +233,12 @@ describe('ServersCrudService', () => {
   it('update() rejects a missing stored SSH key referenced by sshKeyId', async () => {
     prisma.sshKey.findFirst.mockResolvedValue(null);
     await expect(
-      service.update('s1', { sshKeyId: 'ghost' } as never, 'admin'),
+      service.update('s1', { sshKeyId: 'ghost' }, 'admin'),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('update() without sshKey/sshKeyId never touches the stored credential (never overwrites with empty)', async () => {
-    await service.update('s1', { name: 'renamed' } as never, 'admin');
+    await service.update('s1', { name: 'renamed' }, 'admin');
     expect(crypto.resolveSshMaterial).not.toHaveBeenCalled();
     const data = prisma.server.update.mock.calls[0][0].data;
     expect(data).not.toHaveProperty('sshKey');

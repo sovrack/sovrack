@@ -30,10 +30,10 @@ describe('EnvironmentsController', () => {
 
   it('CRUD delegates with project scope and acting user', async () => {
     const { ctrl, environmentsService } = build();
-    await ctrl.create('p1', { name: 'prod' } as never, user);
+    await ctrl.create('p1', { name: 'prod' }, user);
     await ctrl.findAll('p1', user);
     await ctrl.findOne('p1', 'e1', user);
-    await ctrl.update('p1', 'e1', { name: 'staging' } as never, user);
+    await ctrl.update('p1', 'e1', { name: 'staging' }, user);
     expect(environmentsService.create).toHaveBeenCalledWith(
       'p1',
       { name: 'prod' },

@@ -82,7 +82,7 @@ export class GitlabWebhookHandler implements IWebhookHandler {
         }`,
       );
     }
-    return this.processPayload(endpoint, rawPayload as GitlabWebhookPayload);
+    return this.processPayload(endpoint, rawPayload);
   }
 
   private async processPayload(

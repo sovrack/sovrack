@@ -340,7 +340,7 @@ describe('ServerSetupService', () => {
       // "aucune option sélectionnée" possible, contrairement à l'ancien
       // système d'options où tout décocher pouvait produire une liste vide.
       const { svc, runner } = makeSvc();
-      await svc.startSetup('srv1', {} as never);
+      await svc.startSetup('srv1', {});
       const [, , resolvedRoles] = (runner.createRun as jest.Mock).mock.calls[0];
       expect(resolvedRoles.length).toBeGreaterThan(0);
     });

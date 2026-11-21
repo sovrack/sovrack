@@ -10,7 +10,6 @@ import { ProjectAccessService } from '../authorization/project-access.service';
 import { ServiceEnvironmentsService } from '../service-environments/service-environments.service';
 import { SourceProvidersService } from '../../source-providers/source-providers.service';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
-import { CreateServiceDto } from './dto/create-service.dto';
 
 describe('ServicesService — soft-delete name collision', () => {
   const projectId = 'project-1';
@@ -109,7 +108,7 @@ describe('ServicesService — CRUD', () => {
       decryptSafe: jest.fn((v?: string | null) => v ?? null),
     };
     const service = new ServicesService(
-      prisma as unknown as PrismaService,
+      prisma,
       serviceEnvs as unknown as ServiceEnvironmentsService,
       sourceProviders as unknown as SourceProvidersService,
       projectAccess as unknown as ProjectAccessService,
@@ -238,7 +237,7 @@ describe('ServicesService — CRUD', () => {
     await service.update(
       projectId,
       's1',
-      { name: 'renamed' } as never,
+      { name: 'renamed' },
       userId,
       Role.OWNER,
     );
@@ -282,7 +281,7 @@ describe('ServicesService — CRUD', () => {
 
     const result = await service.create(
       projectId,
-      { name: 'api', type: ServiceType.APPLICATION } as CreateServiceDto,
+      { name: 'api', type: ServiceType.APPLICATION },
       userId,
       Role.OWNER,
     );
@@ -312,7 +311,7 @@ describe('ServicesService — CRUD', () => {
         name: 'api',
         type: ServiceType.APPLICATION,
         secretsEnv: '{"API_KEY":"x"}',
-      } as CreateServiceDto,
+      },
       userId,
       Role.OWNER,
     );
@@ -335,7 +334,7 @@ describe('ServicesService — CRUD', () => {
     await expect(
       service.create(
         projectId,
-        { name: 'api', type: ServiceType.APPLICATION } as CreateServiceDto,
+        { name: 'api', type: ServiceType.APPLICATION },
         userId,
         Role.OWNER,
       ),
@@ -358,7 +357,7 @@ describe('ServicesService — CRUD', () => {
         type: ServiceType.DATABASE,
         databaseType: ManagedServiceType.POSTGRES,
         databaseVersion: '16',
-      } as CreateServiceDto,
+      },
       userId,
       Role.OWNER,
     );
@@ -379,7 +378,7 @@ describe('ServicesService — CRUD', () => {
     await service.update(
       projectId,
       's1',
-      { name: 'renamed' } as never,
+      { name: 'renamed' },
       userId,
       Role.OWNER,
     );
@@ -400,7 +399,7 @@ describe('ServicesService — CRUD', () => {
     await expect(
       service.create(
         projectId,
-        { name: 'api', type: ServiceType.APPLICATION } as CreateServiceDto,
+        { name: 'api', type: ServiceType.APPLICATION },
         userId,
         Role.MEMBER,
       ),

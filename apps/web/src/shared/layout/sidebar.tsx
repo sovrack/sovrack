@@ -6,12 +6,10 @@ import clsx from "clsx";
 import { useAuth } from "@/features/auth/api/use-auth";
 import { useSidebar } from "@/shared/contexts/sidebar-context";
 import { useI18n } from "@/shared/i18n/language-context";
-import { LogOut, Settings } from "lucide-react";
 import { SovrackLogo } from "@/shared/ui/sovrack-logo";
 import { APP_NAV_SECTIONS, isRouteActive } from "@/shared/config/navigation";
 import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 import { customerAppPath } from "@/shared/config/product-urls";
-import { workspaceRoleLabel } from "@/shared/i18n/product-labels";
 
 type NavItemProps = {
   href: string;

@@ -23,7 +23,7 @@ export function parseDbCredentials(
       return {};
     }
   } else if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-    creds = raw as Record<string, unknown>;
+    creds = raw;
   }
   return {
     user: typeof creds.user === 'string' ? creds.user : undefined,

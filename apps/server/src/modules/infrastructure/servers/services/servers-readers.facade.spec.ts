@@ -93,7 +93,7 @@ describe('ServersReadersFacade', () => {
       const { facade, prisma, auditService } = build();
       const result = await facade.setServerInfraRole(
         'srv-1',
-        'PRODUCTION' as never,
+        'PRODUCTION',
         'user-1',
       );
       expect(prisma.server.update).toHaveBeenCalledWith({
@@ -113,7 +113,7 @@ describe('ServersReadersFacade', () => {
     it('throws NotFound when the server does not exist', async () => {
       const { facade } = build(false);
       await expect(
-        facade.setServerInfraRole('ghost', 'PRODUCTION' as never, 'user-1'),
+        facade.setServerInfraRole('ghost', 'PRODUCTION', 'user-1'),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
   });

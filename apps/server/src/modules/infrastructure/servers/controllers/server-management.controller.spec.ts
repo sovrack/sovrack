@@ -31,7 +31,7 @@ describe('ServerManagementController', () => {
   it('create / findAll / findOne delegate', async () => {
     const { ctrl, core } = build();
     await ctrl.create({ name: 'x' } as never, user, workspaceId);
-    await ctrl.findAll({ page: 1 } as never, user, workspaceId);
+    await ctrl.findAll({ page: 1 }, user, workspaceId);
     await ctrl.pingAll(user, workspaceId);
     await ctrl.findOne('srv-1', user, workspaceId);
     expect(core.create).toHaveBeenCalledWith(
@@ -50,8 +50,8 @@ describe('ServerManagementController', () => {
 
   it('update / patch both delegate to core.update', async () => {
     const { ctrl, core } = build();
-    await ctrl.update('srv-1', { name: 'y' } as never, user, workspaceId);
-    await ctrl.patch('srv-1', { name: 'z' } as never, user, workspaceId);
+    await ctrl.update('srv-1', { name: 'y' }, user, workspaceId);
+    await ctrl.patch('srv-1', { name: 'z' }, user, workspaceId);
     expect(core.update).toHaveBeenNthCalledWith(
       1,
       'srv-1',
@@ -77,15 +77,15 @@ describe('ServerManagementController', () => {
 
   it('installKey / registerRunner pass the dto fields', async () => {
     const { ctrl, core } = build();
-    await ctrl.installKey('srv-1', { password: 'pw' } as never, user);
-    await ctrl.registerRunner('srv-1', { gitlabUrl: 'u', token: 't' } as never);
+    await ctrl.installKey('srv-1', { password: 'pw' }, user);
+    await ctrl.registerRunner('srv-1', { gitlabUrl: 'u', token: 't' });
     expect(core.installPublicKey).toHaveBeenCalledWith('srv-1', 'pw', 'user-1');
     expect(core.registerRunner).toHaveBeenCalledWith('srv-1', 'u', 't');
   });
 
   it('jobs / role / environments / ping / cancel delegate', async () => {
     const { ctrl, core } = build();
-    await ctrl.listJobs('srv-1', { page: 1 } as never);
+    await ctrl.listJobs('srv-1', { page: 1 });
     await ctrl.setServerRole(
       'srv-1',
       { infraRole: 'PRODUCTION' } as never,

@@ -21,13 +21,10 @@ describe('TeamsController', () => {
     const user = { id: 'u1', role: 'OWNER' };
     await ctrl.findAll(user as never);
     await ctrl.findOne('t1', user as never);
-    await ctrl.create(
-      { name: 'team' } as never,
-      {
-        id: 'u1',
-      } as never,
-    );
-    await ctrl.update('t1', { name: 'team2' } as never, user as never);
+    await ctrl.create({ name: 'team' }, {
+      id: 'u1',
+    } as never);
+    await ctrl.update('t1', { name: 'team2' }, user as never);
     await ctrl.remove('t1', user as never);
     expect(teamsService.findAll).toHaveBeenCalledWith(user);
     expect(teamsService.findOne).toHaveBeenCalledWith('t1', user);
@@ -43,7 +40,7 @@ describe('TeamsController', () => {
   it('member endpoints delegate', async () => {
     const { ctrl, teamsService } = build();
     const user = { id: 'u1', role: 'OWNER' };
-    await ctrl.addMember('t1', { userId: 'u1' } as never, user as never);
+    await ctrl.addMember('t1', { userId: 'u1' }, user as never);
     await ctrl.removeMember('t1', 'u1', user as never);
     expect(teamsService.addMember).toHaveBeenCalledWith(
       't1',

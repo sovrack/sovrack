@@ -1,10 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import {
-  NotificationsConfigService,
-  CONFIG_KEYS,
-} from './notifications-config.service';
+import { NotificationsConfigService } from './notifications-config.service';
 import type {
   DeploymentNotificationPayload,
   DockerConnectionDownPayload,

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
 
@@ -25,7 +26,10 @@ export class EnterpriseLicenseService {
   constructor() {
     if (process.env.ENABLE_ENTERPRISE !== 'false') {
       try {
-        const eePath = path.resolve(__dirname, '../../../../../ee/server/enterprise-license.service');
+        const eePath = path.resolve(
+          __dirname,
+          '../../../../../ee/server/enterprise-license.service',
+        );
         const eeModule = require(eePath);
         if (eeModule && eeModule.EnterpriseLicenseService) {
           this.eeVerifier = new eeModule.EnterpriseLicenseService();
@@ -38,7 +42,10 @@ export class EnterpriseLicenseService {
   }
 
   getLicenseStatus(): LicenseStatus {
-    if (this.eeVerifier && typeof this.eeVerifier.getLicenseStatus === 'function') {
+    if (
+      this.eeVerifier &&
+      typeof this.eeVerifier.getLicenseStatus === 'function'
+    ) {
       return this.eeVerifier.getLicenseStatus();
     }
     return {

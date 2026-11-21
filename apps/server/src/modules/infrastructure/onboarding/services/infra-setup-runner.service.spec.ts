@@ -186,9 +186,7 @@ describe('InfraSetupRunnerService', () => {
   describe('knownRoleKeys', () => {
     it('exposes the canonical role set', () => {
       const { runner } = build();
-      expect(runner.knownRoleKeys.has('system_base' as SetupRoleKey)).toBe(
-        true,
-      );
+      expect(runner.knownRoleKeys.has('system_base')).toBe(true);
     });
   });
 

@@ -102,7 +102,7 @@ describe('EnvironmentsService', () => {
     });
     await service.create(
       'p1',
-      { name: 'prod', env: 'A=1', secretsEnv: 'S=2' } as never,
+      { name: 'prod', env: 'A=1', secretsEnv: 'S=2' },
       'owner',
       Role.MEMBER,
     );
@@ -118,7 +118,7 @@ describe('EnvironmentsService', () => {
     });
     await service.create(
       'p1',
-      { name: 'prod', secretsEnv: '' } as never,
+      { name: 'prod', secretsEnv: '' },
       'owner',
       Role.MEMBER,
     );
@@ -204,7 +204,7 @@ describe('EnvironmentsService', () => {
       role: ProjectRole.DEVELOPER,
     });
     await expect(
-      service.create('p1', { name: 'x' } as never, 'u2', Role.MEMBER),
+      service.create('p1', { name: 'x' }, 'u2', Role.MEMBER),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -213,7 +213,7 @@ describe('EnvironmentsService', () => {
       role: ProjectRole.MAINTAINER,
     });
     await expect(
-      service.create('p1', { name: 'x' } as never, 'owner', Role.MEMBER),
+      service.create('p1', { name: 'x' }, 'owner', Role.MEMBER),
     ).resolves.toMatchObject({ name: 'x' });
   });
 

@@ -70,7 +70,7 @@ describe('ServersCoreService (facade)', () => {
     await service.findOne('s1', 'admin', workspaceId);
     expect(crud.findOne).toHaveBeenCalledWith('s1', 'admin', workspaceId);
 
-    await service.update('s1', { name: 'x' } as never, 'admin', workspaceId);
+    await service.update('s1', { name: 'x' }, 'admin', workspaceId);
     expect(crud.update).toHaveBeenCalledWith(
       's1',
       { name: 'x' },
@@ -138,7 +138,7 @@ describe('ServersCoreService (facade)', () => {
       5,
     );
 
-    await service.setServerInfraRole('s1', 'PRODUCTION' as never, 'admin');
+    await service.setServerInfraRole('s1', 'PRODUCTION', 'admin');
     expect(readersFacade.setServerInfraRole).toHaveBeenCalledWith(
       's1',
       'PRODUCTION',

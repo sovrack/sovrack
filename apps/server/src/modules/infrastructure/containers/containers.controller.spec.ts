@@ -27,11 +27,7 @@ describe('ContainersController', () => {
 
   it('read endpoints delegate', async () => {
     const { ctrl, containersService } = build();
-    await ctrl.findAll(
-      { serverId: 's1' } as never,
-      mockUser as never,
-      'workspace-1',
-    );
+    await ctrl.findAll({ serverId: 's1' }, mockUser as never, 'workspace-1');
     await ctrl.findOne('c1', mockUser as never, 'workspace-1');
     await ctrl.inspect('c1', mockUser as never, 'workspace-1');
     await ctrl.stats('c1', mockUser as never, 'workspace-1');

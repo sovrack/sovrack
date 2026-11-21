@@ -160,7 +160,7 @@ describe('TraefikRouteService.applyRoute', () => {
     const { service, docker, ssh, conn } = build();
     const result = await service.applyRoute(
       'srv-1',
-      build().server as never,
+      build().server,
       'env/weird id', // contains chars to sanitize
       'app.example.com',
       'deploy-app',

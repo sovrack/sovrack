@@ -47,7 +47,9 @@ export class DatabaseS3BackupService {
       }
       case ManagedServiceType.MYSQL: {
         const user = creds.user ?? 'root';
-        const escapedPwd = creds.password ? creds.password.replace(/'/g, "'\\''") : '';
+        const escapedPwd = creds.password
+          ? creds.password.replace(/'/g, "'\\''")
+          : '';
         const pwd = creds.password ? `-p'${escapedPwd}'` : '';
         const dbName = creds.dbName ?? '';
         return `docker exec ${containerName} mysqldump -u ${user} ${pwd} ${dbName} | gzip -c`;
@@ -62,7 +64,9 @@ export class DatabaseS3BackupService {
         return `docker exec ${containerName} rabbitmq-diagnostics export_definitions /tmp/defs.json && docker exec ${containerName} cat /tmp/defs.json | gzip -c`;
       }
       default:
-        throw new BadRequestException(`Type de base non supporté : ${databaseType}`);
+        throw new BadRequestException(
+          `Type de base non supporté : ${String(databaseType)}`,
+        );
     }
   }
 
@@ -83,7 +87,9 @@ export class DatabaseS3BackupService {
       }
       case ManagedServiceType.MYSQL: {
         const user = creds.user ?? 'root';
-        const escapedPwd = creds.password ? creds.password.replace(/'/g, "'\\''") : '';
+        const escapedPwd = creds.password
+          ? creds.password.replace(/'/g, "'\\''")
+          : '';
         const pwd = creds.password ? `-p'${escapedPwd}'` : '';
         const dbName = creds.dbName ?? '';
         return `gunzip -c ${localArchiveFilePath} | docker exec -i ${containerName} mysql -u ${user} ${pwd} ${dbName}`;
@@ -95,7 +101,9 @@ export class DatabaseS3BackupService {
         return `gunzip -c ${localArchiveFilePath} | docker exec -i ${containerName} sh -c 'cat > /data/dump.rdb'`;
       }
       default:
-        throw new BadRequestException(`Restauration non supportée pour : ${databaseType}`);
+        throw new BadRequestException(
+          `Restauration non supportée pour : ${String(databaseType)}`,
+        );
     }
   }
 
@@ -136,8 +144,15 @@ export class DatabaseS3BackupService {
       createHash('sha256').update(canonicalRequest).digest('hex'),
     ].join('\n');
 
-    const signingKey = this.getSignatureKey(config.secretAccessKey, dateStamp, region, 's3');
-    const signature = createHmac('sha256', signingKey).update(stringToSign).digest('hex');
+    const signingKey = this.getSignatureKey(
+      config.secretAccessKey,
+      dateStamp,
+      region,
+      's3',
+    );
+    const signature = createHmac('sha256', signingKey)
+      .update(stringToSign)
+      .digest('hex');
 
     const authorizationHeader = `AWS4-HMAC-SHA256 Credential=${config.accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
 
@@ -152,7 +167,12 @@ export class DatabaseS3BackupService {
     };
   }
 
-  private getSignatureKey(key: string, dateStamp: string, regionName: string, serviceName: string): Buffer {
+  private getSignatureKey(
+    key: string,
+    dateStamp: string,
+    regionName: string,
+    serviceName: string,
+  ): Buffer {
     const kDate = createHmac('sha256', `AWS4${key}`).update(dateStamp).digest();
     const kRegion = createHmac('sha256', kDate).update(regionName).digest();
     const kService = createHmac('sha256', kRegion).update(serviceName).digest();

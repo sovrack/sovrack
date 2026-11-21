@@ -9,10 +9,7 @@ export interface ServerCapabilities {
 }
 
 export type InstalledToolStatus =
-  | 'INSTALLED'
-  | 'MISSING'
-  | 'FAILED'
-  | 'UNKNOWN';
+  'INSTALLED' | 'MISSING' | 'FAILED' | 'UNKNOWN';
 
 /** One detected tool, stored in the Server.installedTools JSON array. */
 export interface InstalledTool {

@@ -2,9 +2,7 @@ import { randomInt, timingSafeEqual } from 'crypto';
 import { CryptoService } from '../../../shared/crypto/crypto.service';
 
 export type OneTimeCodePurpose =
-  | 'email-verification'
-  | 'password-reset'
-  | 'account-deletion';
+  'email-verification' | 'password-reset' | 'account-deletion';
 
 type SealedOneTimeCode = {
   code: string;

@@ -139,7 +139,7 @@ describe('DeploymentsQueryService', () => {
       const res = await service.findAll('admin', Role.OWNER, {
         page: 1,
         limit: 10,
-      } as never);
+      });
       expect(prisma.deployment.count).toHaveBeenCalled();
       expect(res).toHaveProperty('data');
     });

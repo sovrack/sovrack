@@ -51,8 +51,7 @@ export type ServerExecutionOptions = {
 export type ServerListResult = ServerPublic[] | PaginatedResult<ServerPublic>;
 
 export type ServerJobsListResult =
-  | ServerJobPublic[]
-  | PaginatedResult<ServerJobPublic>;
+  ServerJobPublic[] | PaginatedResult<ServerJobPublic>;
 
 export type RegisterRunnerPayload = {
   gitlabUrl: string;

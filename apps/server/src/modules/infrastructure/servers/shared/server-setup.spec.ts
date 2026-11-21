@@ -1,4 +1,3 @@
-import type { StartServerSetupDto } from '../dto/start-server-setup.dto';
 import { ServerSetupProfile } from '../dto/start-server-setup.dto';
 import { ROLE_ORDER, resolveSetupOptions } from './server-setup';
 
@@ -58,7 +57,7 @@ describe('resolveSetupOptions — secure explicit profiles', () => {
     expect(
       resolveSetupOptions({
         gitlabRunnerExecutor: 'shell',
-      } as StartServerSetupDto).gitlabRunnerExecutor,
+      }).gitlabRunnerExecutor,
     ).toBe('shell');
   });
 

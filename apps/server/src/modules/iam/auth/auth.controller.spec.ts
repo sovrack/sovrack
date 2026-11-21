@@ -44,10 +44,7 @@ describe('AuthController', () => {
       cookie: jest.fn(),
       clearCookie: jest.fn(),
     } as unknown as Response;
-    const result = await ctrl.login(
-      { email: 'a@b.c', password: 'x' } as never,
-      res,
-    );
+    const result = await ctrl.login({ email: 'a@b.c', password: 'x' }, res);
     expect(authService.login).toHaveBeenCalled();
     expect(res.cookie).toHaveBeenCalled();
     expect(result).toEqual({ user: { id: 'user-1' } });

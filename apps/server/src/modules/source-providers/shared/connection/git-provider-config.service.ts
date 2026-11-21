@@ -416,10 +416,7 @@ export class GitProviderConfigService {
     return this.github.listRepos(id, teamId);
   }
 
-  async listGitlabRepos(
-    id: string,
-    teamId: string,
-  ): Promise<GitRepoOption[]> {
+  async listGitlabRepos(id: string, teamId: string): Promise<GitRepoOption[]> {
     const provider = await this.getGitlabProviderOrFail(id, teamId);
     return this.tester.listRepos(provider);
   }

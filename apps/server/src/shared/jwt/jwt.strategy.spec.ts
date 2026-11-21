@@ -162,7 +162,7 @@ describe('JwtStrategy', () => {
           authType: 'staff-impersonation',
           impersonatedByStaffId: 'staff-1',
           impersonationGrantId: 'grant-1',
-        } as JwtPayloadDto),
+        }),
       ).rejects.toThrow(UnauthorizedException);
     });
   });

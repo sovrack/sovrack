@@ -23,7 +23,7 @@ describe('ContainerRegistriesController', () => {
       { name: 'n', type: 'DOCKERHUB' } as never,
       workspaceId,
     );
-    await ctrl.updateRegistry('r1', { name: 'm' } as never, workspaceId);
+    await ctrl.updateRegistry('r1', { name: 'm' }, workspaceId);
     expect(registries.listRegistryConfigs).toHaveBeenCalledWith(workspaceId);
     expect(registries.createRegistryConfig).toHaveBeenCalledWith(
       { name: 'n', type: 'DOCKERHUB' },

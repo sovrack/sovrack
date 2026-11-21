@@ -215,7 +215,7 @@ export class AutomationRunnerService implements OnModuleInit, OnModuleDestroy {
             metadata: {
               runId,
               actionKey: run.actionKey,
-            } as Prisma.InputJsonValue,
+            },
           },
         });
 
@@ -265,7 +265,7 @@ export class AutomationRunnerService implements OnModuleInit, OnModuleDestroy {
               metadata: {
                 runId,
                 actionKey: run.actionKey,
-              } as Prisma.InputJsonValue,
+              },
             },
           });
         } catch (error) {
@@ -324,7 +324,7 @@ export class AutomationRunnerService implements OnModuleInit, OnModuleDestroy {
                 runId,
                 actionKey: run.actionKey,
                 error: this.redactSecrets(message),
-              } as Prisma.InputJsonValue,
+              },
             },
           });
         }

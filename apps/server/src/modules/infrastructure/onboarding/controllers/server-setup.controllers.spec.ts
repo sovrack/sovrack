@@ -44,18 +44,18 @@ describe('Server setup controllers', () => {
         new BadRequestException('not ready'),
       );
       const ctrl = new ServerSetupController(prep);
-      await expect(
-        ctrl.startSetup('srv-1', {} as never, user),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(ctrl.startSetup('srv-1', {}, user)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
     });
 
     it('wraps unexpected errors in a 500', async () => {
       const prep = prepService();
       (prep.startSetup as jest.Mock).mockRejectedValueOnce(new Error('boom'));
       const ctrl = new ServerSetupController(prep);
-      await expect(
-        ctrl.startSetup('srv-1', {} as never, user),
-      ).rejects.toMatchObject({ status: 500 });
+      await expect(ctrl.startSetup('srv-1', {}, user)).rejects.toMatchObject({
+        status: 500,
+      });
     });
 
     it('listSetups / getSetupReadiness delegate', async () => {
@@ -75,7 +75,7 @@ describe('Server setup controllers', () => {
       await ctrl.findOne('prep-1', workspaceId);
       await ctrl.logs('prep-1', workspaceId, '5');
       await ctrl.logs('prep-1', workspaceId, undefined);
-      await ctrl.retry('prep-1', { reason: 'x' } as never, user, workspaceId);
+      await ctrl.retry('prep-1', { reason: 'x' }, user, workspaceId);
       await ctrl.cancel('prep-1', user, workspaceId);
       expect(prep.getSetup).toHaveBeenCalledWith('prep-1', workspaceId);
       expect(prep.getSetupLogs).toHaveBeenCalledWith('prep-1', 5, workspaceId);

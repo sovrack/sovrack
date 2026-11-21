@@ -126,7 +126,7 @@ describe('ProjectsService', () => {
   });
 
   it('creates a project, adds its maintainer in the workspace, and audits it', async () => {
-    await service.create('u1', Role.MEMBER, { name: 'P' } as never);
+    await service.create('u1', Role.MEMBER, { name: 'P' });
     expect(prisma.project.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -160,7 +160,7 @@ describe('ProjectsService', () => {
       service.create('u1', Role.MEMBER, {
         name: 'P',
         ownerId: 'other',
-      } as never),
+      }),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -172,7 +172,7 @@ describe('ProjectsService', () => {
       service.create('admin', Role.OWNER, {
         name: 'P',
         ownerId: 'ghost',
-      } as never),
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -219,7 +219,7 @@ describe('ProjectsService', () => {
       new ForbiddenException('Action projet interdite'),
     );
     await expect(
-      service.update('p1', 'u2', Role.MEMBER, { name: 'X' } as never),
+      service.update('p1', 'u2', Role.MEMBER, { name: 'X' }),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 

@@ -122,8 +122,7 @@ describe('ServerHostKeyService', () => {
 
     const emitClose = (code = 0, out?: string) => {
       const cb = procHandlers['stdout'] as
-        | ((chunk: Buffer) => void)
-        | undefined;
+        ((chunk: Buffer) => void) | undefined;
       if (out !== undefined && cb) cb(Buffer.from(out));
       procHandlers['close']?.(code);
     };

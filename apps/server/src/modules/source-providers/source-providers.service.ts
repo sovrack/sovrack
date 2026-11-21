@@ -243,9 +243,10 @@ export class SourceProvidersService {
       type: p.type,
       url: p.providerUrl,
       isDefault: p.isDefault,
-      status: (Boolean(p.oauthAccessToken) || Boolean(p.adminToken)
-        ? 'CONFIGURED'
-        : 'ACTION_REQUIRED') as SourceProviderOption['status'],
+      status:
+        Boolean(p.oauthAccessToken) || Boolean(p.adminToken)
+          ? 'CONFIGURED'
+          : 'ACTION_REQUIRED',
     }));
   }
 

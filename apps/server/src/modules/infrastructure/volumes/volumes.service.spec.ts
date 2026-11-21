@@ -1,7 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { VolumesService } from './volumes.service';
-import type { CreateVolumeDto, UpdateVolumeDto } from './dto/volume.dto';
 import { WorkspaceAccessService } from '../../iam/authorization/workspace-access.service';
 
 describe('VolumesService', () => {
@@ -70,7 +69,7 @@ describe('VolumesService', () => {
         {
           name: '  data  ',
           serverId: 'srv1',
-        } as CreateVolumeDto,
+        },
         'user-1',
         'workspace-1',
       );
@@ -94,12 +93,7 @@ describe('VolumesService', () => {
 
   describe('update', () => {
     it('guards with 404 then applies only the provided fields', async () => {
-      await svc.update(
-        'v1',
-        { sizeGb: 20 } as UpdateVolumeDto,
-        'user-1',
-        'workspace-1',
-      );
+      await svc.update('v1', { sizeGb: 20 }, 'user-1', 'workspace-1');
       expect(prisma.volume.update).toHaveBeenCalledWith({
         where: { id: 'v1' },
         data: { sizeGb: 20 },
@@ -108,12 +102,7 @@ describe('VolumesService', () => {
     it('rejects (404) an unknown volume before updating', async () => {
       prisma.volume.findFirst.mockResolvedValue(null);
       await expect(
-        svc.update(
-          'ghost',
-          { sizeGb: 1 } as UpdateVolumeDto,
-          'user-1',
-          'workspace-1',
-        ),
+        svc.update('ghost', { sizeGb: 1 }, 'user-1', 'workspace-1'),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(prisma.volume.update).not.toHaveBeenCalled();
     });

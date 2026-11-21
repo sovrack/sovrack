@@ -98,7 +98,7 @@ describe('GitlabOnboardingService.connectProject', () => {
     const { service, auth } = harness();
     await service.connectProject(
       'p1',
-      { repoPath: 'org/app' } as never,
+      { repoPath: 'org/app' },
       'u1',
       Role.OWNER,
     );
@@ -113,7 +113,7 @@ describe('GitlabOnboardingService.connectProject', () => {
     const { service, prisma } = harness();
     await service.connectProject(
       'p1',
-      { repoPath: 'org/app' } as never,
+      { repoPath: 'org/app' },
       'u1',
       Role.OWNER,
     );
@@ -127,7 +127,7 @@ describe('GitlabOnboardingService.connectProject', () => {
     });
     await service.connectProject(
       'p1',
-      { repoPath: 'org/app' } as never,
+      { repoPath: 'org/app' },
       'u1',
       Role.OWNER,
     );
@@ -145,7 +145,7 @@ describe('GitlabOnboardingService.connectProject', () => {
     });
     await service.connectProject(
       'p1',
-      { groupPath: 'my-group' } as never,
+      { groupPath: 'my-group' },
       'u1',
       Role.OWNER,
     );
@@ -166,7 +166,7 @@ describe('GitlabOnboardingService.verifyConnectionInput', () => {
       service.verifyConnectionInput({
         repoPath: 'org/app',
         defaultBranch: 'nonexistent',
-      } as never),
+      }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -176,21 +176,21 @@ describe('GitlabOnboardingService.verifyConnectionInput', () => {
       service.verifyConnectionInput({
         repoPath: 'org/app',
         defaultBranch: 'main',
-      } as never),
+      }),
     ).resolves.not.toThrow();
   });
 
   it('throws when group has no repositories', async () => {
     const { service } = harness({ groupRepos: [] });
     await expect(
-      service.verifyConnectionInput({ groupPath: 'my-group' } as never),
+      service.verifyConnectionInput({ groupPath: 'my-group' }),
     ).rejects.toThrow(BadRequestException);
   });
 
   it('succeeds for group with repositories', async () => {
     const { service } = harness();
     await expect(
-      service.verifyConnectionInput({ groupPath: 'my-group' } as never),
+      service.verifyConnectionInput({ groupPath: 'my-group' }),
     ).resolves.not.toThrow();
   });
 });

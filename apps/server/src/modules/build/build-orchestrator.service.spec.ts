@@ -2,8 +2,6 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../../shared/database/prisma.service';
 import { BuildDetectorService } from './detection/build-detector.service';
-import { DockerfileGenerator } from './generation/dockerfiles/dockerfile.generator';
-import { DockerignoreGenerator } from './generation/dockerfiles/dockerignore.generator';
 import { CiGeneratorFactory } from './generation/ci/ci-generator.factory';
 import { SourceProvidersService } from '../source-providers/source-providers.service';
 import { BuildOrchestratorService } from './build-orchestrator.service';

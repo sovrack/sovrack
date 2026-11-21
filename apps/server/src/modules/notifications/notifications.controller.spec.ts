@@ -19,7 +19,7 @@ describe('NotificationsController', () => {
 
   it('saveSettings persists then returns the fresh settings', async () => {
     const { ctrl, notif } = build();
-    const res = await ctrl.saveSettings({ notifyOnSuccess: true } as never);
+    const res = await ctrl.saveSettings({ notifyOnSuccess: true });
     expect(notif.saveSettings).toHaveBeenCalledWith({ notifyOnSuccess: true });
     expect(notif.getSettings).toHaveBeenCalled();
     expect(res).toEqual({ notifyOnFailure: true });

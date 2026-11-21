@@ -3,7 +3,6 @@ import { Role } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { ProjectAccessService } from '../authorization/project-access.service';
 import { ServicesService } from './services.service';
-import { CreateServiceDto } from './dto/create-service.dto';
 import {
   findServiceTemplate,
   resolveServiceTemplateComponents,
@@ -86,7 +85,7 @@ export class ServiceTemplatesFactoryService {
             databaseType: component.databaseType,
             databaseVersion: component.databaseVersion,
             env: component.env,
-          } as CreateServiceDto,
+          },
           userId,
           userRole,
           tx,

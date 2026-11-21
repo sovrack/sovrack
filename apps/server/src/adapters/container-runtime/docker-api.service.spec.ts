@@ -379,7 +379,7 @@ describe('DockerApiService', () => {
     it('createContainer + startContainer chain the ops service', async () => {
       mockContainerOpsService.createContainer.mockResolvedValue({ id: 'cid' });
       mockContainerOpsService.startContainer.mockResolvedValue(undefined);
-      await service.createContainer(srvId, { name: 'app' } as never);
+      await service.createContainer(srvId, { name: 'app' });
       await service.startContainer(srvId, 'app');
       expect(mockContainerOpsService.createContainer).toHaveBeenCalledWith(
         mockClient,

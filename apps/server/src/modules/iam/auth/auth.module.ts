@@ -54,7 +54,7 @@ import { UserMfaService } from './user-mfa.service';
         const clientId = config.get<string>('GOOGLE_CLIENT_ID');
         const clientSecret = config.get<string>('GOOGLE_CLIENT_SECRET');
         if (!clientId || !clientSecret) {
-          return undefined as unknown as GoogleStrategy;
+          return undefined;
         }
         return new GoogleStrategy(config, googleOAuthService);
       },
