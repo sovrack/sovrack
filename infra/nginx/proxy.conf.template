@@ -17,6 +17,7 @@ map $host $sovrack_known_host {
     www.${DOMAIN} 1;
     ${APP_DOMAIN} 1;
     ${STAFF_DOMAIN} 1;
+    ${STAGING_DOMAIN} 1;
 }
 # Sovrack — nginx template (reverse proxy + TLS, trois plans web)
 # Ce fichier est utilisé comme template par l'image nginx (envsubst).
@@ -32,7 +33,7 @@ map $host $sovrack_known_host {
 # ── Frontend : https://sovrack.com → Next.js ────────────────────────────────
 server {
     listen 80;
-    server_name ${DOMAIN} www.${DOMAIN} ${APP_DOMAIN} ${STAFF_DOMAIN};
+    server_name ${DOMAIN} www.${DOMAIN} ${APP_DOMAIN} ${STAFF_DOMAIN} ${STAGING_DOMAIN};
     server_tokens off;
     client_max_body_size 15m;
     location /.well-known/acme-challenge/ {
@@ -292,6 +293,91 @@ server {
 
     location /backend-api/ {
         return 404;
+    }
+
+    location / {
+        proxy_pass $frontend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+# ── Staging Console : https://staging.sovrack.com ────────────────────────
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name ${STAGING_DOMAIN};
+    add_header X-Robots-Tag "noindex, nofollow, noarchive" always;
+    server_tokens off;
+    client_max_body_size 15m;
+
+    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    include /etc/nginx/conf.d/security-headers.conf;
+
+    proxy_hide_header X-Powered-By;
+    proxy_hide_header X-Content-Type-Options;
+    proxy_hide_header X-Frame-Options;
+    proxy_hide_header Referrer-Policy;
+    proxy_hide_header Permissions-Policy;
+    proxy_hide_header Strict-Transport-Security;
+    proxy_hide_header X-Nextjs-Prerender;
+    limit_req_status 429;
+    limit_conn_status 429;
+    limit_conn sovrack_connections 50;
+
+    resolver 127.0.0.11 valid=30s ipv6=off;
+    set $backend_upstream http://backend:3001;
+    set $frontend_upstream http://frontend:3000;
+
+    if (-f /var/run/sovrack-maintenance/enabled) {
+        return 503 '{"status":"maintenance"}';
+    }
+
+    location ~ ^/backend-api/health(?:/live|/ready)?/?$ {
+        rewrite ^/backend-api/(.*)$ /$1 break;
+        proxy_pass $backend_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /backend-api/ {
+        limit_req zone=sovrack_api burst=40 nodelay;
+        limit_req zone=sovrack_auth burst=5 nodelay;
+        rewrite ^/backend-api/(.*)$ /$1 break;
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 3600s;
+    }
+
+    location /socket.io/ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
     }
 
     location / {

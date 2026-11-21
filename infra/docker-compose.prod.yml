@@ -37,6 +37,7 @@ services:
       DOMAIN: ${DOMAIN}
       APP_DOMAIN: ${APP_DOMAIN:-}
       STAFF_DOMAIN: ${STAFF_DOMAIN:-}
+      STAGING_DOMAIN: ${STAGING_DOMAIN:-}
     ports:
       - "80:80"
       - "443:443"

@@ -31,8 +31,17 @@ test: ## Exécute l'ensemble des suites de tests (Web + Server)
 	npm --workspace=@sovrack/web run test
 	npm --workspace=@sovrack/server run test -- --testPathPatterns="auth-cookie|image-resolver|service-templates|automation.gateway|deployments.gateway|server-setup.gateway"
 
-lint: ## Vérifie la syntaxe et les règles de code
+lint: ## Vérifie la syntaxe et les règles de code (Server + Web)
+	npm --workspace=@sovrack/server run lint -- --max-warnings=0
 	npm --workspace=@sovrack/web run lint -- --max-warnings=0
+
+type-check: ## Vérifie les types TypeScript (Server + Web)
+	npm --workspace=@sovrack/server run check:all
+	npm --workspace=@sovrack/web run type-check
+
+infra-check: ## Valide les configurations Docker Compose
+	cd infra && docker compose --env-file .env.production.example -f docker-compose.prod.yml config -q
+	cd infra && docker compose -f docker-compose.dev.yml config -q
 
 check: ## Exécute les quality gates (architecture, types, lint)
 	npm --workspace=@sovrack/web run check:web

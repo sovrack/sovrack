@@ -3,7 +3,8 @@ set -eu
 
 APP_DOMAIN="${APP_DOMAIN:-app.${DOMAIN}}"
 STAFF_DOMAIN="${STAFF_DOMAIN:-staff.${DOMAIN}}"
-export APP_DOMAIN STAFF_DOMAIN
+STAGING_DOMAIN="${STAGING_DOMAIN:-staging.${DOMAIN}}"
+export APP_DOMAIN STAFF_DOMAIN STAGING_DOMAIN
 
 certificate_dir="/etc/letsencrypt/live/${DOMAIN}"
 tls_template="/etc/nginx/proxy.conf.template"
@@ -20,6 +21,6 @@ fi
 
 # Ne remplace que les domaines ; les variables natives nginx ($host, $uri,
 # etc.) doivent rester intactes dans la configuration générée.
-envsubst '${DOMAIN} ${APP_DOMAIN} ${STAFF_DOMAIN}' < "$template" > "$target"
+envsubst '${DOMAIN} ${APP_DOMAIN} ${STAFF_DOMAIN} ${STAGING_DOMAIN}' < "$template" > "$target"
 nginx -t
 exec nginx -g 'daemon off;'
