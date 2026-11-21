@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import MarketingFooter from "@/components/marketing/marketing-footer";
 import { MarketingNavbar } from "@/components/marketing/marketing-navbar";
-import { HeroDashboardPreview } from "@/components/marketing/hero-dashboard-preview";
+import { HeroTerminalInteractive } from "@/components/marketing/hero-terminal-interactive";
 import { HowItWorksInteractive } from "@/components/marketing/how-it-works-interactive";
 import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
 import { BRAND_CONFIG } from "@/shared/config/brand.config";
@@ -238,9 +238,9 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Colonne droite : Aperçu interactif du Dashboard Sovrack */}
+            {/* Colonne droite : Widget terminal interactif Sovrack */}
             <div className="lg:col-span-5">
-              <HeroDashboardPreview />
+              <HeroTerminalInteractive />
             </div>
           </div>
         </section>

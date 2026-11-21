@@ -229,8 +229,8 @@ export function TopNav() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 bg-[#0a0a0a]/90 backdrop-blur-md">
-      <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
+    <header className="sticky top-0 z-40 bg-[#0a0a0a]/90 border-b border-zinc-800/30 backdrop-blur-md">
+      <div className="flex h-14 items-center gap-3 px-4 lg:px-6">
         <button
           type="button"
           onClick={toggleMobileSidebar}

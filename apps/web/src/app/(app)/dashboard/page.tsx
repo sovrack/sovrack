@@ -56,18 +56,18 @@ function KpiCard({
         ? "text-red-400"
         : tone === "warning"
           ? "text-amber-400"
-          : "text-primary";
+          : "text-white";
 
   return (
-    <div className="rounded-lg border border-border bg-card px-4 py-4">
-      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
+    <div className="rounded-xl border border-zinc-800/60 bg-[#121214] px-4 py-4 hover:border-zinc-700 transition">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">
         {icon}
         {title}
       </p>
-      <p className={`mt-3 text-4xl font-semibold leading-none ${valueColor}`}>
+      <p className={`mt-3 text-3xl font-semibold leading-none ${valueColor}`}>
         {value}
       </p>
-      <p className="mt-3 text-sm text-secondary">{subtitle}</p>
+      <p className="mt-2.5 text-xs text-zinc-500">{subtitle}</p>
     </div>
   );
 }
@@ -197,10 +197,10 @@ export default function DashboardPage() {
             <Link
               key={action.label}
               href={action.href}
-              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition hover:opacity-90 ${
+              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition ${
                 action.primary
-                  ? "bg-accent text-accent-foreground"
-                  : "border border-border bg-card text-primary"
+                  ? "bg-[#2563EB] text-white hover:bg-[#1d4ed8]"
+                  : "border border-zinc-800/60 bg-[#121214] text-zinc-300 hover:text-white hover:bg-[#18181b]"
               }`}
             >
               {action.icon}

@@ -38,7 +38,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <div
         className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ease-in-out ${
-          collapsed ? "lg:ml-20" : "lg:ml-56"
+          collapsed ? "lg:ml-16" : "lg:ml-60"
         }`}
       >
         <TopNav />
