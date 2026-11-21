@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { SovrackBrand } from "@/shared/ui/sovrack-logo";
+import { publicSitePath } from "@/shared/config/product-urls";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -23,9 +24,9 @@ export function AuthLayout({ children, headerAction }: AuthLayoutProps) {
     <div className="flex min-h-screen flex-col bg-app text-primary selection:bg-accent selection:text-accent-foreground">
       {/* Barre supérieure fixe en haut */}
       <header className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-border bg-app/90 px-6 backdrop-blur-md sm:px-10">
-        <Link href="/" className="transition hover:opacity-90">
+        <a href={publicSitePath("/")} className="transition hover:opacity-90">
           <SovrackBrand textClassName="text-[18px] font-semibold text-primary tracking-[-0.02em]" />
-        </Link>
+        </a>
         {headerAction && (
           <Link
             href={headerAction.href}

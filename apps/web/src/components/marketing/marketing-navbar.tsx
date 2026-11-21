@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { BRAND_CONFIG } from "@/shared/config/brand.config";
 import { SovrackBrand } from "@/shared/ui/sovrack-logo";
 import { customerAppPath, publicSitePath } from "@/shared/config/product-urls";
+import { useAuthStore } from "@/stores/auth.store";
 
 function GitHubIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -31,6 +32,14 @@ const navLinks = [
 export function MarketingNavbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isUserLoggedIn = mounted && isAuthenticated;
 
   return (
     <header className="sticky top-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-md">
@@ -79,18 +88,29 @@ export function MarketingNavbar() {
           </Link>
 
           <div className="flex items-center gap-4">
-            <Link
-              href={customerAppPath("/login")}
-              className="text-[14px] font-medium text-white transition-colors hover:text-[#2563EB]"
-            >
-              Se connecter
-            </Link>
-            <Link
-              href={customerAppPath("/register")}
-              className="inline-flex h-8 items-center rounded-md bg-[#2563EB] px-3.5 text-xs font-medium text-white transition-colors hover:bg-[#1d4ed8]"
-            >
-              Créer un compte
-            </Link>
+            {isUserLoggedIn ? (
+              <Link
+                href={customerAppPath("/dashboard")}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[#2563EB] px-3.5 text-xs font-medium text-white transition-colors hover:bg-[#1d4ed8]"
+              >
+                Dashboard →
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href={customerAppPath("/login")}
+                  className="text-[14px] font-medium text-white transition-colors hover:text-[#2563EB]"
+                >
+                  Se connecter
+                </Link>
+                <Link
+                  href={customerAppPath("/register")}
+                  className="inline-flex h-8 items-center rounded-md bg-[#2563EB] px-3.5 text-xs font-medium text-white transition-colors hover:bg-[#1d4ed8]"
+                >
+                  Créer un compte
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
@@ -133,21 +153,33 @@ export function MarketingNavbar() {
                 <GitHubIcon className="h-4 w-4" />
                 <span>GitHub</span>
               </Link>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <Link
-                  href={customerAppPath("/login")}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="inline-flex h-8 items-center justify-center rounded-md bg-[#161616] text-xs text-zinc-300 hover:text-white"
-                >
-                  Se connecter
-                </Link>
-                <Link
-                  href={customerAppPath("/register")}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="inline-flex h-8 items-center justify-center rounded-md bg-[#2563EB] text-xs font-medium text-white hover:bg-[#1d4ed8]"
-                >
-                  Créer un compte
-                </Link>
+              <div className="mt-2">
+                {isUserLoggedIn ? (
+                  <Link
+                    href={customerAppPath("/dashboard")}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="inline-flex h-8 w-full items-center justify-center rounded-md bg-[#2563EB] text-xs font-medium text-white hover:bg-[#1d4ed8]"
+                  >
+                    Dashboard →
+                  </Link>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link
+                      href={customerAppPath("/login")}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="inline-flex h-8 items-center justify-center rounded-md bg-[#161616] text-xs text-zinc-300 hover:text-white"
+                    >
+                      Se connecter
+                    </Link>
+                    <Link
+                      href={customerAppPath("/register")}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="inline-flex h-8 items-center justify-center rounded-md bg-[#2563EB] text-xs font-medium text-white hover:bg-[#1d4ed8]"
+                    >
+                      Créer un compte
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </nav>
