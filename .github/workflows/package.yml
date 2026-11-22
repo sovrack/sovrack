@@ -1,0 +1,86 @@
+name: Package — Container Registry (GHCR)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: sovrack-container-packaging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push-images:
+    name: Build & Package Docker Images (ghcr.io)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute Contract Hash
+        id: contract
+        run: |
+          SHA="$(sha256sum apps/web/src/generated/api-contract.openapi.json | awk '{print $1}')"
+          echo "sha256=${SHA}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Server Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/server
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
+          build-args: |
+            VCS_REF=${{ github.sha }}
+            OPENAPI_SHA256=${{ steps.contract.outputs.sha256 }}
+          tags: |
+            ghcr.io/sovrack/server:${{ github.sha }}
+            ghcr.io/sovrack/server:latest
+
+      - name: Build and Push Web Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/web
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://app.sovrack.com
+            NEXT_PUBLIC_WS_URL=wss://app.sovrack.com
+            NEXT_PUBLIC_PUBLIC_SITE_URL=https://sovrack.com
+            NEXT_PUBLIC_CUSTOMER_APP_URL=https://app.sovrack.com
+            NEXT_PUBLIC_APP_NAME=Sovrack
+            NEXT_PUBLIC_APP_VERSION=3.1.0
+            VCS_REF=${{ github.sha }}
+            OPENAPI_SHA256=${{ steps.contract.outputs.sha256 }}
+          tags: |
+            ghcr.io/sovrack/web:${{ github.sha }}
+            ghcr.io/sovrack/web:latest
+
+      - name: Packaging Summary
+        run: |
+          echo "### 📦 Sovrack Artifact Packaging & SBOM Succeeded" >> $GITHUB_STEP_SUMMARY
+          echo "Docker images successfully built and published to GHCR with SLSA provenance & SBOM:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **OpenAPI Contract SHA**: \`${{ steps.contract.outputs.sha256 }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Server Image**: \`ghcr.io/sovrack/server:${{ github.sha }}\` & \`latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Web Image**: \`ghcr.io/sovrack/web:${{ github.sha }}\` & \`latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "Ready for deployment via the \`CD — Production Promotion\` workflow." >> $GITHUB_STEP_SUMMARY
