@@ -31,7 +31,7 @@ jobs:
       - name: Install & Run Gitleaks CLI
         run: |
           curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | sudo tar -xz -C /usr/local/bin gitleaks
-          gitleaks detect --verbose --redact
+          gitleaks detect --verbose --redact --gitleaks-ignore-path .gitleaksignore
 
   dependency-audit:
     name: Dependency Vulnerability Audit (SCA)
