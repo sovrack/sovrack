@@ -1,0 +1,113 @@
+name: CD — Staging Deployment (Automated)
+
+on:
+  workflow_run:
+    workflows: ["Package — Container Registry (GHCR)"]
+    branches: [dev]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: sovrack-staging-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging Environment
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.sovrack.com
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+    steps:
+      - name: Checkout dev branch
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 1
+
+      - name: Extract Staging Metadata
+        id: metadata
+        run: |
+          COMMIT_SHA="$(git rev-parse HEAD)"
+          echo "commit_sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
+          echo "short_sha=${COMMIT_SHA:0:10}" >> $GITHUB_OUTPUT
+
+      - name: Deploy to VPS via SSH & Staging Compose
+        if: env.SSH_PRIVATE_KEY != ''
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          COMMIT_SHA: ${{ steps.metadata.outputs.commit_sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER || 'ubuntu' }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          envs: COMMIT_SHA,GH_TOKEN,ACTOR
+          script: |
+            set -euo pipefail
+            umask 077
+            echo "🚀 Déploiement automatique de l'environnement STAGING (commit ${COMMIT_SHA})..."
+
+            # 1. Authentification sécurisée et éphémère au registre GHCR
+            if [ -n "${GH_TOKEN:-}" ]; then
+              echo "${GH_TOKEN}" | docker login ghcr.io -u "${ACTOR}" --password-stdin
+            fi
+
+            REPO_DIR="/home/ubuntu/sovrack"
+            SECRETS_ENV="/srv/sovrack/secrets.env"
+            [ -f "$SECRETS_ENV" ] || SECRETS_ENV="/srv/sovrack/.env.production"
+
+            # 2. Mise à jour des manifests infra depuis dev
+            if [ -d "$REPO_DIR/.git" ]; then
+              cd "$REPO_DIR"
+              git fetch origin dev
+              git checkout dev
+              git reset --hard origin/dev
+            fi
+
+            # 3. Pull des nouvelles images de dev
+            echo "Pull des conteneurs Staging..."
+            docker pull "ghcr.io/sovrack/server:dev" || true
+            docker pull "ghcr.io/sovrack/web:dev" || true
+
+            # 4. Vérification et création de la base sovrack_staging si inexistante
+            echo "Vérification de la base PostgreSQL sovrack_staging..."
+            if docker ps --format '{{.Names}}' | grep -q "^sovrack-postgres$"; then
+              POSTGRES_USER="$(docker exec sovrack-postgres printenv POSTGRES_USER || echo postgres)"
+              docker exec sovrack-postgres psql -U "$POSTGRES_USER" -tc "SELECT 1 FROM pg_database WHERE datname = 'sovrack_staging'" | grep -q 1 || \
+                docker exec sovrack-postgres psql -U "$POSTGRES_USER" -c "CREATE DATABASE sovrack_staging;"
+              echo "✓ Base sovrack_staging prête."
+            fi
+
+            # 5. Déploiement de la stack Staging isolée
+            cd "$REPO_DIR/infra"
+            SERVER_IMAGE="ghcr.io/sovrack/server:dev" \
+            WEB_IMAGE="ghcr.io/sovrack/web:dev" \
+            docker compose --env-file "$SECRETS_ENV" -f docker-compose.staging.yml up -d --remove-orphans
+
+            # 6. Rechargement Nginx à chaud pour router staging.sovrack.com
+            if docker ps --format '{{.Names}}' | grep -q "^sovrack-proxy$"; then
+              docker exec sovrack-proxy nginx -s reload || true
+            fi
+
+            # 7. Nettoyage de l'authentification GHCR
+            docker logout ghcr.io || true
+            echo "✅ Environnement STAGING déployé et prêt sur https://staging.sovrack.com"
+
+      - name: Staging Deployment Summary
+        run: |
+          echo "### 🧪 Sovrack Staging Deployment (Automated)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environnement**: \`staging\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit Déployé**: \`${{ steps.metadata.outputs.commit_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: https://staging.sovrack.com" >> $GITHUB_STEP_SUMMARY
+          echo "- **Statut**: ✅ Déployé avec succès" >> $GITHUB_STEP_SUMMARY

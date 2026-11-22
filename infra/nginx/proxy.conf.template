@@ -337,11 +337,11 @@ server {
     limit_conn sovrack_connections 50;
 
     resolver 127.0.0.11 valid=30s ipv6=off;
-    set $backend_upstream http://backend:3001;
-    set $frontend_upstream http://frontend:3000;
+    set $backend_upstream http://staging-backend:3001;
+    set $frontend_upstream http://staging-frontend:3000;
 
-    if (-f /var/run/sovrack-maintenance/enabled) {
-        return 503 '{"status":"maintenance"}';
+    if (-f /var/run/sovrack-maintenance/staging-enabled) {
+        return 503 '{"status":"staging_maintenance"}';
     }
 
     location ~ ^/backend-api/health(?:/live|/ready)?/?$ {
