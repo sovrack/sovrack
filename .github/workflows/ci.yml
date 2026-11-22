@@ -158,6 +158,8 @@ jobs:
     environment:
       name: production
       url: https://sovrack.com
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -176,7 +178,7 @@ jobs:
           echo "openapi_sha=${OPENAPI_SHA256}" >> $GITHUB_OUTPUT
 
       - name: Deploy to VPS via SSH & deploy.sh
-        if: ${{ secrets.SSH_PRIVATE_KEY != '' }}
+        if: env.SSH_PRIVATE_KEY != ''
         uses: appleboy/ssh-action@v1.2.0
         env:
           RELEASE_ID: ${{ steps.metadata.outputs.release_id }}

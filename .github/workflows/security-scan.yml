@@ -69,31 +69,37 @@ jobs:
 
   sonarqube-sast:
     name: Static Code Analysis (SonarQube)
-    if: ${{ secrets.SONAR_TOKEN != '' }}
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
       - name: Checkout repository
+        if: env.SONAR_TOKEN != ''
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Node.js 20
+        if: env.SONAR_TOKEN != ''
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
       - name: Install dependencies & Generate Prisma
+        if: env.SONAR_TOKEN != ''
         run: |
           npm ci
           npm --workspace=@sovrack/server run prisma:generate
 
       - name: Run Tests with Coverage
+        if: env.SONAR_TOKEN != ''
         run: |
           npm --workspace=@sovrack/server run test -- --coverage --testPathPatterns="auth-cookie|image-resolver|service-templates" || true
           npm --workspace=@sovrack/web run test -- --coverage || true
 
       - name: SonarQube Scan (Server)
+        if: env.SONAR_TOKEN != ''
         uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -102,6 +108,7 @@ jobs:
           projectBaseDir: apps/server
 
       - name: SonarQube Scan (Web)
+        if: env.SONAR_TOKEN != ''
         uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
