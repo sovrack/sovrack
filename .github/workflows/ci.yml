@@ -216,21 +216,21 @@ jobs:
             cp -r "${REPO_DIR}/infra/"* "${RELEASE_DIR}/"
             echo "${COMMIT_SHA}" > "${RELEASE_DIR}/.infra-commit"
 
-            # 4. Écriture du manifeste de release vérifié (sans indentation)
-            cat << MANIFEST_EOF > "${RELEASE_DIR}/release.manifest"
-RELEASE_ID=${RELEASE_ID}
-BACKEND_IMAGE=ghcr.io/sovrack/server:${COMMIT_SHA}
-FRONTEND_IMAGE=ghcr.io/sovrack/web:${COMMIT_SHA}
-NGINX_IMAGE=nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
-POSTGRES_IMAGE=postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
-REDIS_IMAGE=redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
-BACKEND_COMMIT=${COMMIT_SHA}
-FRONTEND_COMMIT=${COMMIT_SHA}
-INFRA_COMMIT=${COMMIT_SHA}
-RUNTIME_TOPOLOGY=compact
-SCHEMA_MIGRATION=${LATEST_MIGRATION}
-OPENAPI_SHA256=${OPENAPI_SHA}
-MANIFEST_EOF
+            # 4. Écriture du manifeste de release vérifié
+            {
+              echo "RELEASE_ID=${RELEASE_ID}"
+              echo "BACKEND_IMAGE=ghcr.io/sovrack/server:${COMMIT_SHA}"
+              echo "FRONTEND_IMAGE=ghcr.io/sovrack/web:${COMMIT_SHA}"
+              echo "NGINX_IMAGE=nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10"
+              echo "POSTGRES_IMAGE=postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685"
+              echo "REDIS_IMAGE=redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf"
+              echo "BACKEND_COMMIT=${COMMIT_SHA}"
+              echo "FRONTEND_COMMIT=${COMMIT_SHA}"
+              echo "INFRA_COMMIT=${COMMIT_SHA}"
+              echo "RUNTIME_TOPOLOGY=compact"
+              echo "SCHEMA_MIGRATION=${LATEST_MIGRATION}"
+              echo "OPENAPI_SHA256=${OPENAPI_SHA}"
+            } > "${RELEASE_DIR}/release.manifest"
             chmod 600 "${RELEASE_DIR}/release.manifest"
 
             # 5. Exécution sécurisée de deploy.sh
