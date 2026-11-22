@@ -70,15 +70,32 @@ jobs:
             fi
 
             REPO_DIR="/home/ubuntu/sovrack"
-            SECRETS_ENV="/srv/sovrack/secrets.env"
-            [ -f "$SECRETS_ENV" ] || SECRETS_ENV="/srv/sovrack/.env.production"
+            SECRETS_ENV="/srv/sovrack/.env.staging"
+            if [ ! -f "$SECRETS_ENV" ]; then
+              echo "Génération automatique de /srv/sovrack/.env.staging avec isolation stricte..."
+              PROD_ENV="/srv/sovrack/.env.production"
+              [ -f "$PROD_ENV" ] || PROD_ENV="/srv/sovrack/secrets.env"
+              if [ -f "$PROD_ENV" ]; then
+                cp "$PROD_ENV" "$SECRETS_ENV"
+                sed -i 's/^DOMAIN=.*/DOMAIN=staging.sovrack.com/' "$SECRETS_ENV"
+                sed -i 's/^APP_DOMAIN=.*/APP_DOMAIN=staging.sovrack.com/' "$SECRETS_ENV"
+                sed -i 's/^POSTGRES_DB=.*/POSTGRES_DB=sovrack_staging/' "$SECRETS_ENV"
+                sed -i 's/^REDIS_DB_INDEX=.*/REDIS_DB_INDEX=1/' "$SECRETS_ENV"
+                NEW_JWT="$(openssl rand -hex 48)"
+                NEW_OTP="$(openssl rand -hex 48)"
+                sed -i "s/^JWT_SECRET=.*/JWT_SECRET=${NEW_JWT}/" "$SECRETS_ENV"
+                sed -i "s/^STAFF_JWT_SECRET=.*/STAFF_JWT_SECRET=${NEW_JWT}/" "$SECRETS_ENV"
+                sed -i "s/^STAFF_OTP_SECRET=.*/STAFF_OTP_SECRET=${NEW_OTP}/" "$SECRETS_ENV"
+                chmod 600 "$SECRETS_ENV"
+                echo "✓ /srv/sovrack/.env.staging généré avec secrets étanches."
+              fi
+            fi
 
-            # 2. Mise à jour des manifests infra depuis dev
+            # 2. Mise à jour des manifests infra depuis le commit promu
             if [ -d "$REPO_DIR/.git" ]; then
               cd "$REPO_DIR"
-              git fetch origin dev
-              git checkout dev
-              git reset --hard origin/dev
+              git fetch origin "${COMMIT_SHA}" 2>/dev/null || git fetch --all --tags
+              git reset --hard "${COMMIT_SHA}"
             fi
 
             # 3. Pull des nouvelles images (tag immuable par commit SHA)
