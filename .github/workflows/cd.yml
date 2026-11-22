@@ -1,12 +1,20 @@
-name: CD — Production Promotion (Manual)
+name: CD — Environment Promotion (Staging & Production)
 
 on:
   workflow_dispatch:
     inputs:
-      target_ref:
-        description: 'Branche ou commit SHA à promouvoir en production'
+      target_environment:
+        description: 'Environnement cible (staging ou production)'
         required: true
-        default: 'main'
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      target_ref:
+        description: 'Branche ou commit SHA à promouvoir'
+        required: true
+        default: 'dev'
         type: string
       runtime_topology:
         description: 'Topologie Runtime du backend'
@@ -23,7 +31,7 @@ on:
         type: boolean
 
 concurrency:
-  group: sovrack-production-deploy
+  group: sovrack-${{ inputs.target_environment || 'staging' }}-deploy
   cancel-in-progress: false
 
 permissions:
@@ -31,12 +39,12 @@ permissions:
   packages: read
 
 jobs:
-  deploy-production:
-    name: Promote Immutable Release via deploy.sh
+  deploy-target:
+    name: Promote Immutable Release to ${{ inputs.target_environment || 'staging' }}
     runs-on: ubuntu-latest
     environment:
-      name: production
-      url: https://sovrack.com
+      name: ${{ inputs.target_environment || 'staging' }}
+      url: ${{ (inputs.target_environment || 'staging') == 'production' && 'https://sovrack.com' || 'https://staging.sovrack.com' }}
     env:
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
     steps:
@@ -97,7 +105,7 @@ jobs:
             # 1. Synchronisation du dépôt Git hôte
             if [ -d "$REPO_DIR/.git" ]; then
               cd "$REPO_DIR"
-              git fetch origin main
+              git fetch origin "$COMMIT_SHA" 2>/dev/null || git fetch --all --tags
               git reset --hard "$COMMIT_SHA"
             fi
 
@@ -141,7 +149,8 @@ jobs:
 
       - name: Deployment Summary
         run: |
-          echo "### 🚀 Sovrack Production Deployment via \`deploy.sh\`" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Sovrack Deployment to \`${{ inputs.target_environment || 'staging' }}\` via \`deploy.sh\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environnement**: \`${{ inputs.target_environment || 'staging' }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Release ID**: \`${{ steps.metadata.outputs.release_id }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit Promu**: \`${{ steps.metadata.outputs.commit_sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Topologie Runtime**: \`${{ steps.metadata.outputs.topology }}\`" >> $GITHUB_STEP_SUMMARY

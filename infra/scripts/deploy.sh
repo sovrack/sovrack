@@ -107,6 +107,7 @@ postgres_was_running="false"
 if [ -n "$postgres_container_id" ]; then
   postgres_was_running="$(docker inspect "$postgres_container_id" --format '{{.State.Running}}')"
 fi
+schema_needs_migration="false"
 if [ "$postgres_was_running" = "true" ]; then
   postgres_user="$(compose exec -T postgres printenv POSTGRES_USER)"
   postgres_db="$(compose exec -T postgres printenv POSTGRES_DB)"
@@ -117,19 +118,29 @@ if [ "$postgres_was_running" = "true" ]; then
     if [[ "$current_schema" > "$SCHEMA_MIGRATION" ]]; then
       echo "ERROR: la base ($current_schema) est plus récente que la release ($SCHEMA_MIGRATION)."
       exit 1
+    elif [[ "$current_schema" < "$SCHEMA_MIGRATION" ]]; then
+      schema_needs_migration="true"
     fi
+  else
+    schema_needs_migration="true"
   fi
 else
+  schema_needs_migration="true"
   compose up -d --wait --wait-timeout 180 postgres redis
 fi
 
-# Nginx is recreated first with a shared maintenance flag. The old API and
-# worker are quiesced before the final backup, so no write can cross the dump.
-touch "$MAINTENANCE_DIR/enabled"
-maintenance_enabled=true
-compose up -d --no-deps --wait --wait-timeout 120 nginx
-compose stop -t 60 web server frontend backend >/dev/null 2>&1 || true
-docker stop -t 60 sovrack-worker >/dev/null 2>&1 || true
+# Maintenance conditionnelle : activée uniquement si une migration de schéma est requise
+# ou si expressément forcée via FORCE_MAINTENANCE=true.
+needs_maintenance="${FORCE_MAINTENANCE:-false}"
+if [ "$schema_needs_migration" = "true" ] || [ "$needs_maintenance" = "true" ]; then
+  touch "$MAINTENANCE_DIR/enabled"
+  maintenance_enabled=true
+  compose up -d --no-deps --wait --wait-timeout 120 nginx
+  compose stop -t 60 web server frontend backend >/dev/null 2>&1 || true
+  docker stop -t 60 sovrack-worker >/dev/null 2>&1 || true
+else
+  echo "⚡ Mode Zero-Downtime : aucun changement de schéma détecté, service maintenu en continu."
+fi
 
 if [ "$postgres_was_running" = "true" ]; then
   previous_release_id="unmanaged"
@@ -148,11 +159,14 @@ fi
 # recreation while the old API is still accepting requests.
 compose up -d --wait --wait-timeout 180 postgres redis
 
-# Never rely on a stale completed migrator container. The one-shot execution is
-# the only component allowed to alter the schema for this release.
-compose rm -sf migrator >/dev/null 2>&1 || true
-compose run --rm --no-deps migrator
-assert_schema_migration compose "$SCHEMA_MIGRATION"
+# Exécution du migrateur uniquement si de nouvelles migrations doivent être appliquées.
+if [ "$schema_needs_migration" = "true" ]; then
+  compose rm -sf migrator >/dev/null 2>&1 || true
+  compose run --rm --no-deps migrator
+  assert_schema_migration compose "$SCHEMA_MIGRATION"
+else
+  echo "✓ Schéma de base de données déjà conforme à la release ($SCHEMA_MIGRATION)."
+fi
 
 compose up -d --no-deps --wait --wait-timeout 300 "${runtime_services[@]}"
 compose up -d --no-deps --wait --wait-timeout 240 web nginx
