@@ -1,10 +1,10 @@
-name: CD — Production Promotion (Manual)
+name: CD — Production Promotion (Manual 1-Click)
 
 on:
   workflow_dispatch:
     inputs:
       target_ref:
-        description: 'Branche ou commit SHA à promouvoir en production'
+        description: 'Commit SHA ou branche main à promouvoir en production'
         required: true
         default: 'main'
         type: string
@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   deploy-production:
-    name: Promote Immutable Release via deploy.sh
+    name: Promote Immutable Release to Production via deploy.sh
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -97,7 +97,7 @@ jobs:
             # 1. Synchronisation du dépôt Git hôte
             if [ -d "$REPO_DIR/.git" ]; then
               cd "$REPO_DIR"
-              git fetch origin main
+              git fetch origin "$COMMIT_SHA" 2>/dev/null || git fetch --all --tags
               git reset --hard "$COMMIT_SHA"
             fi
 
@@ -142,6 +142,7 @@ jobs:
       - name: Deployment Summary
         run: |
           echo "### 🚀 Sovrack Production Deployment via \`deploy.sh\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environnement**: \`production\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Release ID**: \`${{ steps.metadata.outputs.release_id }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit Promu**: \`${{ steps.metadata.outputs.commit_sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Topologie Runtime**: \`${{ steps.metadata.outputs.topology }}\`" >> $GITHUB_STEP_SUMMARY

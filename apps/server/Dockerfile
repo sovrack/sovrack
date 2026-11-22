@@ -4,7 +4,7 @@ FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a55
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm ci || npm install
 
 COPY prisma ./prisma
 RUN npx prisma generate
@@ -33,7 +33,7 @@ WORKDIR /app
 
 # Only production deps
 COPY package*.json ./
-RUN npm ci --omit=dev && \
+RUN (npm ci --omit=dev || npm install --omit=dev) && \
     npm cache clean --force && \
     rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 

@@ -18,7 +18,12 @@ const SOCKET_URL =
  * base URL (see use-deployment-socket / use-automation-log-stream / …).
  */
 export function resolveWsBaseUrl(): string | null {
-  if (!SOCKET_URL) return null;
+  if (!SOCKET_URL) {
+    if (typeof window !== "undefined") {
+      return window.location.origin;
+    }
+    return null;
+  }
   if (typeof window === "undefined") return SOCKET_URL;
   try {
     const url = new URL(SOCKET_URL);
