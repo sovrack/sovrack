@@ -1,0 +1,151 @@
+# =============================================================================
+# Sovrack — Stack de Monitoring Observabilité (Prometheus, Alertmanager, Exporters)
+# -----------------------------------------------------------------------------
+# Déclaration Compose pour un cycle de vie déclaratif et reproductible.
+# Tous les services sont isolés sur 127.0.0.1 et tournent avec privilèges réduits.
+# =============================================================================
+
+name: sovrack-monitoring
+
+x-monitoring-common: &monitoring-common
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  networks:
+    - monitoring-net
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: 3
+
+services:
+  prometheus:
+    <<: *monitoring-common
+    image: ${PROMETHEUS_IMAGE:-prom/prometheus@sha256:f6639335d34a77d9d9db382b92eeb7fc00934be8eae81dbc03b31cfe90411a94}
+    container_name: sovrack-prometheus
+    read_only: true
+    cap_drop:
+      - ALL
+    ports:
+      - "127.0.0.1:9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION_TIME:-14d}
+      - --storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-2GB}
+      - --web.enable-lifecycle
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    depends_on:
+      - blackbox_exporter
+      - node_exporter
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9090/-/ready >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  alertmanager:
+    <<: *monitoring-common
+    image: ${ALERTMANAGER_IMAGE:-prom/alertmanager@sha256:e13b6ed5cb929eeaee733479dce55e10eb3bc2e9c4586c705a4e8da41e5eacf5}
+    container_name: sovrack-alertmanager
+    read_only: true
+    cap_drop:
+      - ALL
+    ports:
+      - "127.0.0.1:9093:9093"
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9093/-/ready >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.2"
+
+  blackbox_exporter:
+    <<: *monitoring-common
+    image: ${BLACKBOX_IMAGE:-quay.io/prometheus/blackbox-exporter@sha256:e753ff9f3fc458d02cca5eddab5a77e1c175eee484a8925ac7d524f04366c2fc}
+    container_name: sovrack-blackbox
+    read_only: true
+    cap_drop:
+      - ALL
+    ports:
+      - "127.0.0.1:9115:9115"
+    volumes:
+      - ./monitoring/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.1"
+
+  node_exporter:
+    <<: *monitoring-common
+    image: ${NODE_EXPORTER_IMAGE:-prom/node-exporter@sha256:1b4e4438faca4dd7e001dd445d161a4a2091b0fededa84093b3a8dfeae1f1be0}
+    container_name: sovrack-node-exporter
+    read_only: true
+    cap_drop:
+      - ALL
+    ports:
+      - "127.0.0.1:9100:9100"
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host/root
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.1"
+
+  cadvisor:
+    <<: *monitoring-common
+    image: ${CADVISOR_IMAGE:-ghcr.io/google/cadvisor@sha256:763aecf1c32c2be8a1a75f9abfc2fc461005c9dbbaa39cb356b354aac1296dbe}
+    container_name: sovrack-cadvisor
+    read_only: true
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.2"
+
+networks:
+  monitoring-net:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  alertmanager-data:

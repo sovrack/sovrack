@@ -343,9 +343,6 @@ services:
       - /var/run/postgresql:rw,noexec,nosuid,size=16m,uid=70,gid=70,mode=0775
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      # Accessible uniquement depuis la machine hôte (opérations/backups).
-      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -386,8 +383,6 @@ services:
       - /tmp:rw,noexec,nosuid,size=32m,uid=999,gid=1000,mode=1777
     volumes:
       - redisdata:/data
-    ports:
-      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep -q PONG"]
       interval: 10s

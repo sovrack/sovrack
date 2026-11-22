@@ -4,6 +4,18 @@
 set -euo pipefail
 umask 077
 
+# Acquisition du verrou flock exclusif pour empêcher tout conflit
+if [ "${SOVRACK_LOCK_ACQUIRED:-false}" != "true" ]; then
+  LOCK_FILE="/var/run/lock/sovrack.lock"
+  [ -d "/var/run/lock" ] && [ -w "/var/run/lock" ] || LOCK_FILE="/tmp/sovrack.lock"
+  exec 200>"$LOCK_FILE"
+  flock -n 200 || {
+    echo "ERROR: Une autre opération Sovrack (déploiement/sauvegarde/restauration) est déjà en cours d'exécution." >&2
+    exit 1
+  }
+  export SOVRACK_LOCK_ACQUIRED=true
+fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_DIR="${SOVRACK_BASE_DIR:-$ROOT}"
 SHARED_DIR="$BASE_DIR/shared"

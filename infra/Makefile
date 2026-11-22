@@ -6,7 +6,7 @@ SHELL := /usr/bin/env bash
 BASE_DIR ?= /srv/sovrack
 CURRENT_COMPOSE := SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/current-compose.sh
 
-.PHONY: help bootstrap bootstrap-staff config up ps logs backup restore rollback preflight validate-ci test-scripts test-hardening certbot certbot-renew local-up local-down local-reset local-logs local-browser local-perf local-acceptance host-dependencies host-syntax host-prepare
+.PHONY: help bootstrap bootstrap-staff config up ps logs backup restore rollback preflight validate-ci test-scripts test-hardening certbot certbot-renew local-up local-down local-reset local-logs local-browser local-perf local-acceptance host-dependencies host-syntax host-prepare monitoring-up monitoring-down monitoring-logs
 
 help: ## Affiche l'aide
 	@printf "Commandes Sovrack infra:\n"
@@ -37,8 +37,17 @@ restore: ## Restaure un dump (BRUTAL)
 	@echo "Usage: make restore FILE=/chemin/backup.sql.gz"
 	@echo "Utiliser rollback pour un retour de schéma ou restore.sh avec un manifeste explicite."
 
-rollback: ## Restaure dump + ancienne release (RELEASE=id FILE=dump)
-	SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/rollback.sh $(RELEASE) $(FILE)
+rollback: ## Restaure dump + ancienne release (RELEASE=id FILE=dump) ou app-only (RELEASE=id APP_ONLY=1)
+	SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/rollback.sh $(RELEASE) $(if $(APP_ONLY),--app-only,$(FILE))
+
+monitoring-up: ## Démarre la pile de monitoring déclarative (Prometheus / Alertmanager / Exporters)
+	docker compose -f docker-compose.monitoring.yml up -d
+
+monitoring-down: ## Arrête la pile de monitoring
+	docker compose -f docker-compose.monitoring.yml down
+
+monitoring-logs: ## Affiche les journaux de la pile de monitoring
+	docker compose -f docker-compose.monitoring.yml logs -f
 
 preflight: ## Valide capacité, secrets et manifeste (FILE=manifest)
 	SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/preflight.sh --release-file $(FILE)

@@ -1,0 +1,156 @@
+name: Security Scan & Vulnerability Gates
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  schedule:
+    # Analyse de sécurité hebdomadaire programmée (chaque lundi à 04:00 UTC)
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  secret-scan:
+    name: Secret Scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install & Run Gitleaks CLI
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz | sudo tar -xz -C /usr/local/bin gitleaks
+          gitleaks detect --verbose --redact
+
+  dependency-audit:
+    name: Dependency Vulnerability Audit (SCA)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Audit Production Dependencies
+        run: |
+          echo "Auditing root & workspaces production dependencies..."
+          npm audit --omit=dev --audit-level=high
+
+  iac-and-config-scan:
+    name: IaC & Dockerfile Security (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy Vulnerability Scanner (Config & IaC)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+          format: 'table'
+
+  sonarqube-sast:
+    name: Static Code Analysis (SonarQube)
+    if: ${{ secrets.SONAR_TOKEN != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies & Generate Prisma
+        run: |
+          npm ci
+          npm --workspace=@sovrack/server run prisma:generate
+
+      - name: Run Tests with Coverage
+        run: |
+          npm --workspace=@sovrack/server run test -- --coverage --testPathPatterns="auth-cookie|image-resolver|service-templates" || true
+          npm --workspace=@sovrack/web run test -- --coverage || true
+
+      - name: SonarQube Scan (Server)
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: apps/server
+
+      - name: SonarQube Scan (Web)
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: apps/web
+
+  container-cve-scan:
+    name: Container Image CVE Scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Server Image Locally
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/server
+          push: false
+          load: true
+          tags: local/sovrack-server:security-test
+          build-args: |
+            VCS_REF=${{ github.sha }}
+
+      - name: Scan Server Image for CVEs
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'local/sovrack-server:security-test'
+          severity: 'CRITICAL,HIGH'
+          format: 'table'
+          exit-code: '0'
+
+      - name: Build Web Image Locally
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/web
+          push: false
+          load: true
+          tags: local/sovrack-web:security-test
+          build-args: |
+            VCS_REF=${{ github.sha }}
+
+      - name: Scan Web Image for CVEs
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'local/sovrack-web:security-test'
+          severity: 'CRITICAL,HIGH'
+          format: 'table'
+          exit-code: '0'

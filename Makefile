@@ -39,9 +39,10 @@ type-check: ## Vérifie les types TypeScript (Server + Web)
 	npm --workspace=@sovrack/server run check:all
 	npm --workspace=@sovrack/web run type-check
 
-infra-check: ## Valide les configurations Docker Compose
+infra-check: ## Valide les configurations Docker Compose (Prod, Dev, Monitoring)
 	cd infra && docker compose --env-file .env.production.example -f docker-compose.prod.yml config -q
 	cd infra && docker compose -f docker-compose.dev.yml config -q
+	cd infra && docker compose -f docker-compose.monitoring.yml config -q
 
 check: ## Exécute les quality gates (architecture, types, lint)
 	npm --workspace=@sovrack/web run check:web

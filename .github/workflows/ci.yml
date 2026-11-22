@@ -77,6 +77,7 @@ jobs:
           cd infra
           docker compose --env-file .env.production.example -f docker-compose.prod.yml config -q
           docker compose -f docker-compose.dev.yml config -q
+          docker compose -f docker-compose.monitoring.yml config -q
 
   build-and-push-images:
     name: Build & Package Docker Images (ghcr.io)
@@ -100,6 +101,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute Contract Hash
+        id: contract
+        run: |
+          SHA="$(sha256sum apps/web/src/generated/api-contract.openapi.json | awk '{print $1}')"
+          echo "sha256=${SHA}" >> $GITHUB_OUTPUT
+
       - name: Build and Push Server Image
         uses: docker/build-push-action@v5
         with:
@@ -109,6 +116,7 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             VCS_REF=${{ github.sha }}
+            OPENAPI_SHA256=${{ steps.contract.outputs.sha256 }}
           tags: |
             ghcr.io/sovrack/server:${{ github.sha }}
             ghcr.io/sovrack/server:latest
@@ -128,56 +136,17 @@ jobs:
             NEXT_PUBLIC_APP_NAME=Sovrack
             NEXT_PUBLIC_APP_VERSION=3.1.0
             VCS_REF=${{ github.sha }}
+            OPENAPI_SHA256=${{ steps.contract.outputs.sha256 }}
           tags: |
             ghcr.io/sovrack/web:${{ github.sha }}
             ghcr.io/sovrack/web:latest
 
-  deploy-production:
-    name: Deploy to Production VPS (158.69.214.62)
-    needs: [build-and-push-images]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://sovrack.com
-    steps:
-      - name: Deploy to VPS via SSH
-        if: ${{ secrets.SSH_PRIVATE_KEY != '' }}
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST || '158.69.214.62' }}
-          username: ${{ secrets.SSH_USER || 'ubuntu' }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          script_stop: true
-          script: |
-            echo "🚀 Updating Sovrack Production Stack..."
-            cd /home/ubuntu/sovrack
-            git fetch origin main
-            git reset --hard origin/main
-            cd infra
-            
-            echo "📥 Pulling latest images from GHCR..."
-            docker compose -f docker-compose.prod.yml pull server web || true
-
-            echo "🔄 Running database migrations..."
-            docker compose -f docker-compose.prod.yml run --rm migrator || echo "Migrator step completed"
-
-            echo "🔄 Reloading application services..."
-            docker compose -f docker-compose.prod.yml up -d --no-deps server web
-
-            echo "🔄 Reloading Nginx proxy configuration..."
-            docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload || true
-
-            echo "🩺 Running production health checks..."
-            sleep 8
-            curl -f http://127.0.0.1:3001/health/ready || exit 1
-            curl -f -I http://127.0.0.1:80 || exit 1
-            echo "✓ Production containers reloaded and healthy!"
-
-      - name: Post Deployment Summary
+      - name: Build Summary
         run: |
-          echo "### 🚀 Sovrack Production Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "Production platform deployed successfully to [https://sovrack.com](https://sovrack.com) and [https://app.sovrack.com](https://app.sovrack.com)." >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Sovrack CI & Container Build Succeeded" >> $GITHUB_STEP_SUMMARY
+          echo "Docker images successfully built and published to GHCR:" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Registry Images**: \`ghcr.io/sovrack/server:latest\` & \`ghcr.io/sovrack/web:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **OpenAPI Contract SHA**: \`${{ steps.contract.outputs.sha256 }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Server Image**: \`ghcr.io/sovrack/server:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Web Image**: \`ghcr.io/sovrack/web:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Deployment will be triggered by \`cd-deploy.yml\` using \`deploy.sh\`." >> $GITHUB_STEP_SUMMARY
