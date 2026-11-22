@@ -71,17 +71,24 @@ jobs:
           LATEST_MIGRATION: ${{ steps.metadata.outputs.latest_migration }}
           TOPOLOGY: ${{ steps.metadata.outputs.topology }}
           SKIP_PROV: ${{ steps.metadata.outputs.skip_prov }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER || 'ubuntu' }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script_stop: true
-          envs: RELEASE_ID,COMMIT_SHA,OPENAPI_SHA,LATEST_MIGRATION,TOPOLOGY,SKIP_PROV
+          envs: RELEASE_ID,COMMIT_SHA,OPENAPI_SHA,LATEST_MIGRATION,TOPOLOGY,SKIP_PROV,GH_TOKEN,ACTOR
           script: |
             set -euo pipefail
             umask 077
             echo "🚀 Promotion atomique de la release ${RELEASE_ID}..."
+
+            # Authentification sécurisée et éphémère au registre GHCR
+            if [ -n "${GH_TOKEN:-}" ]; then
+              echo "${GH_TOKEN}" | docker login ghcr.io -u "${ACTOR}" --password-stdin
+            fi
 
             SOVRACK_BASE_DIR="/srv/sovrack"
             REPO_DIR="/home/ubuntu/sovrack"
@@ -126,6 +133,9 @@ jobs:
             export SOVRACK_BASE_DIR="${SOVRACK_BASE_DIR}"
             export SKIP_IMAGE_PROVENANCE_CHECK="${SKIP_PROV}"
             "${RELEASE_DIR}/scripts/deploy.sh" --release-file "${RELEASE_DIR}/release.manifest"
+
+            # Nettoyage de la session Docker Registry éphémère
+            docker logout ghcr.io || true
 
             echo "✓ Release ${RELEASE_ID} promue avec succès sous ${SOVRACK_BASE_DIR}/current !"
 
