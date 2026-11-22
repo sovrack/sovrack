@@ -1,11 +1,17 @@
-name: CD — Staging Deployment (Automated)
+name: CD — Staging Deployment (Manual or Automated)
 
 on:
   workflow_run:
     workflows: ["Package — Container Registry (GHCR)"]
-    branches: [dev]
+    branches: [main, dev]
     types: [completed]
   workflow_dispatch:
+    inputs:
+      target_ref:
+        description: 'Branche ou commit SHA à déployer sur Staging'
+        required: true
+        default: 'main'
+        type: string
 
 concurrency:
   group: sovrack-staging-deploy
@@ -26,10 +32,10 @@ jobs:
     env:
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
     steps:
-      - name: Checkout dev branch
+      - name: Checkout target branch
         uses: actions/checkout@v4
         with:
-          ref: dev
+          ref: ${{ inputs.target_ref || github.event.workflow_run.head_branch || 'main' }}
           fetch-depth: 1
 
       - name: Extract Staging Metadata
@@ -75,10 +81,10 @@ jobs:
               git reset --hard origin/dev
             fi
 
-            # 3. Pull des nouvelles images de dev
-            echo "Pull des conteneurs Staging..."
-            docker pull "ghcr.io/sovrack/server:dev" || true
-            docker pull "ghcr.io/sovrack/web:dev" || true
+            # 3. Pull des nouvelles images (tag immuable par commit SHA)
+            echo "Pull des conteneurs Staging pour le commit ${COMMIT_SHA}..."
+            docker pull "ghcr.io/sovrack/server:${COMMIT_SHA}" || docker pull "ghcr.io/sovrack/server:dev" || true
+            docker pull "ghcr.io/sovrack/web:${COMMIT_SHA}" || docker pull "ghcr.io/sovrack/web:dev" || true
 
             # 4. Vérification et création de la base sovrack_staging si inexistante
             echo "Vérification de la base PostgreSQL sovrack_staging..."
@@ -91,8 +97,8 @@ jobs:
 
             # 5. Déploiement de la stack Staging isolée
             cd "$REPO_DIR/infra"
-            SERVER_IMAGE="ghcr.io/sovrack/server:dev" \
-            WEB_IMAGE="ghcr.io/sovrack/web:dev" \
+            SERVER_IMAGE="ghcr.io/sovrack/server:${COMMIT_SHA}" \
+            WEB_IMAGE="ghcr.io/sovrack/web:${COMMIT_SHA}" \
             docker compose --env-file "$SECRETS_ENV" -f docker-compose.staging.yml up -d --remove-orphans
 
             # 6. Rechargement Nginx à chaud pour router staging.sovrack.com

@@ -1,20 +1,12 @@
-name: CD — Environment Promotion (Staging & Production)
+name: CD — Production Promotion (Manual 1-Click)
 
 on:
   workflow_dispatch:
     inputs:
-      target_environment:
-        description: 'Environnement cible (staging ou production)'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
       target_ref:
-        description: 'Branche ou commit SHA à promouvoir'
+        description: 'Commit SHA ou branche main à promouvoir en production'
         required: true
-        default: 'dev'
+        default: 'main'
         type: string
       runtime_topology:
         description: 'Topologie Runtime du backend'
@@ -31,7 +23,7 @@ on:
         type: boolean
 
 concurrency:
-  group: sovrack-${{ inputs.target_environment || 'staging' }}-deploy
+  group: sovrack-production-deploy
   cancel-in-progress: false
 
 permissions:
@@ -39,12 +31,12 @@ permissions:
   packages: read
 
 jobs:
-  deploy-target:
-    name: Promote Immutable Release to ${{ inputs.target_environment || 'staging' }}
+  deploy-production:
+    name: Promote Immutable Release to Production via deploy.sh
     runs-on: ubuntu-latest
     environment:
-      name: ${{ inputs.target_environment || 'staging' }}
-      url: ${{ (inputs.target_environment || 'staging') == 'production' && 'https://sovrack.com' || 'https://staging.sovrack.com' }}
+      name: production
+      url: https://sovrack.com
     env:
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
     steps:
@@ -149,8 +141,8 @@ jobs:
 
       - name: Deployment Summary
         run: |
-          echo "### 🚀 Sovrack Deployment to \`${{ inputs.target_environment || 'staging' }}\` via \`deploy.sh\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environnement**: \`${{ inputs.target_environment || 'staging' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Sovrack Production Deployment via \`deploy.sh\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environnement**: \`production\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Release ID**: \`${{ steps.metadata.outputs.release_id }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit Promu**: \`${{ steps.metadata.outputs.commit_sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Topologie Runtime**: \`${{ steps.metadata.outputs.topology }}\`" >> $GITHUB_STEP_SUMMARY
