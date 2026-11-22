@@ -1,0 +1,140 @@
+name: CD — Production Promotion (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: 'Branche ou commit SHA à promouvoir en production'
+        required: true
+        default: 'main'
+        type: string
+      runtime_topology:
+        description: 'Topologie Runtime du backend'
+        required: true
+        default: 'compact'
+        type: choice
+        options:
+          - compact
+          - split
+      skip_provenance_check:
+        description: 'Ignorer la vérification de conformité SHA256 des images'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: sovrack-production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  deploy-production:
+    name: Promote Immutable Release via deploy.sh
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://sovrack.com
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_ref || 'main' }}
+          fetch-depth: 0
+
+      - name: Resolve Release Metadata & Invariants
+        id: metadata
+        run: |
+          COMMIT_SHA="$(git rev-parse HEAD)"
+          RELEASE_ID="v3.1.0-${COMMIT_SHA:0:10}"
+          LATEST_MIGRATION="$(find apps/server/prisma/migrations -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort | tail -n 1)"
+          OPENAPI_SHA256="$(sha256sum apps/web/src/generated/api-contract.openapi.json | awk '{print $1}')"
+          
+          echo "release_id=${RELEASE_ID}" >> $GITHUB_OUTPUT
+          echo "commit_sha=${COMMIT_SHA}" >> $GITHUB_OUTPUT
+          echo "latest_migration=${LATEST_MIGRATION}" >> $GITHUB_OUTPUT
+          echo "openapi_sha=${OPENAPI_SHA256}" >> $GITHUB_OUTPUT
+          echo "topology=${{ inputs.runtime_topology || 'compact' }}" >> $GITHUB_OUTPUT
+          echo "skip_prov=${{ inputs.skip_provenance_check && 'true' || 'false' }}" >> $GITHUB_OUTPUT
+
+      - name: Deploy to VPS via SSH & deploy.sh
+        if: env.SSH_PRIVATE_KEY != ''
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          RELEASE_ID: ${{ steps.metadata.outputs.release_id }}
+          COMMIT_SHA: ${{ steps.metadata.outputs.commit_sha }}
+          OPENAPI_SHA: ${{ steps.metadata.outputs.openapi_sha }}
+          LATEST_MIGRATION: ${{ steps.metadata.outputs.latest_migration }}
+          TOPOLOGY: ${{ steps.metadata.outputs.topology }}
+          SKIP_PROV: ${{ steps.metadata.outputs.skip_prov }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER || 'ubuntu' }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          envs: RELEASE_ID,COMMIT_SHA,OPENAPI_SHA,LATEST_MIGRATION,TOPOLOGY,SKIP_PROV
+          script: |
+            set -euo pipefail
+            umask 077
+            echo "🚀 Promotion atomique de la release ${RELEASE_ID}..."
+
+            SOVRACK_BASE_DIR="/srv/sovrack"
+            REPO_DIR="/home/ubuntu/sovrack"
+            RELEASE_DIR="${SOVRACK_BASE_DIR}/releases/${RELEASE_ID}"
+
+            # 1. Synchronisation du dépôt Git hôte
+            if [ -d "$REPO_DIR/.git" ]; then
+              cd "$REPO_DIR"
+              git fetch origin main
+              git reset --hard "$COMMIT_SHA"
+            fi
+
+            # 2. Initialisation du layout versionné si nécessaire
+            cd "$REPO_DIR/infra"
+            SOVRACK_BASE_DIR="${SOVRACK_BASE_DIR}" ./scripts/bootstrap.sh
+
+            # 3. Préparation du répertoire de release immuable
+            mkdir -p "${RELEASE_DIR}"
+            chmod 700 "${RELEASE_DIR}"
+            cp -r "${REPO_DIR}/infra/"* "${RELEASE_DIR}/"
+            echo "${COMMIT_SHA}" > "${RELEASE_DIR}/.infra-commit"
+
+            # 4. Écriture du manifeste de release vérifié
+            {
+              echo "RELEASE_ID=${RELEASE_ID}"
+              echo "BACKEND_IMAGE=ghcr.io/sovrack/server:${COMMIT_SHA}"
+              echo "FRONTEND_IMAGE=ghcr.io/sovrack/web:${COMMIT_SHA}"
+              echo "NGINX_IMAGE=nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10"
+              echo "POSTGRES_IMAGE=postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685"
+              echo "REDIS_IMAGE=redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf"
+              echo "BACKEND_COMMIT=${COMMIT_SHA}"
+              echo "FRONTEND_COMMIT=${COMMIT_SHA}"
+              echo "INFRA_COMMIT=${COMMIT_SHA}"
+              echo "RUNTIME_TOPOLOGY=${TOPOLOGY}"
+              echo "SCHEMA_MIGRATION=${LATEST_MIGRATION}"
+              echo "OPENAPI_SHA256=${OPENAPI_SHA}"
+            } > "${RELEASE_DIR}/release.manifest"
+            chmod 600 "${RELEASE_DIR}/release.manifest"
+
+            # 5. Exécution sécurisée de deploy.sh
+            cd "${RELEASE_DIR}"
+            export SOVRACK_BASE_DIR="${SOVRACK_BASE_DIR}"
+            export SKIP_IMAGE_PROVENANCE_CHECK="${SKIP_PROV}"
+            "${RELEASE_DIR}/scripts/deploy.sh" --release-file "${RELEASE_DIR}/release.manifest"
+
+            echo "✓ Release ${RELEASE_ID} promue avec succès sous ${SOVRACK_BASE_DIR}/current !"
+
+      - name: Deployment Summary
+        run: |
+          echo "### 🚀 Sovrack Production Deployment via \`deploy.sh\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release ID**: \`${{ steps.metadata.outputs.release_id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit Promu**: \`${{ steps.metadata.outputs.commit_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Topologie Runtime**: \`${{ steps.metadata.outputs.topology }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dernière Migration Prisma**: \`${{ steps.metadata.outputs.latest_migration }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Contrat OpenAPI SHA256**: \`${{ steps.metadata.outputs.openapi_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Statut**: Déployé et validé par sondes de santé." >> $GITHUB_STEP_SUMMARY

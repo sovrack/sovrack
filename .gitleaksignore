@@ -1,4 +1,4 @@
-﻿ed89157b7ae52fdd6b216e162d6a7ffa8f6119e0:infra/release-manifest.example:generic-api-key:12
+ed89157b7ae52fdd6b216e162d6a7ffa8f6119e0:infra/release-manifest.example:generic-api-key:12
 ed89157b7ae52fdd6b216e162d6a7ffa8f6119e0:infra/docs/V3_1_0_RELEASE_READINESS.md:generic-api-key:27
 8d030c021bc7729e4576e54e5b92c7d6786173e1:apps/server/src/shared/security/redact.spec.ts:private-key:63
 481a3c3d8bb5cbbe5e6dddfc2dea81237952be46:apps/server/src/core/crypto/crypto-at-rest.spec.ts:private-key:120

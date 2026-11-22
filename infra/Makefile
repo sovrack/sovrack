@@ -52,8 +52,10 @@ monitoring-logs: ## Affiche les journaux de la pile de monitoring
 preflight: ## Valide capacité, secrets et manifeste (FILE=manifest)
 	SOVRACK_BASE_DIR=$(BASE_DIR) ./scripts/preflight.sh --release-file $(FILE)
 
-validate-ci: ## Valide le compose dans les conditions CI (image docker cli)
+validate-ci: ## Valide les compose dans les conditions CI (prod, dev, monitoring)
 	docker compose --env-file .env.production.example -f docker-compose.prod.yml config -q
+	docker compose -f docker-compose.dev.yml config -q
+	docker compose -f docker-compose.monitoring.yml config -q
 
 test-scripts: ## Teste backup/restore dans une stack Docker jetable
 	./tests/ansible-layout-test.sh
