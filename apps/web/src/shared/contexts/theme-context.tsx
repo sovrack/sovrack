@@ -10,10 +10,11 @@ import {
   type ReactNode,
 } from "react";
 
-export type Theme = "brand" | "light" | "dark";
+export type Theme = "light" | "dark" | "brand";
 
 type ThemeContextValue = {
   theme: Theme;
+  isLight: boolean;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   mounted: boolean;
@@ -21,7 +22,7 @@ type ThemeContextValue = {
 
 const THEME_STORAGE_KEY = "sovrack-theme";
 const LEGACY_THEME_STORAGE_KEY = "deploy-automation-theme";
-const DEFAULT_THEME: Theme = "brand";
+const DEFAULT_THEME: Theme = "dark";
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
@@ -30,14 +31,17 @@ function isTheme(value: string | null): value is Theme {
 }
 
 function applyTheme(theme: Theme) {
+  if (typeof document === "undefined") return;
   const root = document.documentElement;
   root.classList.remove("brand", "light", "dark");
-  if (theme === "brand") {
-    root.classList.add("dark", "brand");
+  if (theme === "light") {
+    root.classList.add("light");
+    root.style.colorScheme = "light";
   } else {
-    root.classList.add(theme);
+    root.classList.add("dark");
+    if (theme === "brand") root.classList.add("brand");
+    root.style.colorScheme = "dark";
   }
-  root.style.colorScheme = theme === "light" ? "light" : "dark";
 }
 
 function persistTheme(theme: Theme) {
@@ -73,26 +77,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const toggleTheme = useCallback(() => {
     setThemeState((currentTheme) => {
-      const nextTheme: Theme =
-        currentTheme === "brand"
-          ? "dark"
-          : currentTheme === "dark"
-            ? "light"
-            : "brand";
+      const nextTheme: Theme = currentTheme === "light" ? "dark" : "light";
       applyTheme(nextTheme);
       persistTheme(nextTheme);
       return nextTheme;
     });
   }, []);
 
+  const isLight = theme === "light";
+
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme,
+      isLight,
       setTheme,
       toggleTheme,
       mounted,
     }),
-    [mounted, setTheme, theme, toggleTheme],
+    [isLight, mounted, setTheme, theme, toggleTheme],
   );
 
   return (
@@ -107,3 +109,5 @@ export function useThemeContext() {
   }
   return context;
 }
+
+export const useTheme = useThemeContext;

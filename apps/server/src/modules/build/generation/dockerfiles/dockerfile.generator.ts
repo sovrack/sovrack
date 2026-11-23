@@ -64,6 +64,11 @@ export class DockerfileGenerator {
       case 'rabbitmq-service':
         return generateRabbitmqDockerfile(typeAwareOptions);
       case 'react':
+      case 'vue':
+      case 'vite':
+      case 'astro':
+      case 'svelte':
+      case 'static-spa':
         return generateReactDockerfile(typeAwareOptions);
       case 'rust':
         return generateRustDockerfile(typeAwareOptions);

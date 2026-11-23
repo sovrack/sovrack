@@ -51,23 +51,23 @@ function KpiCard({
 }: KpiCardProps) {
   const valueColor =
     tone === "success"
-      ? "text-emerald-400"
+      ? "text-emerald-500"
       : tone === "error"
-        ? "text-red-400"
+        ? "text-red-500"
         : tone === "warning"
-          ? "text-amber-400"
-          : "text-white";
+          ? "text-amber-500"
+          : "text-primary";
 
   return (
-    <div className="rounded-xl border border-zinc-800/60 bg-[#121214] px-4 py-4 hover:border-zinc-700 transition">
-      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">
+    <div className="rounded-xl border border-border bg-card px-4 py-4 hover:border-border-hover transition shadow-sm">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-secondary">
         {icon}
         {title}
       </p>
       <p className={`mt-3 text-3xl font-semibold leading-none ${valueColor}`}>
         {value}
       </p>
-      <p className="mt-2.5 text-xs text-zinc-500">{subtitle}</p>
+      <p className="mt-2.5 text-xs text-muted">{subtitle}</p>
     </div>
   );
 }
@@ -200,7 +200,7 @@ export default function DashboardPage() {
               className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition ${
                 action.primary
                   ? "bg-[#2563EB] text-white hover:bg-[#1d4ed8]"
-                  : "border border-zinc-800/60 bg-[#121214] text-zinc-300 hover:text-white hover:bg-[#18181b]"
+                  : "border border-border bg-card text-secondary hover:text-primary hover:bg-hover"
               }`}
             >
               {action.icon}

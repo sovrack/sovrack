@@ -14,7 +14,9 @@ import {
   ChevronDown,
   LogOut,
   Menu,
+  Moon,
   Settings,
+  Sun,
   User,
   XCircle,
   Loader2,
@@ -25,7 +27,7 @@ import { publicSitePath } from "@/shared/config/product-urls";
 import clsx from "clsx";
 import type { Deployment } from "@/features/deployments/types";
 import { timeAgoCompact } from "@/shared/lib/format-date";
-import { WorkspaceSwitcher } from "@/features/teams/components/workspace-switcher";
+import { useTheme } from "@/shared/contexts/theme-context";
 import {
   deploymentStatusLabel,
   workspaceRoleLabel,
@@ -113,7 +115,7 @@ function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-zinc-800/70 bg-[#121212] shadow-2xl z-50">
+        <div className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-border bg-card shadow-2xl z-50">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <span className="text-sm font-semibold text-primary">
@@ -197,6 +199,7 @@ export function TopNav() {
   const router = useRouter();
   const { user, logout, workspaceRole } = useAuth();
   const { toggleSidebar, toggleMobileSidebar } = useSidebar();
+  const { isLight, toggleTheme } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -229,7 +232,7 @@ export function TopNav() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 bg-[#0a0a0a]/90 border-b border-zinc-800/30 backdrop-blur-md">
+    <header className="sticky top-0 z-40 bg-app/90 border-b border-border backdrop-blur-md transition-colors">
       <div className="flex h-14 items-center gap-3 px-4 lg:px-6">
         <button
           type="button"
@@ -251,7 +254,6 @@ export function TopNav() {
         </button>
 
         <div className="ml-auto flex min-w-0 items-center gap-1.5">
-          <WorkspaceSwitcher />
           <Link
             href={publicSitePath("/")}
             target="_blank"
@@ -262,13 +264,22 @@ export function TopNav() {
           >
             <Globe2 size={17} />
           </Link>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-secondary transition hover:bg-hover/10 hover:text-primary"
+            title={isLight ? "Passer en mode sombre" : "Passer en mode clair (Light)"}
+            aria-label={isLight ? "Passer en mode sombre" : "Passer en mode clair (Light)"}
+          >
+            {isLight ? <Moon size={17} /> : <Sun size={17} />}
+          </button>
           <NotificationBell />
 
           <div ref={dropdownRef} className="relative">
             <button
               type="button"
               onClick={() => setDropdownOpen((v) => !v)}
-              className="flex items-center gap-2.5 rounded-lg border border-zinc-800/60 bg-[#121212] px-2.5 py-1.5 text-sm transition hover:bg-[#181818]"
+              className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-sm transition hover:bg-hover/20"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-accent-foreground">
                 {initials}
@@ -288,7 +299,7 @@ export function TopNav() {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-zinc-800/70 bg-[#121212] p-2 shadow-2xl z-50">
+              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-border bg-card p-2 shadow-2xl z-50">
                 <div className="rounded-lg bg-hover/10 px-3 py-2.5">
                   <p className="truncate text-sm font-semibold text-primary">
                     {user?.fullName}

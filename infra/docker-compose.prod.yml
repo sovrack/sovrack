@@ -396,6 +396,7 @@ services:
 # ────────────────────────────── RÉSEAU ─────────────────────────────
 networks:
   sovrack-net:
+    name: sovrack-network
     driver: bridge
 
 # ──────────────────────────── VOLUMES persistants ──────────────────────────
