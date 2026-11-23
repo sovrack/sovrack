@@ -130,7 +130,7 @@ services:
       - sovrack-net
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_STAGING_DB:-sovrack_staging}?schema=public
-    entrypoint: ["npx", "prisma", "migrate", "deploy"]
+    entrypoint: ["node", "./node_modules/.bin/prisma", "migrate", "deploy"]
 
   # ───────────────────── STANDALONE STAGING SERVICES ─────────────────────────
   # Utilisés uniquement si le Staging s'exécute sur une VM dédiée (sans la prod)
