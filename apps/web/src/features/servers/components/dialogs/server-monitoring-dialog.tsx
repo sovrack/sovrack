@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Activity, BarChart3, Box, Cpu, HardDrive, MemoryStick, ScrollText, Wrench } from "lucide-react";
+import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/shared/ui/button";
 import { Modal } from "@/shared/ui/modal";
 import { monitoringService } from "@/features/monitoring";
@@ -70,6 +72,18 @@ export function ServerMonitoringDialog({
     refetchInterval: open ? 3_000 : false,
     refetchOnWindowFocus: true,
   });
+
+  const [history, setHistory] = useState<Array<{ time: string; cpu: number; mem: number }>>([]);
+
+  useEffect(() => {
+    if (telemetry?.metrics) {
+      const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      setHistory((prev) => {
+        const next = [...prev, { time: now, cpu: telemetry.metrics!.cpuPercent, mem: telemetry.metrics!.memoryPercent }];
+        return next.slice(-20);
+      });
+    }
+  }, [telemetry?.metrics?.timestamp, telemetry?.metrics?.cpuPercent, telemetry?.metrics?.memoryPercent]);
 
   const monitored = data?.find((s) => s.serverId === server?.id) ?? null;
   const installed = Boolean(monitored?.links);
@@ -183,6 +197,47 @@ export function ServerMonitoringDialog({
                   />
                 </div>
               </div>
+
+              {/* Real-time Time Series Telemetry Curves */}
+              {history.length > 1 && (
+                <div className="pt-2">
+                  <div className="flex items-center justify-between text-xs text-muted mb-1.5 font-medium">
+                    <span>Télémétrie en direct (dernière minute)</span>
+                    <div className="flex items-center gap-3 text-[11px]">
+                      <span className="flex items-center gap-1 font-mono text-cyan-400">
+                        <span className="h-2 w-2 rounded-full bg-cyan-400 inline-block" /> CPU
+                      </span>
+                      <span className="flex items-center gap-1 font-mono text-purple-400">
+                        <span className="h-2 w-2 rounded-full bg-purple-400 inline-block" /> RAM
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-24 w-full bg-hover/10 rounded-lg p-2 border border-border">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={history}>
+                        <defs>
+                          <linearGradient id="cpuGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.0} />
+                          </linearGradient>
+                          <linearGradient id="memGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#c084fc" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#c084fc" stopOpacity={0.0} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis dataKey="time" hide />
+                        <YAxis domain={[0, 100]} hide />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: "#18181b", borderColor: "#27272a", fontSize: "11px", borderRadius: "6px" }}
+                          formatter={(value: any, name: any) => [`${Number(value).toFixed(1)}%`, name === "cpu" ? "CPU" : "RAM"]}
+                        />
+                        <Area type="monotone" dataKey="cpu" stroke="#22d3ee" fillOpacity={1} fill="url(#cpuGrad)" strokeWidth={1.5} isAnimationActive={false} />
+                        <Area type="monotone" dataKey="mem" stroke="#c084fc" fillOpacity={1} fill="url(#memGrad)" strokeWidth={1.5} isAnimationActive={false} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
 
               {/* Containers */}
               <div className="flex items-center justify-between pt-1 text-xs border-t border-border">

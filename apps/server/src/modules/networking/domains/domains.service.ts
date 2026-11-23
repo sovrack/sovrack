@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { DnsProvider, DnsProviderType, Prisma } from '@prisma/client';
@@ -32,6 +33,8 @@ const domainInclude = {
  */
 @Injectable()
 export class DomainsService {
+  private readonly logger = new Logger(DomainsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
@@ -194,7 +197,7 @@ export class DomainsService {
     await this.ensureDomainExists(domainId, teamId);
     await this.validateRecordLinks(dto, teamId);
 
-    return await this.prisma.dnsRecord.create({
+    const record = await this.prisma.dnsRecord.create({
       data: {
         domainId,
         type: dto.type,
@@ -205,6 +208,34 @@ export class DomainsService {
         serviceEnvId: dto.serviceEnvId?.trim() || undefined,
       },
     });
+
+    // Auto-sync avec Cloudflare API si le domaine a un provider Cloudflare configuré
+    const domain = await this.prisma.domain.findUnique({
+      where: { id: domainId },
+      include: { provider: true },
+    });
+    if (
+      domain?.provider?.type === DnsProviderType.CLOUDFLARE &&
+      domain.provider.apiToken &&
+      domain.provider.zoneId &&
+      (dto.type === 'A' || dto.type === 'CNAME')
+    ) {
+      try {
+        const decryptedToken = this.crypto.decrypt(domain.provider.apiToken);
+        void this.dns01Challenge.syncCloudflareRecord(
+          decryptedToken,
+          domain.provider.zoneId,
+          dto.name.trim(),
+          dto.type,
+          dto.value.trim(),
+          dto.proxied ?? true,
+        );
+      } catch (err) {
+        this.logger.warn(`Échec de la synchronisation DNS Cloudflare: ${err}`);
+      }
+    }
+
+    return record;
   }
 
   async updateRecord(
@@ -215,7 +246,7 @@ export class DomainsService {
     await this.ensureRecordExists(recordId, teamId);
     await this.validateRecordLinks(dto, teamId);
 
-    return await this.prisma.dnsRecord.update({
+    const record = await this.prisma.dnsRecord.update({
       where: { id: recordId },
       data: {
         type: dto.type,
@@ -226,6 +257,35 @@ export class DomainsService {
         serviceEnvId: dto.serviceEnvId?.trim() || null,
       },
     });
+
+    // Auto-sync avec Cloudflare API sur mise à jour
+    const existing = await this.prisma.dnsRecord.findUnique({
+      where: { id: recordId },
+      include: { domain: { include: { provider: true } } },
+    });
+    const provider = existing?.domain?.provider;
+    if (
+      provider?.type === DnsProviderType.CLOUDFLARE &&
+      provider.apiToken &&
+      provider.zoneId &&
+      (dto.type === 'A' || dto.type === 'CNAME')
+    ) {
+      try {
+        const decryptedToken = this.crypto.decrypt(provider.apiToken);
+        void this.dns01Challenge.syncCloudflareRecord(
+          decryptedToken,
+          provider.zoneId,
+          dto.name.trim(),
+          dto.type,
+          dto.value.trim(),
+          dto.proxied ?? true,
+        );
+      } catch (err) {
+        this.logger.warn(`Échec de la synchronisation DNS Cloudflare: ${err}`);
+      }
+    }
+
+    return record;
   }
 
   async removeRecord(recordId: string, teamId: string): Promise<void> {

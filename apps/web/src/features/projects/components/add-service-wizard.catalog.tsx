@@ -1,15 +1,8 @@
-import { Container, Database, FolderGit2, Package } from "lucide-react";
+import { Container, Database, FolderGit2, Layers, Package } from "lucide-react";
 import type { ManagedServiceType } from "@/features/projects/types/service";
 import { isCapabilityEnabled } from "@/shared/config/product-capabilities";
 
-// Catalogue + helpers du wizard d'ajout de service. Extrait du composant pour
-// le garder focalisé sur le flux (3 étapes) ; ces données/utilitaires sont purs.
-
-// NB: "COMPOSE" reste dans l'union (le code des étapes/backend est conservé
-// pour un futur exécuteur multi-conteneurs), mais l'option est RETIRÉE du
-// catalogue de création ci-dessous (décision D3) : le moteur ne déploie qu'un
-// conteneur, un service compose ne se déploierait jamais — ne pas exposer une
-// fonctionnalité morte.
+// Catalogue + helpers du wizard d'ajout de service.
 export type ServiceKind =
   "APPLICATION" | "DATABASE" | "DOCKER" | "COMPOSE" | "TEMPLATE";
 export type AppMode = "repo" | "group";
@@ -41,6 +34,12 @@ const ALL_KINDS: {
     icon: <Container size={20} />,
   },
   {
+    kind: "COMPOSE",
+    label: "Docker Compose",
+    hint: "Coller une stack docker-compose.yml multi-services",
+    icon: <Layers size={20} />,
+  },
+  {
     kind: "TEMPLATE",
     label: "Modèle",
     hint: "Ensembles de services préconfigurés en un clic",
@@ -51,7 +50,8 @@ const ALL_KINDS: {
 export const KINDS = ALL_KINDS.filter(({ kind }) => {
   if (kind === "DATABASE") return isCapabilityEnabled("managedDatabases");
   if (kind === "TEMPLATE") return isCapabilityEnabled("serviceTemplates");
-  return kind !== "COMPOSE";
+  if (kind === "COMPOSE") return isCapabilityEnabled("dockerComposeServices");
+  return true;
 });
 
 export const DATABASES: {

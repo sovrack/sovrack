@@ -265,4 +265,73 @@ export class Dns01ChallengeService {
       };
     }
   }
+
+  /**
+   * Crée ou met à jour un enregistrement A ou CNAME via l'API Cloudflare.
+   */
+  async syncCloudflareRecord(
+    token: string,
+    zoneId: string,
+    name: string,
+    type: 'A' | 'CNAME',
+    content: string,
+    proxied = true,
+  ): Promise<{ success: boolean; recordId?: string; error?: string }> {
+    try {
+      const listRes = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(name)}&type=${type}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      const listData = (await listRes.json()) as {
+        success?: boolean;
+        result?: Array<{ id: string }>;
+      };
+
+      const existingId = listData.result?.[0]?.id;
+      const url = existingId
+        ? `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${existingId}`
+        : `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`;
+      const method = existingId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type,
+          name,
+          content,
+          ttl: 1, // Automatic TTL
+          proxied,
+        }),
+      });
+
+      const data = (await res.json()) as {
+        success?: boolean;
+        result?: { id: string };
+        errors?: Array<{ message: string }>;
+      };
+
+      if (!res.ok || !data.success) {
+        const errorMsg = data.errors?.[0]?.message ?? `HTTP ${res.status}`;
+        this.logger.error(`Cloudflare DNS sync failed for ${name}: ${errorMsg}`);
+        return { success: false, error: errorMsg };
+      }
+
+      this.logger.log(`Cloudflare DNS ${type} record synced for ${name} -> ${content} (id: ${data.result?.id})`);
+      return { success: true, recordId: data.result?.id };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Erreur Cloudflare DNS',
+      };
+    }
+  }
 }

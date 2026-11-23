@@ -1,6 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../../shared/database/prisma.service';
+import { CryptoService } from '../../shared/crypto/crypto.service';
+import { Dns01ChallengeService } from '../networking/domains/dns-01-challenge.service';
 import {
   DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
   DEPLOYMENT_PULL_REQUEST_EVENT,
@@ -17,6 +19,8 @@ export class PreviewEnvironmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    @Optional() private readonly dns01Challenge?: Dns01ChallengeService,
+    @Optional() private readonly crypto?: CryptoService,
   ) {}
 
   /**
@@ -144,6 +148,32 @@ export class PreviewEnvironmentsService {
           verified: true,
         },
       });
+
+      // Synchronisation DNS Cloudflare automatique pour la PR
+      if (this.dns01Challenge) {
+        try {
+          const cfProvider = await this.prisma.dnsProvider.findFirst({
+            where: { type: 'CLOUDFLARE' },
+          });
+          const server = await this.prisma.server.findFirst({
+            where: { isActive: true, isVerified: true },
+            select: { host: true },
+          });
+          if (cfProvider?.apiToken && cfProvider?.zoneId && server?.host) {
+            const token = this.crypto ? this.crypto.decrypt(cfProvider.apiToken) : cfProvider.apiToken;
+            void this.dns01Challenge.syncCloudflareRecord(
+              token,
+              cfProvider.zoneId,
+              previewHost,
+              'A',
+              server.host,
+              true,
+            );
+          }
+        } catch (cfErr) {
+          this.logger.warn(`Could not sync Cloudflare record for preview ${previewHost}: ${cfErr}`);
+        }
+      }
     }
 
     // Déclenche le déploiement automatique du conteneur pour la PR
