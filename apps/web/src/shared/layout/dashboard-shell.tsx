@@ -44,7 +44,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <div
         className={clsx(
           "flex min-w-0 flex-1 flex-col transition-all duration-300 ease-in-out",
-          collapsed ? "lg:ml-16" : "lg:ml-[254px]",
+          collapsed ? "lg:ml-16" : "lg:ml-[230px]",
           isLight
             ? "dashboard-light bg-[#f8fafc] text-slate-900"
             : "bg-[#0a0a0a] text-zinc-100",

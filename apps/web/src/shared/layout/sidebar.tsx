@@ -34,7 +34,7 @@ function NavItem({
       onClick={onNavigate}
       title={collapsed ? label : undefined}
       className={clsx(
-        "group flex items-center gap-3 rounded-lg py-2 text-[14px] transition-colors duration-150",
+        "group flex items-center gap-2.5 rounded-lg py-2 text-[14.5px] transition-colors duration-150",
         collapsed ? "px-2.5 lg:justify-center lg:px-0" : "px-3",
         isActive
           ? "bg-[#202025] font-medium text-white shadow-sm"
@@ -49,7 +49,7 @@ function NavItem({
             : "text-zinc-500 group-hover:text-zinc-300",
         )}
       />
-      <span className={clsx("truncate", collapsed && "lg:hidden")}>
+      <span className={clsx("truncate tracking-[-0.01em]", collapsed && "lg:hidden")}>
         {label}
       </span>
     </Link>
@@ -66,7 +66,7 @@ function SectionLabel({
   return (
     <p
       className={clsx(
-        "mb-1.5 mt-4 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400",
+        "mb-1.5 mt-4 px-3 text-[11.5px] font-semibold uppercase tracking-[0.14em] text-zinc-400",
         collapsed && "lg:hidden",
       )}
     >
@@ -94,14 +94,14 @@ export function Sidebar() {
       <aside
         aria-label="Navigation principale"
         className={clsx(
-          "fixed left-0 top-0 z-50 flex h-screen w-[254px] flex-col border-r border-zinc-800/40 bg-[#121212] transition-all duration-300 ease-in-out lg:z-40",
-          collapsed ? "lg:w-16" : "lg:w-[254px]",
+          "fixed left-0 top-0 z-50 flex h-screen w-[230px] flex-col border-r border-zinc-800/40 bg-[#121212] transition-all duration-300 ease-in-out lg:z-40",
+          collapsed ? "lg:w-16" : "lg:w-[230px]",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
         {/* Logo */}
         <div
-          className={clsx("shrink-0 py-3.5", collapsed ? "px-2.5 lg:px-2" : "px-4")}
+          className={clsx("shrink-0 py-3.5", collapsed ? "px-2.5 lg:px-2" : "px-3.5")}
         >
           <Link
             href={customerAppPath("/dashboard")}
@@ -111,10 +111,10 @@ export function Sidebar() {
               collapsed && "lg:justify-center",
             )}
           >
-            <SovrackLogo className="w-7 h-7 text-white shrink-0" width={28} height={28} />
+            <SovrackLogo className="w-8 h-8 text-white shrink-0" width={32} height={32} />
             <span
               className={clsx(
-                "truncate text-[22px] font-bold tracking-tight text-white antialiased",
+                "truncate text-[23px] font-bold tracking-tight text-white antialiased",
                 collapsed && "lg:hidden",
               )}
             >
