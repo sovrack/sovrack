@@ -204,7 +204,7 @@ export const SERVICE_TEMPLATES: ServiceTemplate[] = [
       {
         nameSuffix: 'web',
         type: ServiceType.APPLICATION,
-        sourceType: SourceType.GIT_REPOSITORY,
+        sourceType: SourceType.GIT,
         buildPack: BuildPack.NIXPACKS,
         port: 3000,
         env: { NODE_ENV: 'production', PORT: '3000' },
@@ -220,7 +220,7 @@ export const SERVICE_TEMPLATES: ServiceTemplate[] = [
       {
         nameSuffix: 'api',
         type: ServiceType.APPLICATION,
-        sourceType: SourceType.GIT_REPOSITORY,
+        sourceType: SourceType.GIT,
         buildPack: BuildPack.NIXPACKS,
         port: 4000,
         env: { NODE_ENV: 'production', PORT: '4000' },
@@ -236,7 +236,7 @@ export const SERVICE_TEMPLATES: ServiceTemplate[] = [
       {
         nameSuffix: 'api',
         type: ServiceType.APPLICATION,
-        sourceType: SourceType.GIT_REPOSITORY,
+        sourceType: SourceType.GIT,
         buildPack: BuildPack.NIXPACKS,
         port: 8000,
         env: { PORT: '8000' },
@@ -252,7 +252,7 @@ export const SERVICE_TEMPLATES: ServiceTemplate[] = [
       {
         nameSuffix: 'svc',
         type: ServiceType.APPLICATION,
-        sourceType: SourceType.GIT_REPOSITORY,
+        sourceType: SourceType.GIT,
         buildPack: BuildPack.NIXPACKS,
         port: 8080,
         env: { PORT: '8080' },
