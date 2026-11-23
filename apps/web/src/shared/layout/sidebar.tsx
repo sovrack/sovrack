@@ -94,8 +94,8 @@ export function Sidebar() {
       <aside
         aria-label="Navigation principale"
         className={clsx(
-          "fixed left-0 top-0 z-50 flex h-screen w-[272px] flex-col border-r border-zinc-800/40 bg-[#121212] transition-all duration-300 ease-in-out lg:z-40",
-          collapsed ? "lg:w-16" : "lg:w-[272px]",
+          "fixed left-0 top-0 z-50 flex h-screen w-[254px] flex-col border-r border-zinc-800/40 bg-[#121212] transition-all duration-300 ease-in-out lg:z-40",
+          collapsed ? "lg:w-16" : "lg:w-[254px]",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
@@ -156,22 +156,6 @@ export function Sidebar() {
               </div>
             );
           })}
-        </div>
-
-        {/* Footer / System Status */}
-        <div
-          className={clsx(
-            "border-t border-zinc-800/40 px-3.5 py-3",
-            collapsed && "lg:hidden",
-          )}
-        >
-          <div className="flex items-center justify-between text-[11px] text-zinc-500 font-medium">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-              <span>Système opérationnel</span>
-            </span>
-            <span className="font-mono text-zinc-600">v3.1.0</span>
-          </div>
         </div>
       </aside>
     </>
