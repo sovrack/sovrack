@@ -132,7 +132,52 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_STAGING_DB:-sovrack_staging}?schema=public
     entrypoint: ["npx", "prisma", "migrate", "deploy"]
 
+  # ───────────────────── STANDALONE STAGING SERVICES ─────────────────────────
+  # Utilisés uniquement si le Staging s'exécute sur une VM dédiée (sans la prod)
+  # Activable via : docker compose --profile standalone up -d
+  postgres:
+    profiles: ["standalone"]
+    image: postgres:16-alpine
+    container_name: sovrack-staging-postgres
+    restart: unless-stopped
+    networks:
+      sovrack-net:
+        aliases:
+          - postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sovrack}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-staging-password}
+      POSTGRES_DB: ${POSTGRES_STAGING_DB:-sovrack_staging}
+    volumes:
+      - staging-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sovrack} -d ${POSTGRES_STAGING_DB:-sovrack_staging}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    profiles: ["standalone"]
+    image: redis:7-alpine
+    container_name: sovrack-staging-redis
+    restart: unless-stopped
+    networks:
+      sovrack-net:
+        aliases:
+          - redis
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-staging-redis-password}"]
+    volumes:
+      - staging-redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-staging-redis-password}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  staging-pgdata:
+  staging-redisdata:
+
 networks:
   sovrack-net:
     name: sovrack-network
-    external: true
