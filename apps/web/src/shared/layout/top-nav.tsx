@@ -22,6 +22,7 @@ import {
   Loader2,
   Rocket,
   Globe2,
+  Search,
 } from "lucide-react";
 import { publicSitePath } from "@/shared/config/product-urls";
 import clsx from "clsx";
@@ -264,6 +265,24 @@ export function TopNav() {
           >
             <Globe2 size={17} />
           </Link>
+          {/* Command Palette Quick Trigger */}
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(
+                new KeyboardEvent("keydown", { key: "k", ctrlKey: true }),
+              );
+            }}
+            className="hidden sm:flex items-center gap-2 rounded-lg border border-border bg-card/60 px-3 py-1.5 text-xs text-secondary hover:text-primary hover:border-border-hover transition"
+            title="Recherche globale (Ctrl+K)"
+          >
+            <Search size={13} className="text-muted" />
+            <span>Rechercher...</span>
+            <kbd className="rounded bg-hover/20 px-1 py-0.5 font-mono text-[10px] text-muted">
+              Ctrl K
+            </kbd>
+          </button>
+
           <button
             type="button"
             onClick={toggleTheme}

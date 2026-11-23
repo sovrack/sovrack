@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import api from "@/shared/lib/api";
 import { useAuth } from "@/features/auth/api/use-auth";
+import { CommandPalette } from "@/shared/ui/command-palette";
 import clsx from "clsx";
 
 type AuthSessionMetadata = {
@@ -38,6 +39,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-[#121212]">
+      <CommandPalette />
       <Sidebar />
       <div
         className={clsx(
