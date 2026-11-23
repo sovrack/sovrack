@@ -34,8 +34,8 @@ function NavItem({
       onClick={onNavigate}
       title={collapsed ? label : undefined}
       className={clsx(
-        "group flex items-center gap-2.5 rounded-lg py-1.5 text-[13px] transition-colors duration-150",
-        collapsed ? "px-2.5 lg:justify-center lg:px-0" : "px-2.5",
+        "group flex items-center gap-3 rounded-lg py-2 text-[14px] transition-colors duration-150",
+        collapsed ? "px-2.5 lg:justify-center lg:px-0" : "px-3",
         isActive
           ? "bg-[#202025] font-medium text-white shadow-sm"
           : "font-normal text-zinc-400 hover:bg-white/5 hover:text-white",
@@ -43,7 +43,7 @@ function NavItem({
     >
       <Icon
         className={clsx(
-          "h-4 w-4 shrink-0 transition-colors",
+          "h-[18px] w-[18px] shrink-0 transition-colors",
           isActive
             ? "text-[#2563EB]"
             : "text-zinc-500 group-hover:text-zinc-300",
@@ -66,7 +66,7 @@ function SectionLabel({
   return (
     <p
       className={clsx(
-        "mb-1 mt-3.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500",
+        "mb-1.5 mt-4 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400",
         collapsed && "lg:hidden",
       )}
     >
@@ -94,8 +94,8 @@ export function Sidebar() {
       <aside
         aria-label="Navigation principale"
         className={clsx(
-          "fixed left-0 top-0 z-50 flex h-screen w-60 flex-col border-r border-zinc-800/40 bg-[#121212] transition-all duration-300 ease-in-out lg:z-40",
-          collapsed ? "lg:w-16" : "lg:w-60",
+          "fixed left-0 top-0 z-50 flex h-screen w-[272px] flex-col border-r border-zinc-800/40 bg-[#121212] transition-all duration-300 ease-in-out lg:z-40",
+          collapsed ? "lg:w-16" : "lg:w-[272px]",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
@@ -156,6 +156,22 @@ export function Sidebar() {
               </div>
             );
           })}
+        </div>
+
+        {/* Footer / System Status */}
+        <div
+          className={clsx(
+            "border-t border-zinc-800/40 px-3.5 py-3",
+            collapsed && "lg:hidden",
+          )}
+        >
+          <div className="flex items-center justify-between text-[11px] text-zinc-500 font-medium">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+              <span>Système opérationnel</span>
+            </span>
+            <span className="font-mono text-zinc-600">v3.1.0</span>
+          </div>
         </div>
       </aside>
     </>
