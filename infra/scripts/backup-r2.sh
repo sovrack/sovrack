@@ -36,8 +36,8 @@ if ! docker ps --format '{{.Names}}' | grep -q "^${POSTGRES_CONTAINER}$"; then
   POSTGRES_CONTAINER="sovrack-postgres"
 fi
 
-DB_USER="${POSTGRES_USER:-sovrack_staging}"
-DB_NAME="${POSTGRES_DB:-sovrack_staging}"
+DB_USER=$(docker exec "${POSTGRES_CONTAINER}" printenv POSTGRES_USER || echo "${POSTGRES_USER:-sovrack_staging}")
+DB_NAME=$(docker exec "${POSTGRES_CONTAINER}" printenv POSTGRES_DB || echo "${POSTGRES_DB:-sovrack_staging}")
 
 BACKUP_DIR="/tmp/sovrack-r2-backups"
 mkdir -p "$BACKUP_DIR"
