@@ -11,6 +11,7 @@ RUN npx prisma generate
 
 COPY . .
 RUN npm run build
+RUN npm prune --omit=dev
 
 # ── Production stage ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
@@ -31,11 +32,8 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-# Only production deps
-COPY package*.json ./
-RUN (npm ci --omit=dev || npm install --omit=dev) && \
-    npm cache clean --force && \
-    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+# Copy pruned production dependencies directly from builder stage
+COPY --from=builder /app/node_modules ./node_modules
 
 # Install ONLY the collections we use into a world-readable system path so the
 # non-root runtime user (appuser) finds them. /usr/share/ansible/collections is
