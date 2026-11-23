@@ -4,7 +4,7 @@
   "description": "Sovrack Multi-tenant Web App & Dashboard",
   "author": "Habib Drira <contact@sovrack.com>",
   "private": true,
-  "license": "BSL-1.1",
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

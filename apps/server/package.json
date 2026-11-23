@@ -4,7 +4,7 @@
   "description": "Sovrack Orchestration & API Server",
   "author": "Habib Drira <contact@sovrack.com>",
   "private": true,
-  "license": "BSL-1.1",
+  "license": "Apache-2.0",
   "scripts": {
     "build": "nest build",
     "arch:check": "depcruise src --config .dependency-cruiser.cjs --output-type err",
