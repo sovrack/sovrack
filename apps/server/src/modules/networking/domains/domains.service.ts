@@ -9,6 +9,7 @@ import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { CreateDomainDto } from './dto/create-domain.dto';
 import { CreateDnsProviderDto } from './dto/create-dns-provider.dto';
 import { UpsertDnsRecordDto } from './dto/upsert-dns-record.dto';
+import { Dns01ChallengeService } from './dns-01-challenge.service';
 
 const domainInclude = {
   provider: {
@@ -34,28 +35,26 @@ export class DomainsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
+    private readonly dns01Challenge: Dns01ChallengeService,
   ) {}
 
   // ── DNS providers ──────────────────────────────────────────────────────
 
   async listProviders(teamId: string) {
     const providers = await this.prisma.dnsProvider.findMany({
-      where: { teamId, type: DnsProviderType.MANUAL },
+      where: { teamId },
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
     });
     return providers.map((provider) => this.toPublicProvider(provider));
   }
 
   async createProvider(dto: CreateDnsProviderDto, teamId: string) {
-    if (dto.type !== DnsProviderType.MANUAL) {
-      throw new BadRequestException(
-        "L'automatisation DNS n'est pas disponible dans la V1. Utilisez le mode MANUAL.",
-      );
-    }
-    if (dto.apiToken || dto.accountId || dto.zoneId) {
-      throw new BadRequestException(
-        "Le mode DNS manuel n'accepte pas de credentials fournisseur",
-      );
+    if (dto.type === DnsProviderType.MANUAL) {
+      if (dto.apiToken || dto.accountId || dto.zoneId) {
+        throw new BadRequestException(
+          "Le mode DNS manuel n'accepte pas de credentials fournisseur",
+        );
+      }
     }
     const provider = await this.prisma.dnsProvider.create({
       data: {
@@ -89,9 +88,13 @@ export class DomainsService {
           'Provider MANUAL prêt: Sovrack affichera les records à créer manuellement.',
       };
     }
-    throw new BadRequestException(
-      "L'automatisation DNS n'est pas disponible dans la V1",
-    );
+
+    if (!provider.apiToken) {
+      throw new BadRequestException('Token API requis pour ce fournisseur DNS');
+    }
+
+    const decryptedToken = this.crypto.decrypt(provider.apiToken);
+    return this.dns01Challenge.testCredentials(provider, decryptedToken);
   }
 
   private toPublicProvider(provider: DnsProvider) {
@@ -230,6 +233,52 @@ export class DomainsService {
     await this.prisma.dnsRecord.delete({ where: { id: recordId } });
   }
 
+  async createAcmeChallengeForDomain(
+    domainId: string,
+    challengeValue: string,
+    teamId: string,
+  ) {
+    const domain = await this.prisma.domain.findFirst({
+      where: { id: domainId, project: { teamId } },
+      include: { provider: true },
+    });
+    if (!domain) throw new NotFoundException('Domaine introuvable');
+    if (!domain.provider) {
+      throw new BadRequestException(
+        'Aucun fournisseur DNS associé à ce domaine',
+      );
+    }
+    const token = domain.provider.apiToken
+      ? this.crypto.decrypt(domain.provider.apiToken)
+      : '';
+    return this.dns01Challenge.createAcmeTxtRecord(
+      domain.provider,
+      token,
+      domain.name,
+      challengeValue,
+    );
+  }
+
+  async deleteAcmeChallengeForDomain(
+    domainId: string,
+    recordId: string,
+    teamId: string,
+  ) {
+    const domain = await this.prisma.domain.findFirst({
+      where: { id: domainId, project: { teamId } },
+      include: { provider: true },
+    });
+    if (!domain || !domain.provider) return false;
+    const token = domain.provider.apiToken
+      ? this.crypto.decrypt(domain.provider.apiToken)
+      : '';
+    return this.dns01Challenge.deleteAcmeTxtRecord(
+      domain.provider,
+      token,
+      recordId,
+    );
+  }
+
   private async validateProvider(
     providerId: string | undefined,
     teamId: string,
@@ -244,11 +293,6 @@ export class DomainsService {
     });
     if (!provider) {
       throw new NotFoundException('Provider DNS introuvable');
-    }
-    if (provider.type !== DnsProviderType.MANUAL) {
-      throw new BadRequestException(
-        "L'automatisation DNS n'est pas disponible dans la V1",
-      );
     }
   }
 
