@@ -195,6 +195,70 @@ export const SERVICE_TEMPLATES: ServiceTemplate[] = [
       },
     ],
   },
+  {
+    id: 'nextjs',
+    name: 'Next.js 15 App Router',
+    description:
+      'Production-ready Next.js 15 with Standalone build, Server Components and Tailwind CSS.',
+    components: [
+      {
+        nameSuffix: 'web',
+        type: ServiceType.APPLICATION,
+        sourceType: SourceType.GIT_REPOSITORY,
+        buildPack: BuildPack.NIXPACKS,
+        port: 3000,
+        env: { NODE_ENV: 'production', PORT: '3000' },
+      },
+    ],
+  },
+  {
+    id: 'nodejs-express',
+    name: 'Node.js Express API',
+    description:
+      'Clean TypeScript REST API with Express and automated Nixpacks containerization.',
+    components: [
+      {
+        nameSuffix: 'api',
+        type: ServiceType.APPLICATION,
+        sourceType: SourceType.GIT_REPOSITORY,
+        buildPack: BuildPack.NIXPACKS,
+        port: 4000,
+        env: { NODE_ENV: 'production', PORT: '4000' },
+      },
+    ],
+  },
+  {
+    id: 'python-fastapi',
+    name: 'FastAPI Python',
+    description:
+      'High-performance asynchronous Python API with Uvicorn and automatic OpenAPI Swagger docs.',
+    components: [
+      {
+        nameSuffix: 'api',
+        type: ServiceType.APPLICATION,
+        sourceType: SourceType.GIT_REPOSITORY,
+        buildPack: BuildPack.NIXPACKS,
+        port: 8000,
+        env: { PORT: '8000' },
+      },
+    ],
+  },
+  {
+    id: 'golang',
+    name: 'Golang Web Service',
+    description:
+      'Zero-dependency lightweight Go microservice container built from scratch.',
+    components: [
+      {
+        nameSuffix: 'svc',
+        type: ServiceType.APPLICATION,
+        sourceType: SourceType.GIT_REPOSITORY,
+        buildPack: BuildPack.NIXPACKS,
+        port: 8080,
+        env: { PORT: '8080' },
+      },
+    ],
+  },
 ];
 
 export function findServiceTemplate(id: string): ServiceTemplate | undefined {
