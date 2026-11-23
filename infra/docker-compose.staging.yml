@@ -45,6 +45,7 @@ services:
     cap_drop:
       - ALL
     volumes:
+      - /tmp/routes-manifest.json:/app/.next/routes-manifest.json:ro
       - ../apps/web/next.config.mjs:/app/next.config.mjs:ro
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m,uid=100,gid=101,mode=1777
