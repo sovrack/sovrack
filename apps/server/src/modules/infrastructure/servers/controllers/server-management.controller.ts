@@ -41,6 +41,7 @@ import {
 } from '../dto/server-response.dto';
 import { UpdateServerDto } from '../dto/update-server.dto';
 import { ServersCoreService } from '../services';
+import { AgentTunnelService } from '../agent-tunnel.service';
 import { RequireServerAction } from '../../../iam/authorization/require-server-action.decorator';
 import { WorkspaceActions } from '../../../iam/authorization/workspace-policy.types';
 
@@ -82,7 +83,27 @@ class InstallKeyDto {
 @Controller(['workspaces/:workspaceId/servers', 'servers'])
 @UseGuards(ServerWorkspaceGuard)
 export class ServerManagementController {
-  constructor(private readonly core: ServersCoreService) {}
+  constructor(
+    private readonly core: ServersCoreService,
+    private readonly agentTunnel?: AgentTunnelService,
+  ) {}
+
+  @Get(':id/telemetry')
+  @RequireServerAction(WorkspaceActions.READ_SERVER)
+  @ApiOperation({
+    summary: 'Obtenir la télémétrie et métriques temps réel du serveur (Agent)',
+  })
+  getTelemetry(@Param('id') id: string) {
+    if (!this.agentTunnel) {
+      return {
+        connected: false,
+        lastPingAt: null,
+        hostInfo: null,
+        metrics: null,
+      };
+    }
+    return this.agentTunnel.getTelemetry(id);
+  }
 
   @Post()
   @RequireServerAction(WorkspaceActions.MANAGE_SERVER)

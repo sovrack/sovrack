@@ -153,7 +153,41 @@ export class AgentTunnelService {
     if (agent) {
       agent.latestMetrics = metrics;
       agent.lastPingAt = new Date();
+
+      // Vérification des seuils d'alerte configurables (CPU > 90%, RAM > 90%)
+      if (metrics.cpuPercent > 90) {
+        this.logger.warn(
+          `[METRICS_ALERT] Server ${serverId} CPU critical: ${metrics.cpuPercent.toFixed(1)}%`,
+        );
+      }
+      const memRatio =
+        metrics.memoryTotalMb > 0
+          ? metrics.memoryUsedMb / metrics.memoryTotalMb
+          : 0;
+      if (memRatio > 0.9) {
+        this.logger.warn(
+          `[METRICS_ALERT] Server ${serverId} Memory critical: ${(memRatio * 100).toFixed(1)}%`,
+        );
+      }
     }
+  }
+
+  getTelemetry(serverId: string) {
+    const agent = this.agents.get(serverId);
+    if (!agent) {
+      return {
+        connected: false,
+        lastPingAt: null,
+        hostInfo: null,
+        metrics: null,
+      };
+    }
+    return {
+      connected: true,
+      lastPingAt: agent.lastPingAt,
+      hostInfo: agent.hostInfo ?? null,
+      metrics: agent.latestMetrics ?? null,
+    };
   }
 
   handleCommandResult(socketId: string, result: AgentCommandResult) {
