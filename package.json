@@ -1,6 +1,6 @@
 {
   "name": "sovrack",
-  "version": "3.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Modern multi-server deployment & infrastructure orchestration platform",
   "author": "Habib Drira <contact@sovrack.com>",

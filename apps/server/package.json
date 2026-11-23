@@ -1,6 +1,6 @@
 {
   "name": "@sovrack/server",
-  "version": "3.1.0",
+  "version": "1.0.0",
   "description": "Sovrack Orchestration & API Server",
   "author": "Habib Drira <contact@sovrack.com>",
   "private": true,
