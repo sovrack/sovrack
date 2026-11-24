@@ -90,6 +90,7 @@ services:
       PROCESS_ROLE: api
       LOG_LEVEL: debug
       TRUST_PROXY: "1"
+      HOST_PLANE_ENFORCEMENT: "${HOST_PLANE_ENFORCEMENT:-false}"
       # Base PostgreSQL hermétique pour Staging
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_STAGING_DB:-sovrack_staging}?schema=public
       # File Redis isolée sur l'index 1
