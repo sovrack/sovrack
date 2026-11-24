@@ -83,7 +83,7 @@ export function ServerMonitoringDialog({
         return next.slice(-20);
       });
     }
-  }, [telemetry?.metrics?.timestamp, telemetry?.metrics?.cpuPercent, telemetry?.metrics?.memoryPercent]);
+  }, [telemetry?.metrics]);
 
   const monitored = data?.find((s) => s.serverId === server?.id) ?? null;
   const installed = Boolean(monitored?.links);
@@ -229,7 +229,10 @@ export function ServerMonitoringDialog({
                         <YAxis domain={[0, 100]} hide />
                         <Tooltip
                           contentStyle={{ backgroundColor: "#18181b", borderColor: "#27272a", fontSize: "11px", borderRadius: "6px" }}
-                          formatter={(value: any, name: any) => [`${Number(value).toFixed(1)}%`, name === "cpu" ? "CPU" : "RAM"]}
+                          formatter={(value: unknown, name: unknown) => [
+                            `${Number(value).toFixed(1)}%`,
+                            String(name) === "cpu" ? "CPU" : "RAM",
+                          ]}
                         />
                         <Area type="monotone" dataKey="cpu" stroke="#22d3ee" fillOpacity={1} fill="url(#cpuGrad)" strokeWidth={1.5} isAnimationActive={false} />
                         <Area type="monotone" dataKey="mem" stroke="#c084fc" fillOpacity={1} fill="url(#memGrad)" strokeWidth={1.5} isAnimationActive={false} />
