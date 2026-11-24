@@ -26,6 +26,7 @@ SECRETS_ENV="$(resolve_secrets_env "$ROOT" "$BASE_DIR")"
 domain="$(read_env_value DOMAIN "$SECRETS_ENV")"
 app_domain="$(read_env_value APP_DOMAIN "$SECRETS_ENV")"
 staff_domain="$(read_env_value STAFF_DOMAIN "$SECRETS_ENV")"
+staging_domain="$(read_env_value STAGING_DOMAIN "$SECRETS_ENV")"
 allow_self_signed="$(read_env_value ALLOW_SELF_SIGNED_TLS "$SECRETS_ENV")"
 
 if [ "${allow_self_signed:-false}" != "true" ]; then
@@ -67,6 +68,7 @@ DNS.1 = ${domain}
 DNS.2 = www.${domain}
 DNS.3 = ${app_domain}
 DNS.4 = ${staff_domain}
+DNS.5 = ${staging_domain:-staging.sovrack.com}
 IP.1  = 127.0.0.1
 EOF
 

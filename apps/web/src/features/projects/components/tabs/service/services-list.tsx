@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   ChevronRight,
@@ -7,8 +8,10 @@ import {
   Database,
   FolderGit2,
   Plus,
+  Layers,
 } from "lucide-react";
 import type { Service } from "@/features/projects/types/service";
+import { TemplatePickerModal } from "./template-picker-modal";
 
 function serviceIcon(svc: Service) {
   if (svc.type === "DATABASE") return Database;
@@ -42,8 +45,16 @@ export function ServicesList({
   services: Service[];
   onAddService?: () => void;
 }) {
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+
   return (
     <div className="space-y-4">
+      <TemplatePickerModal
+        projectId={projectId}
+        isOpen={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+      />
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold text-primary">
@@ -53,6 +64,26 @@ export function ServicesList({
             {services.length} service{services.length !== 1 ? "s" : ""} in this
             project
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsTemplateModalOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-primary hover:bg-hover/20 transition"
+          >
+            <Layers size={14} className="text-blue-500" />
+            Modèles 1-Click
+          </button>
+          {onAddService && (
+            <button
+              type="button"
+              onClick={onAddService}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#2563EB] px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition"
+            >
+              <Plus size={14} />
+              Ajouter un service
+            </button>
+          )}
         </div>
       </div>
 

@@ -90,7 +90,7 @@ function BillingWorkspace() {
     message: string;
   } | null>(null);
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["billing"],
     queryFn: billingService.getMyBilling,
   });
@@ -127,10 +127,36 @@ function BillingWorkspace() {
 
   if (isError || !data) {
     return (
-      <div className="mx-auto max-w-xl py-10">
-        <Alert tone="error">
-          {getApiErrorMessage(error)} — impossible de charger la facturation.
-        </Alert>
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="Settings"
+          title="Facturation"
+          description="Abonnement et statut de votre espace Sovrack"
+        />
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+              <Sparkles size={20} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-base font-semibold text-primary">
+                Instance Autohébergée / Communautaire Active
+              </h3>
+              <p className="text-sm text-secondary leading-relaxed">
+                Le module de facturation cloud (Stripe/SaaS) est désactivé sur cette instance. Vous disposez d&apos;un accès complet et souverain pour connecter vos serveurs, déployer vos dépôts Git et orchestrer vos conteneurs Docker sans abonnement commercial imposé.
+              </p>
+              <div className="pt-2 flex items-center gap-3">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ["billing"] })}
+                >
+                  Rafraîchir l&apos;état
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import clsx from "clsx";
+import { Check, ChevronDown, Copy, KeyRound, ShieldCheck } from "lucide-react";
 import { Alert } from "@/shared/ui/alert";
 import { Button } from "@/shared/ui/button";
 import { Modal } from "@/shared/ui/modal";
@@ -63,6 +64,21 @@ export function ServerUpsertDialog({
   const [sshKeys, setSshKeys] = useState<SshKey[]>([]);
   const [keysLoading, setKeysLoading] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [connectionMode, setConnectionMode] = useState<"SSH" | "AGENT">("SSH");
+  const [copiedSnippet, setCopiedSnippet] = useState(false);
+
+  const installSnippet = useMemo(() => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://app.sovrack.com";
+    return `curl -fsSL https://raw.githubusercontent.com/sovrack/agent/main/install.sh | sudo bash -s -- --server=${origin}`;
+  }, []);
+
+  const handleCopySnippet = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(installSnippet);
+      setCopiedSnippet(true);
+      setTimeout(() => setCopiedSnippet(false), 2000);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -160,10 +176,80 @@ export function ServerUpsertDialog({
           )}
 
           {mode === "create" && (
-            <Alert tone="warning">
-              Enter a temporary VPS password if you want automatic key
-              installation right after creation.
-            </Alert>
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-[0.15em] text-secondary">
+                Mode de connexion
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConnectionMode("SSH")}
+                  className={clsx(
+                    "flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-left text-xs font-semibold transition",
+                    connectionMode === "SSH"
+                      ? "border-accent bg-accent/10 text-primary ring-1 ring-accent"
+                      : "border-border text-secondary hover:bg-hover/10 hover:text-primary",
+                  )}
+                >
+                  <KeyRound size={16} className="text-accent shrink-0" />
+                  <div>
+                    <p className="font-semibold text-primary">SSH Direct (Port 22)</p>
+                    <p className="text-[10px] text-muted font-normal">Connexion entrante standard</p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConnectionMode("AGENT");
+                    if (!values.host) set("host", "127.0.0.1");
+                    if (!values.port) set("port", "22");
+                    if (!values.sshKeyId && sshKeys.length > 0) set("sshKeyId", sshKeys[0].id);
+                  }}
+                  className={clsx(
+                    "flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-left text-xs font-semibold transition",
+                    connectionMode === "AGENT"
+                      ? "border-accent bg-accent/10 text-primary ring-1 ring-accent"
+                      : "border-border text-secondary hover:bg-hover/10 hover:text-primary",
+                  )}
+                >
+                  <ShieldCheck size={16} className="text-green-400 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-primary">Agent Sortant (Tunnel NAT)</p>
+                    <p className="text-[10px] text-muted font-normal">Contourne pare-feu & NAT (port 443)</p>
+                  </div>
+                </button>
+              </div>
+
+              {connectionMode === "AGENT" ? (
+                <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3.5 space-y-2.5">
+                  <div className="flex items-start gap-2.5">
+                    <ShieldCheck size={17} className="text-blue-400 shrink-0 mt-0.5" />
+                    <div className="text-xs">
+                      <p className="font-semibold text-primary">Agent Sovrack en Go (Tunnel WebSocket TLS)</p>
+                      <p className="mt-0.5 text-secondary text-[11px] leading-relaxed">
+                        L&apos;agent établit une connexion sortante chiffrée vers Sovrack. Aucun port entrant n&apos;est ouvert sur votre serveur.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-lg bg-card border border-border p-2 font-mono text-[11px] text-primary">
+                    <span className="flex-1 truncate">{installSnippet}</span>
+                    <button
+                      type="button"
+                      onClick={handleCopySnippet}
+                      className="shrink-0 p-1 rounded hover:bg-hover/20 text-secondary hover:text-primary transition"
+                      title="Copier la commande"
+                    >
+                      {copiedSnippet ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <Alert tone="warning">
+                  Enter a temporary VPS password if you want automatic key
+                  installation right after creation.
+                </Alert>
+              )}
+            </div>
           )}
 
           {/* SSH Key selector — create mode only. Editing (rotating) the key

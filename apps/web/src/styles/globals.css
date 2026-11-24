@@ -64,6 +64,38 @@
   --primary-foreground: 0 0% 100%;
 }
 
+.light,
+.dashboard-light {
+  --bg-app: #f8fafc;
+  --bg-sidebar: #121212; /* Le sidebar reste TOUJOURS sombre */
+  --bg-card: #ffffff;
+  --bg-surface: #ffffff;
+  --border: #e2e8f0;
+  --border-hover: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --hover: #f1f5f9;
+  --active: #e2e8f0;
+  --accent: #2563EB;
+  --accent-hover: #1d4ed8;
+  --accent-foreground: #ffffff;
+  --sidebar-text: #e4e4e7;
+  --sidebar-text-muted: #71717a;
+  --sidebar-text-active: #ffffff;
+  --sidebar-icon: #2563EB;
+  --sidebar-active-bg: #1c1c20;
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.05);
+  --success: #16a34a;
+  --error: #dc2626;
+  --warning: #ca8a04;
+  --idle: #94a3b8;
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+}
+
 .brand {
   --bg-app: #0a0a0a;
   --bg-sidebar: #121212;

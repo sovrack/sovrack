@@ -7,6 +7,16 @@ import { GitProviderType, ServerRunStatus } from '@prisma/client';
 // ─── Deployment events ────────────────────────────────────────────────────────
 export const DEPLOYMENT_PIPELINE_UPDATED = 'deployment.pipeline.updated';
 export const DEPLOYMENT_AUTO_DEPLOY_TRIGGER = 'deployment.auto_deploy.trigger';
+export const DEPLOYMENT_PULL_REQUEST_EVENT = 'deployment.pull_request.event';
+
+export type PullRequestWebhookEvent = {
+  projectId: string;
+  prNumber: number;
+  headBranch: string;
+  action: 'opened' | 'reopened' | 'synchronize' | 'closed';
+  title?: string;
+  provider: GitProviderType;
+};
 
 export type PipelineUpdatedEvent = {
   projectId: string;

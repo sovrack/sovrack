@@ -11,7 +11,6 @@ import { WorkspaceActions } from '../iam/authorization/workspace-policy.types';
 
 @ApiTags('billing')
 @Controller('billing')
-@RequiresProductCapability(ProductCapabilities.SELF_SERVICE_BILLING)
 export class BillingController {
   constructor(
     private readonly billingService: BillingService,
@@ -36,6 +35,7 @@ export class BillingController {
   }
 
   @Post('checkout')
+  @RequiresProductCapability(ProductCapabilities.SELF_SERVICE_BILLING)
   @HttpCode(200)
   async checkout(
     @GetUser() user: JwtPayload,
@@ -56,6 +56,7 @@ export class BillingController {
   }
 
   @Post('subscribe')
+  @RequiresProductCapability(ProductCapabilities.SELF_SERVICE_BILLING)
   @HttpCode(200)
   async subscribe(
     @GetUser() user: JwtPayload,
@@ -70,6 +71,7 @@ export class BillingController {
   }
 
   @Post('cancel')
+  @RequiresProductCapability(ProductCapabilities.SELF_SERVICE_BILLING)
   @HttpCode(200)
   async cancel(
     @GetUser() user: JwtPayload,

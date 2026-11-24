@@ -49,6 +49,7 @@ import { DeploymentsController } from './deployments.controller';
 import { DeploymentsGateway } from './gateways/deployments.gateway';
 import { DeploymentEventsPublisher } from './events/deployment-events.publisher';
 import { DeploymentsProcessor } from './processors/deployments.processor';
+import { PreviewEnvironmentsService } from './preview-environments.service';
 import { AppJwtModule } from '../../shared/jwt/jwt.module';
 
 @Module({
@@ -98,7 +99,12 @@ import { AppJwtModule } from '../../shared/jwt/jwt.module';
     DeploymentsConfigResolver,
     DeploymentsProcessor,
     PipelineRunsCleanupService,
+    PreviewEnvironmentsService,
   ],
-  exports: [DeploymentsQueryService, DeploymentsAuthorizationService],
+  exports: [
+    DeploymentsQueryService,
+    DeploymentsAuthorizationService,
+    PreviewEnvironmentsService,
+  ],
 })
 export class DeploymentsModule {}

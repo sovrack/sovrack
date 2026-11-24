@@ -117,7 +117,7 @@ services:
       NEXT_PUBLIC_API_URL: ${FRONTEND_PUBLIC_URL:-https://app.sovrack.com}
       NEXT_PUBLIC_WS_URL: ${FRONTEND_WS_PUBLIC_URL:-wss://sovrack.com}
       NEXT_PUBLIC_APP_NAME: ${APP_NAME:-Sovrack}
-      NEXT_PUBLIC_APP_VERSION: ${APP_VERSION:-3.1.0}
+      NEXT_PUBLIC_APP_VERSION: ${APP_VERSION:-1.0.0}
       PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://sovrack.com}
       CUSTOMER_APP_URL: ${CUSTOMER_APP_URL:-https://app.sovrack.com}
       STAFF_APP_URL: ${STAFF_APP_URL:-https://staff.sovrack.com}
@@ -396,6 +396,7 @@ services:
 # ────────────────────────────── RÉSEAU ─────────────────────────────
 networks:
   sovrack-net:
+    name: sovrack-network
     driver: bridge
 
 # ──────────────────────────── VOLUMES persistants ──────────────────────────

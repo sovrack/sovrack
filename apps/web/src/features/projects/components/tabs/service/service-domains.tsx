@@ -64,8 +64,8 @@ export function ServiceDomains({
 
   return (
     <SectionCard
-      title="Domains (HTTPS)"
-      description={`Attach a domain to this service${envName ? ` (${envName})` : ""}. On the next deployment, Traefik routes ${"<domain>"} → the container over HTTPS (Let's Encrypt).`}
+      title="Domaines & Certificats SSL"
+      description={`Attachez un domaine ou un sous-domaine wildcard (*.mondomaine.com) à ce service${envName ? ` (${envName})` : ""}. Traefik route automatiquement le trafic avec certificat SSL Let's Encrypt (HTTP-01 ou DNS-01).`}
     >
       {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
 
@@ -130,6 +130,11 @@ export function ServiceDomains({
                     >
                       {d.name} <ExternalLink size={11} />
                     </a>
+                    {d.name.startsWith("*") && (
+                      <span className="rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold text-purple-400">
+                        Wildcard (DNS-01)
+                      </span>
+                    )}
                     {d.verified && (
                       <span className="rounded-md border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold text-green-400">
                         verified

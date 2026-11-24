@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { DnsProvider, DnsProviderType, Prisma } from '@prisma/client';
@@ -9,6 +10,7 @@ import { CryptoService } from '../../../shared/crypto/crypto.service';
 import { CreateDomainDto } from './dto/create-domain.dto';
 import { CreateDnsProviderDto } from './dto/create-dns-provider.dto';
 import { UpsertDnsRecordDto } from './dto/upsert-dns-record.dto';
+import { Dns01ChallengeService } from './dns-01-challenge.service';
 
 const domainInclude = {
   provider: {
@@ -31,31 +33,31 @@ const domainInclude = {
  */
 @Injectable()
 export class DomainsService {
+  private readonly logger = new Logger(DomainsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
+    private readonly dns01Challenge: Dns01ChallengeService,
   ) {}
 
   // ── DNS providers ──────────────────────────────────────────────────────
 
   async listProviders(teamId: string) {
     const providers = await this.prisma.dnsProvider.findMany({
-      where: { teamId, type: DnsProviderType.MANUAL },
+      where: { teamId },
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
     });
     return providers.map((provider) => this.toPublicProvider(provider));
   }
 
   async createProvider(dto: CreateDnsProviderDto, teamId: string) {
-    if (dto.type !== DnsProviderType.MANUAL) {
-      throw new BadRequestException(
-        "L'automatisation DNS n'est pas disponible dans la V1. Utilisez le mode MANUAL.",
-      );
-    }
-    if (dto.apiToken || dto.accountId || dto.zoneId) {
-      throw new BadRequestException(
-        "Le mode DNS manuel n'accepte pas de credentials fournisseur",
-      );
+    if (dto.type === DnsProviderType.MANUAL) {
+      if (dto.apiToken || dto.accountId || dto.zoneId) {
+        throw new BadRequestException(
+          "Le mode DNS manuel n'accepte pas de credentials fournisseur",
+        );
+      }
     }
     const provider = await this.prisma.dnsProvider.create({
       data: {
@@ -89,9 +91,13 @@ export class DomainsService {
           'Provider MANUAL prêt: Sovrack affichera les records à créer manuellement.',
       };
     }
-    throw new BadRequestException(
-      "L'automatisation DNS n'est pas disponible dans la V1",
-    );
+
+    if (!provider.apiToken) {
+      throw new BadRequestException('Token API requis pour ce fournisseur DNS');
+    }
+
+    const decryptedToken = this.crypto.decrypt(provider.apiToken);
+    return this.dns01Challenge.testCredentials(provider, decryptedToken);
   }
 
   private toPublicProvider(provider: DnsProvider) {
@@ -191,7 +197,7 @@ export class DomainsService {
     await this.ensureDomainExists(domainId, teamId);
     await this.validateRecordLinks(dto, teamId);
 
-    return await this.prisma.dnsRecord.create({
+    const record = await this.prisma.dnsRecord.create({
       data: {
         domainId,
         type: dto.type,
@@ -202,6 +208,34 @@ export class DomainsService {
         serviceEnvId: dto.serviceEnvId?.trim() || undefined,
       },
     });
+
+    // Auto-sync avec Cloudflare API si le domaine a un provider Cloudflare configuré
+    const domain = await this.prisma.domain.findUnique({
+      where: { id: domainId },
+      include: { provider: true },
+    });
+    if (
+      domain?.provider?.type === DnsProviderType.CLOUDFLARE &&
+      domain.provider.apiToken &&
+      domain.provider.zoneId &&
+      (dto.type === 'A' || dto.type === 'CNAME')
+    ) {
+      try {
+        const decryptedToken = this.crypto.decrypt(domain.provider.apiToken);
+        void this.dns01Challenge.syncCloudflareRecord(
+          decryptedToken,
+          domain.provider.zoneId,
+          dto.name.trim(),
+          dto.type,
+          dto.value.trim(),
+          dto.proxied ?? true,
+        );
+      } catch (err) {
+        this.logger.warn(`Échec de la synchronisation DNS Cloudflare: ${err}`);
+      }
+    }
+
+    return record;
   }
 
   async updateRecord(
@@ -212,7 +246,7 @@ export class DomainsService {
     await this.ensureRecordExists(recordId, teamId);
     await this.validateRecordLinks(dto, teamId);
 
-    return await this.prisma.dnsRecord.update({
+    const record = await this.prisma.dnsRecord.update({
       where: { id: recordId },
       data: {
         type: dto.type,
@@ -223,11 +257,86 @@ export class DomainsService {
         serviceEnvId: dto.serviceEnvId?.trim() || null,
       },
     });
+
+    // Auto-sync avec Cloudflare API sur mise à jour
+    const existing = await this.prisma.dnsRecord.findUnique({
+      where: { id: recordId },
+      include: { domain: { include: { provider: true } } },
+    });
+    const provider = existing?.domain?.provider;
+    if (
+      provider?.type === DnsProviderType.CLOUDFLARE &&
+      provider.apiToken &&
+      provider.zoneId &&
+      (dto.type === 'A' || dto.type === 'CNAME')
+    ) {
+      try {
+        const decryptedToken = this.crypto.decrypt(provider.apiToken);
+        void this.dns01Challenge.syncCloudflareRecord(
+          decryptedToken,
+          provider.zoneId,
+          dto.name.trim(),
+          dto.type,
+          dto.value.trim(),
+          dto.proxied ?? true,
+        );
+      } catch (err) {
+        this.logger.warn(`Échec de la synchronisation DNS Cloudflare: ${err}`);
+      }
+    }
+
+    return record;
   }
 
   async removeRecord(recordId: string, teamId: string): Promise<void> {
     await this.ensureRecordExists(recordId, teamId);
     await this.prisma.dnsRecord.delete({ where: { id: recordId } });
+  }
+
+  async createAcmeChallengeForDomain(
+    domainId: string,
+    challengeValue: string,
+    teamId: string,
+  ) {
+    const domain = await this.prisma.domain.findFirst({
+      where: { id: domainId, project: { teamId } },
+      include: { provider: true },
+    });
+    if (!domain) throw new NotFoundException('Domaine introuvable');
+    if (!domain.provider) {
+      throw new BadRequestException(
+        'Aucun fournisseur DNS associé à ce domaine',
+      );
+    }
+    const token = domain.provider.apiToken
+      ? this.crypto.decrypt(domain.provider.apiToken)
+      : '';
+    return this.dns01Challenge.createAcmeTxtRecord(
+      domain.provider,
+      token,
+      domain.name,
+      challengeValue,
+    );
+  }
+
+  async deleteAcmeChallengeForDomain(
+    domainId: string,
+    recordId: string,
+    teamId: string,
+  ) {
+    const domain = await this.prisma.domain.findFirst({
+      where: { id: domainId, project: { teamId } },
+      include: { provider: true },
+    });
+    if (!domain || !domain.provider) return false;
+    const token = domain.provider.apiToken
+      ? this.crypto.decrypt(domain.provider.apiToken)
+      : '';
+    return this.dns01Challenge.deleteAcmeTxtRecord(
+      domain.provider,
+      token,
+      recordId,
+    );
   }
 
   private async validateProvider(
@@ -244,11 +353,6 @@ export class DomainsService {
     });
     if (!provider) {
       throw new NotFoundException('Provider DNS introuvable');
-    }
-    if (provider.type !== DnsProviderType.MANUAL) {
-      throw new BadRequestException(
-        "L'automatisation DNS n'est pas disponible dans la V1",
-      );
     }
   }
 

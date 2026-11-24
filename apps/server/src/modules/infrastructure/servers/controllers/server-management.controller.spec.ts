@@ -106,4 +106,24 @@ describe('ServerManagementController', () => {
     expect(core.pingServer).toHaveBeenCalledWith('srv-1', 'user-1');
     expect(core.cancelJob).toHaveBeenCalledWith('srv-1', 'job-1');
   });
+
+  it('delegates getTelemetry to AgentTunnelService or fallback', async () => {
+    const { ctrl } = build();
+    const fallback = await ctrl.getTelemetry('srv-1');
+    expect(fallback.connected).toBe(false);
+
+    const agentTunnel = {
+      getTelemetry: jest.fn().mockReturnValue({
+        connected: true,
+        metrics: { cpuPercent: 12.5 },
+      }),
+    };
+    const ctrlWithTunnel = new ServerManagementController(
+      {} as never,
+      agentTunnel as never,
+    );
+    const telemetry = await ctrlWithTunnel.getTelemetry('srv-1');
+    expect(telemetry.connected).toBe(true);
+    expect(agentTunnel.getTelemetry).toHaveBeenCalledWith('srv-1');
+  });
 });

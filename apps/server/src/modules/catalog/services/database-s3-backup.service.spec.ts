@@ -106,4 +106,24 @@ describe('DatabaseS3BackupService', () => {
       );
     });
   });
+
+  describe('PostgreSQL PITR and WAL streaming', () => {
+    it('generates wal archive parameters for continuous S3 streaming', () => {
+      const cfg = service.generatePostgresWalArchiveConfig('my-backup-bucket');
+      expect(cfg.archiveMode).toBe('on');
+      expect(cfg.walLevel).toBe('replica');
+      expect(cfg.archiveCommand).toContain('s3://my-backup-bucket/wal-archives/');
+    });
+
+    it('generates point-in-time recovery restore script to specific second', () => {
+      const restore = service.generatePostgresPitrRestoreCommand(
+        'pg-container',
+        '2026-11-23 14:30:00 UTC',
+        'my-backup-bucket',
+      );
+      expect(restore).toContain("recovery_target_time = '2026-11-23 14:30:00 UTC'");
+      expect(restore).toContain('recovery.signal');
+      expect(restore).toContain('docker restart pg-container');
+    });
+  });
 });

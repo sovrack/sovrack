@@ -4,9 +4,11 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { Deployment, DeploymentStatus, ServiceType } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
+import { AgentTunnelService } from '../../infrastructure/servers/agent-tunnel.service';
 import {
   buildContainerPrefix,
   buildServiceAlias,
@@ -67,6 +69,7 @@ export class DockerDeployExecutorService {
     private readonly notifications: NotificationsService,
     private readonly replicaLauncher: ReplicaLauncherService,
     private readonly failureRecovery: DeployFailureRecoveryService,
+    @Optional() private readonly agentTunnel?: AgentTunnelService,
   ) {}
 
   private resolveRuntimeConfig(
@@ -99,11 +102,12 @@ export class DockerDeployExecutorService {
 
     if (!deployment) throw new NotFoundException('Déploiement non trouvé');
 
-    // DOCKER_COMPOSE builds are disabled (removed executor).
+    // Exécution native de la stack Docker Compose
     if (deployment.service?.buildPack === 'DOCKER_COMPOSE') {
-      throw new BadRequestException(
-        'Les déploiements Docker Compose sont désactivés sur cette plateforme.',
-      );
+      await this.deployDockerCompose(deployment);
+      return (await this.prisma.deployment.findUnique({
+        where: { id: deployment.id },
+      }))!;
     }
 
     // Null serviceEnvId = archived ServiceEnvironment; cannot bind cell.
@@ -465,5 +469,87 @@ export class DockerDeployExecutorService {
         error,
       });
     }
+  }
+
+  private async deployDockerCompose(deployment: any): Promise<void> {
+    const composeContent = deployment.service?.dockerComposeContent;
+    if (!composeContent || !composeContent.trim()) {
+      throw new BadRequestException("Le service n'a pas de contenu docker-compose.yml.");
+    }
+
+    const serviceName = deployment.service?.name ?? deployment.project?.name ?? 'app';
+    const projectNameStr = deployment.project?.name ?? 'project';
+
+    const servers = deployment.serviceEnv?.environment?.servers ?? [];
+    const serverId = deployment.serviceEnv?.serverId ?? servers[0]?.id;
+    if (!serverId) {
+      throw new BadRequestException(
+        "Aucun serveur actif n'est assigné à cet environnement pour exécuter docker compose.",
+      );
+    }
+
+    this.logEmitter.emit(
+      deployment.id,
+      `🚀 Initialisation du déploiement Docker Compose pour « ${serviceName} »...\n`,
+      'info',
+    );
+
+    const safeProj = projectNameStr.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const safeSvc = serviceName.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    const composeDir = `/srv/sovrack/apps/${safeProj}/${safeSvc}`;
+    const composeFile = `${composeDir}/docker-compose.yml`;
+    const projectName = `${safeProj}-${safeSvc}`;
+
+    const b64 = Buffer.from(composeContent, 'utf8').toString('base64');
+    const cmd = `mkdir -p ${composeDir} && echo "${b64}" | base64 -d > ${composeFile} && docker compose -p ${projectName} -f ${composeFile} up -d --remove-orphans`;
+
+    this.logEmitter.emit(
+      deployment.id,
+      `📦 Écriture de la recette dans ${composeFile} et démarrage des conteneurs...\n`,
+      'info',
+    );
+
+    let output = '';
+    let success = false;
+    if (this.agentTunnel && this.agentTunnel.isAgentConnected(serverId)) {
+      try {
+        const res = await this.agentTunnel.executeCommand(serverId, cmd, [], {}, 180);
+        output = (res.stdout || '') + '\n' + (res.stderr || '');
+        success = res.exitCode === 0;
+      } catch (err) {
+        output = `Erreur Agent Tunnel: ${(err as Error).message}`;
+      }
+    } else {
+      output = `Avertissement: Agent Sovrack non connecté sur le serveur ${serverId}. Veuillez démarrer l'Agent Sovrack sur le serveur hôte.`;
+      success = false;
+    }
+
+    this.logEmitter.emit(deployment.id, output, success ? 'info' : 'error');
+
+    if (!success) {
+      await this.prisma.deployment.update({
+        where: { id: deployment.id },
+        data: {
+          status: DeploymentStatus.FAILED,
+          logs: output.slice(0, 5000),
+          finishedAt: new Date(),
+        },
+      });
+      throw new BadRequestException(`Échec du déploiement Docker Compose:\n${output}`);
+    }
+
+    await this.prisma.deployment.update({
+      where: { id: deployment.id },
+      data: {
+        status: DeploymentStatus.SUCCESS,
+        finishedAt: new Date(),
+      },
+    });
+
+    this.logEmitter.emit(
+      deployment.id,
+      `✅ Stack Docker Compose « ${projectName} » démarrée avec succès !\n`,
+      'info',
+    );
   }
 }

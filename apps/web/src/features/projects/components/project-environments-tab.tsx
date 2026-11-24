@@ -307,6 +307,11 @@ export function ProjectEnvironmentsTab({
                   >
                     {env.name}
                   </span>
+                  {env.name === "PREVIEW" && (
+                    <span className="rounded-md bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 text-[10px] font-semibold text-purple-400">
+                      Éphémère PR / MR
+                    </span>
+                  )}
                   {/* Serveur lié — sinon avertissement (les déploiements échoueraient). */}
                   {(env.servers?.length ?? 0) > 0 ? (
                     <span className="flex items-center gap-1 text-xs text-muted">

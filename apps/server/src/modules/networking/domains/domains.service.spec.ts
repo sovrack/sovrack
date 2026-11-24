@@ -76,14 +76,30 @@ describe('DomainsService', () => {
           ),
       },
     };
-    crypto = { encrypt: jest.fn((v: string) => `enc:${v}`) };
+    crypto = {
+      encrypt: jest.fn((v: string) => `enc:${v}`),
+      decrypt: jest.fn((v: string) => v.replace(/^enc:/, '')),
+    };
+    const dns01Challenge = {
+      testCredentials: jest.fn().mockResolvedValue({
+        ok: true,
+        status: 'CLOUDFLARE_VALID',
+        message: 'Token Cloudflare valide',
+      }),
+      createAcmeTxtRecord: jest.fn().mockResolvedValue({
+        success: true,
+        recordId: 'txt-1',
+      }),
+      deleteAcmeTxtRecord: jest.fn().mockResolvedValue(true),
+    };
     service = new DomainsService(
       prisma as unknown as PrismaService,
       crypto as unknown as CryptoService,
+      dns01Challenge as unknown as any,
     );
   });
 
-  it('accepts only the credential-free MANUAL provider in V1', async () => {
+  it('accepts MANUAL and CLOUDFLARE automated providers for DNS-01', async () => {
     await expect(
       service.createProvider(
         { name: 'manual', type: DnsProviderType.MANUAL },
@@ -101,7 +117,8 @@ describe('DomainsService', () => {
         },
         'workspace-1',
       ),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).resolves.toEqual(expect.objectContaining({ type: 'CLOUDFLARE' }));
+    expect(crypto.encrypt).toHaveBeenCalledWith('secret');
   });
 
   it('masks the API token in the public provider shape', async () => {

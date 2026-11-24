@@ -5,8 +5,10 @@ import { PrismaService } from '../../../../shared/database/prisma.service';
 import {
   DEPLOYMENT_PIPELINE_UPDATED,
   DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
+  DEPLOYMENT_PULL_REQUEST_EVENT,
   type PipelineUpdatedEvent,
   type AutoDeployTriggerEvent,
+  type PullRequestWebhookEvent,
 } from '../../../../shared/events/events.catalog';
 import {
   IWebhookHandler,
@@ -78,7 +80,45 @@ export class GithubWebhookHandler implements IWebhookHandler {
     if (eventType === 'workflow_run') {
       return this.handleWorkflowRunEvent(endpoint, payload);
     }
+    if (eventType === 'pull_request') {
+      return this.handlePullRequestEvent(endpoint, payload);
+    }
     return { status: 'ignored' };
+  }
+
+  private async handlePullRequestEvent(
+    endpoint: WebhookEndpointContext,
+    payload: Record<string, unknown>,
+  ): Promise<WebhookHandleResult> {
+    const action = typeof payload.action === 'string' ? payload.action : '';
+    const pr = payload.pull_request as
+      | {
+          number?: number;
+          head?: { ref?: string };
+          title?: string;
+        }
+      | undefined;
+
+    if (!pr || !pr.number || !pr.head?.ref) {
+      return { status: 'ignored' };
+    }
+
+    const validActions = ['opened', 'reopened', 'synchronize', 'closed'];
+    if (!validActions.includes(action)) {
+      return { status: 'ignored' };
+    }
+
+    const prEvent: PullRequestWebhookEvent = {
+      projectId: endpoint.projectId,
+      prNumber: pr.number,
+      headBranch: pr.head.ref,
+      action: action as 'opened' | 'reopened' | 'synchronize' | 'closed',
+      title: pr.title,
+      provider: GitProviderType.GITHUB,
+    };
+
+    await this.eventEmitter.emitAsync(DEPLOYMENT_PULL_REQUEST_EVENT, prEvent);
+    return { status: 'ok' };
   }
 
   private async handlePushEvent(
@@ -219,6 +259,7 @@ export class GithubWebhookHandler implements IWebhookHandler {
   private detectEventType(
     payload: Record<string, unknown>,
   ): string | undefined {
+    if ('pull_request' in payload) return 'pull_request';
     if ('workflow_run' in payload) return 'workflow_run';
     if ('ref' in payload && 'repository' in payload) return 'push';
     return undefined;

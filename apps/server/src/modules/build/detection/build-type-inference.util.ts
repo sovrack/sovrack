@@ -164,6 +164,77 @@ export function inferType(
     });
   }
 
+  if (
+    packageDeps.has('astro') ||
+    fileSet.has('astro.config.mjs') ||
+    fileSet.has('astro.config.js') ||
+    fileSet.has('astro.config.ts')
+  ) {
+    reasons.push('Astro static site markers found');
+    return buildResult({
+      type: 'react',
+      confidence: 'high',
+      language: 'typescript',
+      framework: 'astro',
+      packageManager,
+      hasDockerfile,
+      hasDockerCompose,
+      hasCiConfig,
+      recommendedStrategy: hasDockerfile ? 'docker' : 'static-build',
+      recommendedBuildType: 'react',
+      recommendedStartCommand: 'npm run build',
+      recommendedPort: 80,
+      reasons,
+    });
+  }
+
+  if (
+    packageDeps.has('vue') ||
+    fileSet.has('vue.config.js') ||
+    packageDeps.has('@vue/compiler-sfc')
+  ) {
+    reasons.push('Vue.js frontend markers found');
+    return buildResult({
+      type: 'react',
+      confidence: 'high',
+      language: 'javascript',
+      framework: 'vue',
+      packageManager,
+      hasDockerfile,
+      hasDockerCompose,
+      hasCiConfig,
+      recommendedStrategy: hasDockerfile ? 'docker' : 'static-build',
+      recommendedBuildType: 'react',
+      recommendedStartCommand: 'npm run build',
+      recommendedPort: 80,
+      reasons,
+    });
+  }
+
+  if (
+    packageDeps.has('vite') ||
+    fileSet.has('vite.config.ts') ||
+    fileSet.has('vite.config.js') ||
+    fileSet.has('vite.config.mjs')
+  ) {
+    reasons.push('Vite frontend application markers found');
+    return buildResult({
+      type: 'react',
+      confidence: 'high',
+      language: 'typescript',
+      framework: 'vite',
+      packageManager,
+      hasDockerfile,
+      hasDockerCompose,
+      hasCiConfig,
+      recommendedStrategy: hasDockerfile ? 'docker' : 'static-build',
+      recommendedBuildType: 'react',
+      recommendedStartCommand: 'npm run build',
+      recommendedPort: 80,
+      reasons,
+    });
+  }
+
   if (fileSet.has('package.json')) {
     reasons.push('Node.js marker found (package.json)');
     return buildResult({

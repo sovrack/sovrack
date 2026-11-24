@@ -3,11 +3,14 @@
 import { Sidebar } from "@/shared/layout/sidebar";
 import { TopNav } from "@/shared/layout/top-nav";
 import { useSidebar } from "@/shared/contexts/sidebar-context";
+import { useTheme } from "@/shared/contexts/theme-context";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import api from "@/shared/lib/api";
 import { useAuth } from "@/features/auth/api/use-auth";
+import { CommandPalette } from "@/shared/ui/command-palette";
+import clsx from "clsx";
 
 type AuthSessionMetadata = {
   authenticationType: "user" | "staff-impersonation";
@@ -16,6 +19,7 @@ type AuthSessionMetadata = {
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { collapsed } = useSidebar();
+  const { isLight } = useTheme();
   const router = useRouter();
   const { logout } = useAuth();
   const { data: session } = useQuery({
@@ -34,12 +38,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#0a0a0a] text-zinc-100">
+    <div className="flex min-h-screen bg-[#121212]">
+      <CommandPalette />
       <Sidebar />
       <div
-        className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ease-in-out ${
-          collapsed ? "lg:ml-16" : "lg:ml-60"
-        }`}
+        className={clsx(
+          "flex min-w-0 flex-1 flex-col transition-all duration-300 ease-in-out",
+          collapsed ? "lg:ml-16" : "lg:ml-[230px]",
+          isLight
+            ? "dashboard-light bg-[#f8fafc] text-slate-900"
+            : "bg-[#0a0a0a] text-zinc-100",
+        )}
       >
         <TopNav />
         <main className="flex-1 px-4 py-5 md:px-6 md:py-6">

@@ -7,23 +7,26 @@ import { WorkspaceSessionManager } from "@/features/teams/components/workspace-s
 import { ConfirmProvider } from "@/shared/contexts/confirm-context";
 import { ToastProvider } from "@/shared/contexts/toast-context";
 import { SidebarProvider } from "@/shared/contexts/sidebar-context";
+import { ThemeProvider } from "@/shared/contexts/theme-context";
 import { LanguageProvider } from "@/shared/i18n/language-context";
 import { queryClient } from "@/shared/lib/query-client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <LanguageProvider>
-        <AuthSessionManager>
-          <WorkspaceSessionManager>
-            <ConfirmProvider>
-              <ToastProvider>
-                <SidebarProvider>{children}</SidebarProvider>
-              </ToastProvider>
-            </ConfirmProvider>
-          </WorkspaceSessionManager>
-        </AuthSessionManager>
-      </LanguageProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <AuthSessionManager>
+            <WorkspaceSessionManager>
+              <ConfirmProvider>
+                <ToastProvider>
+                  <SidebarProvider>{children}</SidebarProvider>
+                </ToastProvider>
+              </ConfirmProvider>
+            </WorkspaceSessionManager>
+          </AuthSessionManager>
+        </LanguageProvider>
+      </ThemeProvider>
       {process.env.NODE_ENV === "development" && (
         <ReactQueryDevtools initialIsOpen={false} />
       )}

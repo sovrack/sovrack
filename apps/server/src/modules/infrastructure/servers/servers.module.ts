@@ -7,6 +7,8 @@ import { ServerAuditController } from './controllers/server-audit.controller';
 import { ServerValidationController } from './controllers/server-validation.controller';
 import { ServerDetectionController } from './controllers/server-detection.controller';
 import { ManagedServersController } from './controllers/managed-servers.controller';
+import { AgentTunnelService } from './agent-tunnel.service';
+import { AgentTunnelGateway } from './agent-tunnel.gateway';
 
 @Module({
   imports: [AppJwtModule, ServersSharedModule],
@@ -18,7 +20,7 @@ import { ManagedServersController } from './controllers/managed-servers.controll
     ServerDetectionController,
     ManagedServersController,
   ],
-  providers: [],
-  exports: [ServersSharedModule],
+  providers: [AgentTunnelService, AgentTunnelGateway],
+  exports: [ServersSharedModule, AgentTunnelService],
 })
 export class ServersModule {}

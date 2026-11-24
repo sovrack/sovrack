@@ -108,6 +108,38 @@ export class DatabaseS3BackupService {
   }
 
   /**
+   * Génère les paramètres de configuration PostgreSQL pour le streaming WAL continu vers S3 / R2 (PITR).
+   */
+  generatePostgresWalArchiveConfig(
+    bucketName: string,
+    prefix: string = 'wal-archives',
+  ): { archiveMode: string; archiveCommand: string; walLevel: string } {
+    return {
+      walLevel: 'replica',
+      archiveMode: 'on',
+      archiveCommand: `gzip -c %p | aws s3 cp - s3://${bucketName}/${prefix}/%f.gz`,
+    };
+  }
+
+  /**
+   * Génère la commande de restauration Point-In-Time (PITR) pour PostgreSQL à la seconde exacte demandée.
+   */
+  generatePostgresPitrRestoreCommand(
+    containerName: string,
+    targetTimestamp: string,
+    bucketName: string,
+    prefix: string = 'wal-archives',
+  ): string {
+    const recoveryConfig = [
+      `restore_command = 'aws s3 cp s3://${bucketName}/${prefix}/%f.gz - | gunzip -c > %p'`,
+      `recovery_target_time = '${targetTimestamp}'`,
+      `recovery_target_action = 'promote'`,
+    ].join('\\n');
+
+    return `docker exec ${containerName} sh -c "echo \\"${recoveryConfig}\\" >> /var/lib/postgresql/data/postgresql.auto.conf && touch /var/lib/postgresql/data/recovery.signal" && docker restart ${containerName}`;
+  }
+
+  /**
    * Signs an AWS S3 / Cloudflare R2 REST PUT request using AWS Signature Version 4.
    */
   generateS3UploadHeaders(

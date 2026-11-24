@@ -6,8 +6,10 @@ import { GitlabPipelinePersistenceService } from './gitlab-pipeline-persistence.
 import {
   DEPLOYMENT_PIPELINE_UPDATED,
   DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
+  DEPLOYMENT_PULL_REQUEST_EVENT,
   type PipelineUpdatedEvent,
   type AutoDeployTriggerEvent,
+  type PullRequestWebhookEvent,
 } from '../../../../shared/events/events.catalog';
 import {
   IWebhookHandler,
@@ -31,11 +33,15 @@ export type GitlabWebhookPayload = {
   };
   object_attributes?: {
     id?: number;
+    iid?: number;
     status?: string;
     ref?: string;
     sha?: string;
     url?: string;
     web_url?: string;
+    source_branch?: string;
+    action?: string;
+    title?: string;
   };
 };
 
@@ -109,6 +115,41 @@ export class GitlabWebhookHandler implements IWebhookHandler {
         DEPLOYMENT_AUTO_DEPLOY_TRIGGER,
         pushEvent,
       );
+      return { status: 'ok' };
+    }
+
+    const isMergeRequestEvent =
+      payload.object_kind === 'merge_request' ||
+      payload.event_name === 'merge_request';
+    if (isMergeRequestEvent) {
+      const attrs = payload.object_attributes;
+      const mrId = attrs?.iid ?? attrs?.id;
+      const branch = attrs?.source_branch;
+      const actionRaw = attrs?.action ?? 'open';
+
+      if (!mrId || !branch) {
+        return { status: 'ignored' };
+      }
+
+      let action: 'opened' | 'reopened' | 'synchronize' | 'closed' = 'opened';
+      if (['close', 'merged'].includes(actionRaw)) {
+        action = 'closed';
+      } else if (actionRaw === 'reopen') {
+        action = 'reopened';
+      } else if (actionRaw === 'update') {
+        action = 'synchronize';
+      }
+
+      const prEvent: PullRequestWebhookEvent = {
+        projectId: endpoint.projectId,
+        prNumber: mrId,
+        headBranch: branch,
+        action,
+        title: attrs?.title,
+        provider: GitProviderType.GITLAB,
+      };
+
+      await this.eventEmitter.emitAsync(DEPLOYMENT_PULL_REQUEST_EVENT, prEvent);
       return { status: 'ok' };
     }
 
